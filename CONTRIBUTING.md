@@ -93,7 +93,7 @@ I na końcu w katalogu głównym repo:
 
 Od tej pory:
 - pre-commit uruchamia się automatycznie przy każdym commitcie
-- Użyj pre-commit --all-files (jeśli chcesz sprawdzic pliki ręcznie)
+- Użyj pre-commit run --all-files (jeśli chcesz sprawdzic pliki ręcznie)
 
 Hooki:
 - formatują kod,
