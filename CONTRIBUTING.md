@@ -51,9 +51,9 @@ Wymagania przed merge:
 
 Każdy moduł powinien mieć własny katalog testów:
 
-frontend/tests/
-backend/tests/
-ai/tests/
+- frontend/tests/
+- backend/tests/
+- ai/tests/
 
 Wymagania:
 - PR zmieniający logikę musi dodać lub zaktualizować testy
