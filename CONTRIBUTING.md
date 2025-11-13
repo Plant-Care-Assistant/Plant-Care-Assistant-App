@@ -8,7 +8,7 @@ Repozytorium jest monorepo i składa się z głównych modułów:
 - frontend/   – UI aplikacji
 - backend/    – logika aplikacji i API
 - ai/         – moduł rozpoznawania roślin
-- data/       – dane o roślinach
+- data/       – baza danych
 - infra/      – Docker, deployment, środowisko uruchomieniowe
 - docs/       – dokumentacja techniczna
 - scripts/    – narzędzia i skrypty pomocnicze
