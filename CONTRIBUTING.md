@@ -78,14 +78,26 @@ Używamy spójnych typów commitów:
 W projekcie korzystamy z hooków pre-commit.
 
 Każdy po sklonowaniu repo musi wykonać:
-
 - pip install pre-commit
+
+Ewentualnie (w przypadku problemów):
+- python3 -m pip install pre-commit
+- python3 -m pip show pre-commit
+- echo 'export PATH="{lokalizacja-instalacji-pre-commit}" >> ~/.zshrc LUB ~/.bashrc
+- source ~/.zshrc LUB ~/.bashrc
+
+---
+
+I na końcu w katalogu głównym repo:
 - pre-commit install
+
+Od tej pory:
+- pre-commit uruchamia się automatycznie przy każdym commitcie
+- Użyj pre-commit --all-files (jeśli chcesz sprawdzic pliki ręcznie)
 
 Hooki:
 - formatują kod,
 - wykrywają błędy zanim trafią do PR,
-- zmniejszają konflikty w review.
 
 
 ## Dokumentacja
