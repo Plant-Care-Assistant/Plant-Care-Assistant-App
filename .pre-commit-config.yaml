@@ -1,5 +1,5 @@
 repos:
-  # GENERAl
+  # GENERAL
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -17,10 +17,12 @@ repos:
         files: ^frontend/.*\.(js|jsx|ts|tsx|json|css|scss|html|md|yaml|yml)$
 
 
-  # BACKEND
+  # BACKEND & AI
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.1
+    rev: v0.14.5
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: ["--fix"]
+        files: ^(backend/|ai/).*\.py$
+      - id: ruff-format
         files: ^(backend/|ai/).*\.py$

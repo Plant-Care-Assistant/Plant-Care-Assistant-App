@@ -1,0 +1,31 @@
+include = [
+    "ai/src/**/*.py",
+    "ai/tests/**/*.py",
+]
+
+line-length = 100
+indent-width = 4
+
+
+[lint]
+preview = true
+select = ["ALL"]
+extend-ignore = ["EXE002"]
+
+
+[lint.flake8-pytest-style]
+parametrize-names-type = "tuple"
+
+
+[lint.per-file-ignores]
+"ai/tests/**/*.py" = [
+    "FBT003", # allow boolean values in function calls
+    "S101",    # allow use of assert statements in tests
+]
+
+
+[lint.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = true
