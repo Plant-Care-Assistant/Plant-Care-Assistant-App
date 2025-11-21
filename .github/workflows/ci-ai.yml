@@ -2,14 +2,11 @@ name: AI Module CI
 
 on:
   pull_request:
-    paths:
-      - "ai/**"
-      - ".github/workflows/ci-ai.yml"
-      - "ruff.toml"
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  lint-test-and-build:
+  ai-ci:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,7 +16,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for changes in AI module
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            ai:
+              - 'ai/**'
+              - '.github/workflows/ci-ai.yml'
+              - 'ruff.toml'
+
+      - name: Skip - no AI changes
+        if: steps.changes.outputs.ai != 'true'
+        run: echo "No AI-related changes, skipping CI steps."
+
       - name: Set up Python
+        if: steps.changes.outputs.ai == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -27,26 +39,32 @@ jobs:
           cache-dependency-path: ai/pyproject.toml
 
       - name: Install dependencies (CPU)
+        if: steps.changes.outputs.ai == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install --extra-index-url https://download.pytorch.org/whl/cpu -e "./ai[dev]"
 
       - name: Ruff check
+        if: steps.changes.outputs.ai == 'true'
         working-directory: ai
         run: ruff check
 
       - name: Run unit tests
+        if: steps.changes.outputs.ai == 'true'
         working-directory: ai
         run: ./scripts/run_unit_tests.sh
 
       - name: Run integration tests
+        if: steps.changes.outputs.ai == 'true'
         working-directory: ai
         run: ./scripts/run_integration_tests.sh
 
       - name: Set up Docker Buildx
+        if: steps.changes.outputs.ai == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build AI CPU image
+        if: steps.changes.outputs.ai == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./ai
