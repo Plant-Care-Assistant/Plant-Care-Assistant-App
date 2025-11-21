@@ -1,11 +1,6 @@
 name: AI Module CI
 
 on:
-  push:
-    paths:
-      - "ai/**"
-      - ".github/workflows/ci-ai.yml"
-      - "ruff.toml"
   pull_request:
     paths:
       - "ai/**"
