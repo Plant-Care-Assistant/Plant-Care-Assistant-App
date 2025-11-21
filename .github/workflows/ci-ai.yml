@@ -1,0 +1,60 @@
+name: AI Module CI
+
+on:
+  push:
+    paths:
+      - "ai/**"
+      - ".github/workflows/ci-ai.yml"
+      - "ruff.toml"
+  pull_request:
+    paths:
+      - "ai/**"
+      - ".github/workflows/ci-ai.yml"
+      - "ruff.toml"
+  workflow_dispatch:
+
+jobs:
+  lint-test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: ai/pyproject.toml
+
+      - name: Install dependencies (CPU)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -e "./ai[dev]"
+
+      - name: Ruff check
+        working-directory: ai
+        run: ruff check
+
+      - name: Run unit tests
+        working-directory: ai
+        run: ./scripts/run_unit_tests.sh
+
+      - name: Run integration tests
+        working-directory: ai
+        run: ./scripts/run_integration_tests.sh
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build AI CPU image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai
+          file: ./ai/docker/cpu.Dockerfile
+          push: false
+          tags: plant-care-ai:ci-cpu
