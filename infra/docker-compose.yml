@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: plant_care_dev_db
+    restart: always
+    environment:
+      POSTGRES_USER: pca_devuser
+      POSTGRES_PASSWORD: pca_devpass
+      PGDATA: ../data/postgres_data
+      POSTGRES_DB: pca_localdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../data/postgres_data:/var/lib/postgresql/data
+      - ../data/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pca_devuser -d pca_localdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
