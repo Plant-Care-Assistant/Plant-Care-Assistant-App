@@ -23,5 +23,29 @@ Repository = "https://github.com/Plant-Care-Assistant/Plant-Care-Assistant-App.g
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=9.0.1"
+    "pytest>=9.0.1",
+    "ruff>=0.14.9"
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "ruff>=0.14.9"
+]
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+extend-ignore = [
+    "CPY001",
+    "D100",
+    "D101",
+    "D103",
+    "D104"
+]
+
+
+[tool.ruff.lint.per-file-ignores]
+"app/services/security.py" = [ "S106" ]
+"app/models/base.py" = [ "PGH003", "S106" ]
+"__main__.py" = [ "S104" ]

@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from app.models.base import Token
 from app.services.security import AuthenticateDepends
 

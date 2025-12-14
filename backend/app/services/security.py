@@ -1,15 +1,16 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
+
+import jwt
+from argon2 import PasswordHasher
+from fastapi import Depends
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi import Depends, status
-from argon2 import PasswordHasher
-import jwt
 
 from app.db import DbDepends
 from app.models.base import Token, User
-from app.settings import settings
 from app.services.users import read_user_login
+from app.settings import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 SECRET_KEY = settings.jwt_secret
@@ -28,7 +29,7 @@ def logged_user(token: Annotated[str, Depends(oauth2_scheme)], s: DbDepends) -> 
         if login is None:
             raise credentials_exception
     except jwt.InvalidTokenError:
-        raise credentials_exception
+        raise credentials_exception from None
     user = read_user_login(s, login)
     if user is None:
         raise credentials_exception
@@ -36,7 +37,7 @@ def logged_user(token: Annotated[str, Depends(oauth2_scheme)], s: DbDepends) -> 
 
 
 def authenticate(
-    s: DbDepends, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    s: DbDepends, form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
     credentials_exception = HTTPException(
         status_code=401,
@@ -50,7 +51,7 @@ def authenticate(
     if not hasher.verify(user.password, form_data.password):
         raise credentials_exception
 
-    expire = datetime.now() + timedelta(weeks=4)
+    expire = datetime.now(UTC) + timedelta(weeks=4)
     data = {"sub": user.login, "exp": expire}
     access_token = jwt.encode(data, SECRET_KEY, algorithm="HS256")
     return Token(access_token=access_token, refresh_token="", token_type="bearer")
