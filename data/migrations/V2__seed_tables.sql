@@ -1,10 +1,10 @@
 -- seed users
 INSERT INTO users (
-    uid, -- UID is provided explicitly for testing. realistically it's automatically generated
+    id,
     name,
     login,
-    salt,
-    password
+    password,
+    email
 )
 VALUES
 (
@@ -12,16 +12,16 @@ VALUES
     'ab01cd23-5050-44ff-bb66-1234567890fe',  -- Example UUID
     'Alice Smith',
     'alice.s',
-    '2e8a94b015adaa4ec9c1a951848070f9',  -- example, not actual salt
-    '9e5295b0956d5e5f937c477cc59339c2a07af9777a3d68265c74844ab745393f5faec1bcff1fbdefa6310779b2048cba29a6b893869e55ea84662552a4306bb9' -- Example 128-char hash (hex)
+    '$argon2id$v=19$m=65536,t=3,p=4$4BEnZHvunIIwaOvx3M4mgA$QZXj+v1O+a2tM/lshkpFFAq/LXgSVGyGN/V3q8O7qko', -- Example 128-char hash (hex)
+    'alice@example.com'
 ),
 (
     -- User 2
     'ef45ab67-0404-44ff-bb66-1234567890fe',  -- Example UUID
     'Bob Johnson',
     'bob.j',
-    'fd4844ec987d93aadf55300a32a0b4cf',
-    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd'
+    '$argon2id$v=19$m=65536,t=3,p=4$4BEnZHvunIIwaOvx3M4mgA$QZXj+v1O+a2tM/lshkpFFAq/LXgSVGyGN/V3q8O7qko',
+    'bob@example.com'
 );
 
 -- seed plan info

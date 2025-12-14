@@ -1,0 +1,51 @@
+[project]
+name = "PCA-API"
+version = "0.1.0"
+description = "API for Plant Care Assistant"
+readme = "README.MD"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.124.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "PyJWT>=2.10.1",
+    "python-multipart>=0.0.20",
+    "pwdlib>=0.3.0",
+    "sqlmodel>=0.0.20",
+    "uvicorn>=0.38.0",
+    "psycopg2-binary>=2.9.11",
+    "argon2-cffi>=25.1.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/Plant-Care-Assistant"
+Repository = "https://github.com/Plant-Care-Assistant/Plant-Care-Assistant-App.git"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.1",
+    "ruff>=0.14.9"
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "ruff>=0.14.9"
+]
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+extend-ignore = [
+    "CPY001",
+    "D100",
+    "D101",
+    "D103",
+    "D104"
+]
+
+
+[tool.ruff.lint.per-file-ignores]
+"app/services/security.py" = [ "S106" ]
+"app/models/base.py" = [ "PGH003", "S106" ]
+"__main__.py" = [ "S104" ]
