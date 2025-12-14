@@ -126,7 +126,7 @@ jobs:
         if: steps.changes-backend.outputs.backend == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: .
           file: ./infra/api/Dockerfile
           push: false
           tags: plant-care-backend:ci
