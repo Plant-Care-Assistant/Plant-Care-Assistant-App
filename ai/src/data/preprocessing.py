@@ -3,9 +3,19 @@ import torchvision.transforms as T
 from PIL import Image
 
 class PlantNetPreprocessor:
-    """Preprocessor - with optional augmentation pipeline."""
+    """
+    Preprocessor - with optional augmentation - pipeline.
+    """
 
     def __init__(self, img_size=224, normalize=True, augm_strength=0.0):
+        """Initialize preprocessor.
+        
+        Args:
+            img_size: target image size (sqr)
+            normalize: whether to apply ImageNet norm
+            augm_strength: augmentation intensity [0.0 to 1.0]
+        """
+
         self.img_size = img_size
         self.normalize = normalize
         self.augm_strength = max(0.0, min(1.0, augm_strength))  # [0;1]
