@@ -1,24 +1,23 @@
 """Data processing module for Plant Care AI.
 
-This module handles data loading, preprocessing (including augmentation), feature engineering.
+Copyright (c) 2025 Plant Care Assistant
+This module handles data loading, preprocessing, and augmentation.
 """
 
-from .dataset import PlantNetDataset
 from .dataloader import PlantNetDataLoader
-from .preprocessing import PlantNetPreprocessor
+from .dataset import PlantNetDataset
 from .preprocessing import (
     PlantNetPreprocessor,
-    get_training_pipeline,
     get_inference_pipeline,
-    preprocess_single_image
+    get_training_pipeline,
+    preprocess_single_image,
 )
 
 __all__ = [
-    'PlantNetDataset',
-    'PlantNetDataLoader',
-    'PlantNetPreprocessor',
-
-    'get_training_pipeline',
-    'get_inference_pipeline',
-    'preprocess_single_image',
+    "PlantNetDataLoader",
+    "PlantNetDataset",
+    "PlantNetPreprocessor",
+    "get_inference_pipeline",
+    "get_training_pipeline",
+    "preprocess_single_image",
 ]

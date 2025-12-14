@@ -15,7 +15,11 @@ extend-ignore = [
     "D213", # docstring summary in multi-line docstring should start at the first line
     "T201", # allow use of print statements
     "EXE002", # shebang not required for python files
-    "COM812", # conflict with black formatting
+    "COM812", # conflict with black formatting,
+    "FBT001", # boolean positional argument
+    "FBT002", # boolean default positional argument
+    "ANN", # annotations
+    "DOC" # docstring rules
 ]
 
 
