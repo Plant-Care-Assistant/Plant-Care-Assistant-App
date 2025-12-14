@@ -1,4 +1,4 @@
-name: AI Module CI
+name: Plant Care Assistant CI
 
 on:
   pull_request:
@@ -91,6 +91,7 @@ jobs:
               - 'backend/**'
               - '.github/workflows/ci-ai.yml'
               - 'ruff.toml'
+              - 'infra/**'
 
       - name: Skip - no Backend changes
         if: steps.changes-backend.outputs.backend != 'true'
@@ -147,7 +148,7 @@ jobs:
           filters: |
             db:
               - 'data/**'
-              - 'infra/compose.yaml'
+              - 'infra/**'
               - '.github/workflows/ci-ai.yml'
 
       - name: Skip - no DB changes
