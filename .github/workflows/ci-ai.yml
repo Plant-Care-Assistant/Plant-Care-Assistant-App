@@ -71,3 +71,94 @@ jobs:
           file: ./ai/docker/cpu.Dockerfile
           push: false
           tags: plant-care-ai:ci-cpu
+
+  backend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for changes in Backend module
+        uses: dorny/paths-filter@v3
+        id: changes-backend
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci-ai.yml'
+              - 'ruff.toml'
+
+      - name: Skip - no Backend changes
+        if: steps.changes-backend.outputs.backend != 'true'
+        run: echo "No Backend-related changes, skipping CI steps."
+
+      - name: Set up Python
+        if: steps.changes-backend.outputs.backend == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install dependencies
+        if: steps.changes-backend.outputs.backend == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "./backend[dev]"
+
+      - name: Ruff check
+        if: steps.changes-backend.outputs.backend == 'true'
+        working-directory: backend
+        run: ruff check
+
+      # add tests here when available
+
+      - name: Set up Docker Buildx
+        if: steps.changes-backend.outputs.backend == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend image
+        if: steps.changes-backend.outputs.backend == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./infra/api/Dockerfile
+          push: false
+          tags: plant-care-backend:ci
+
+  data-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for changes in DB setup
+        uses: dorny/paths-filter@v3
+        id: changes-db
+        with:
+          filters: |
+            db:
+              - 'data/**'
+              - 'infra/compose.yaml'
+              - '.github/workflows/ci-ai.yml'
+
+      - name: Skip - no DB changes
+        if: steps.changes-db.outputs.db != 'true'
+        run: echo "No DB-related changes, skipping CI steps."
+
+      - name: Set up Docker Buildx
+        if: steps.changes-db.outputs.db == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build DB image from compose
+        if: steps.changes-db.outputs.db == 'true'
+        working-directory: infra
+        run: docker compose build db

@@ -1,6 +1,7 @@
 include = [
     "ai/src/**/*.py",
     "ai/tests/**/*.py",
+    "backend/**/*.py",
 ]
 
 line-length = 100
