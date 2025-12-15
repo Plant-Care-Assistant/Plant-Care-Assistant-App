@@ -1,6 +1,7 @@
-# Copyright (c) 2025 Plant Care Assistant
+"""Image preprocessing pipeline for plant identification.
 
-"""Image preprocessing pipeline for plant identification."""
+Copyright 2025 Plant Care Assistant
+"""
 
 from pathlib import Path
 
@@ -18,11 +19,7 @@ class PlantNetPreprocessor:
     AFFINE_THRESHOLD = 0.7
 
     def __init__(
-        self,
-        img_size: int = 224,
-        *,
-        normalize: bool = True,
-        augm_strength: float = 0.0
+        self, img_size: int = 224, *, normalize: bool = True, augm_strength: float = 0.0
     ) -> None:
         """Initialize preprocessor.
 
@@ -64,33 +61,29 @@ class PlantNetPreprocessor:
 
             # random brightness, contrast etc
             if self.augm_strength >= self.COLOR_JITTER_THRESHOLD:
-                transforms_list.append(transforms.ColorJitter(
-                    brightness=0.3 * self.augm_strength,
-                    contrast=0.3 * self.augm_strength,
-                    saturation=0.3 * self.augm_strength,
-                    hue=0.1 * self.augm_strength
-                ))
+                transforms_list.append(
+                    transforms.ColorJitter(
+                        brightness=0.3 * self.augm_strength,
+                        contrast=0.3 * self.augm_strength,
+                        saturation=0.3 * self.augm_strength,
+                        hue=0.1 * self.augm_strength,
+                    )
+                )
 
             # random translation, scaling
             if self.augm_strength >= self.AFFINE_THRESHOLD:
-                transforms_list.append(transforms.RandomAffine(
-                    degrees=0,  # done before
-                    translate=(
-                        0.1 * self.augm_strength,
-                        0.1 * self.augm_strength
-                    ),
-                    scale=(
-                        1 - 0.1 * self.augm_strength,
-                        1 + 0.1 * self.augm_strength
+                transforms_list.append(
+                    transforms.RandomAffine(
+                        degrees=0,  # done before
+                        translate=(0.1 * self.augm_strength, 0.1 * self.augm_strength),
+                        scale=(1 - 0.1 * self.augm_strength, 1 + 0.1 * self.augm_strength),
                     )
-                ))
+                )
 
         transforms_list.append(transforms.ToTensor())
 
         if self.normalize:
-            transforms_list.append(
-                transforms.Normalize(mean=self.mean, std=self.std)
-            )
+            transforms_list.append(transforms.Normalize(mean=self.mean, std=self.std))
 
         return transforms.Compose(transforms_list)
 
@@ -108,9 +101,7 @@ class PlantNetPreprocessor:
         ]
 
         if self.normalize:
-            transforms_list.append(
-                transforms.Normalize(mean=self.mean, std=self.std)
-            )
+            transforms_list.append(transforms.Normalize(mean=self.mean, std=self.std))
 
         return transforms.Compose(transforms_list)
 
@@ -128,10 +119,7 @@ class PlantNetPreprocessor:
         return self.get_full_transform() if train else self.get_interference_transform()
 
 
-def get_training_pipeline(
-    img_size: int = 224,
-    augm_strength: float = 0.5
-) -> transforms.Compose:
+def get_training_pipeline(img_size: int = 224, augm_strength: float = 0.5) -> transforms.Compose:
     """Get training pipeline with augmentation.
 
     Args:
@@ -143,9 +131,7 @@ def get_training_pipeline(
 
     """
     preprocessor = PlantNetPreprocessor(
-        img_size=img_size,
-        normalize=True,
-        augm_strength=augm_strength
+        img_size=img_size, normalize=True, augm_strength=augm_strength
     )
     return preprocessor.get_full_transform()
 
@@ -160,18 +146,11 @@ def get_inference_pipeline(img_size: int = 224) -> transforms.Compose:
         transforms.Compose: Inference transform pipeline
 
     """
-    preprocessor = PlantNetPreprocessor(
-        img_size=img_size,
-        normalize=True,
-        augm_strength=0.0
-    )
+    preprocessor = PlantNetPreprocessor(img_size=img_size, normalize=True, augm_strength=0.0)
     return preprocessor.get_interference_transform()
 
 
-def preprocess_single_image(
-    image: str | Path,
-    img_size: int = 224
-) -> torch.Tensor:
+def preprocess_single_image(image: str | Path, img_size: int = 224) -> torch.Tensor:
     """Preprocess single image for inference.
 
     Args:

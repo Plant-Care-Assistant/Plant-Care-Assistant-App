@@ -1,6 +1,7 @@
-# Copyright (c) 2025 Plant Care Assistant
+"""DataLoader wrapper for PlantNet dataset splits.
 
-"""DataLoader wrapper for PlantNet dataset splits."""
+Copyright 2025 Plant Care Assistant
+"""
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -16,7 +17,7 @@ class PlantNetDataLoader:
         data_dir: str,
         batch_size: int = 32,
         train_transform: transforms.Compose | None = None,
-        val_transform: transforms.Compose | None = None
+        val_transform: transforms.Compose | None = None,
     ) -> None:
         """Initialize all dataset splits.
 
@@ -43,11 +44,7 @@ class PlantNetDataLoader:
             (with shuffling enabled)
 
         """
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True
-        )
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def get_val_loader(self) -> DataLoader:
         """Get DataLoader for validation data.
@@ -57,10 +54,7 @@ class PlantNetDataLoader:
             (without shuffling)
 
         """
-        return DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size
-        )
+        return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
     def get_test_loader(self) -> DataLoader:
         """Get DataLoader for test data.
@@ -70,7 +64,4 @@ class PlantNetDataLoader:
             (without shuffling)
 
         """
-        return DataLoader(
-            self.test_dataset,
-            batch_size=self.batch_size
-        )
+        return DataLoader(self.test_dataset, batch_size=self.batch_size)
