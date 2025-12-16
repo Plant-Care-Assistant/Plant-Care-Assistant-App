@@ -19,7 +19,11 @@ class PlantNetPreprocessor:
     AFFINE_THRESHOLD = 0.7
 
     def __init__(
-        self, img_size: int = 224, *, normalize: bool = True, augm_strength: float = 0.0
+        self,
+        img_size: int = 224,
+        *,
+        normalize: bool = True,
+        augm_strength: float = 0.0,
     ) -> None:
         """Initialize preprocessor.
 

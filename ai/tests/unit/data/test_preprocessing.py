@@ -90,4 +90,4 @@ def test_preprocess_single_image_returns_batched_tensor(sample_image_path: Path)
     assert isinstance(tensor, torch.Tensor)
     assert tensor.shape == (1, 3, 128, 128)
     assert torch.isfinite(tensor).all()
-    assert tensor.abs().max() > 0  # not all zeros
+    assert tensor.abs().max() > 0
