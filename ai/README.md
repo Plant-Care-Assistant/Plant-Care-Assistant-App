@@ -20,7 +20,7 @@ docker build -f docker/cpu.Dockerfile -t plant-care-ai:cpu .
 ```
 Uruchom kontener CPU interaktywnie:
 ```
-docker run --rm -it -v ${PWD}:/home/plant_user plant-care-ai:cpu bash
+docker run --name plant-care-ai --rm -it -v ${PWD}:/home/plant_user plant-care-ai:cpu bash
 ```
 
 
@@ -31,5 +31,5 @@ docker build -f docker/gpu.Dockerfile -t plant-care-ai:gpu .
 ```
 Uruchom kontener GPU interaktywnie (dołącz GPU poprzez `--gpus all`):
 ```
-docker run --rm -it -v ${PWD}:/home/backend --gpus all plant-care-ai:gpu bash
+docker run --name plant-care-ai --rm -it -v ${PWD}:/home/plant_user --gpus all plant-care-ai:gpu bash
 ```

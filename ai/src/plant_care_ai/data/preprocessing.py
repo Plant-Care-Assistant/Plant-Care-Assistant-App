@@ -87,7 +87,7 @@ class PlantNetPreprocessor:
 
         return transforms.Compose(transforms_list)
 
-    def get_interference_transform(self) -> transforms.Compose:
+    def get_inference_transform(self) -> transforms.Compose:
         """Get validation/inference pipeline without augmentation.
 
         Returns:
@@ -116,7 +116,7 @@ class PlantNetPreprocessor:
             Composed transform pipeline
 
         """
-        return self.get_full_transform() if train else self.get_interference_transform()
+        return self.get_full_transform() if train else self.get_inference_transform()
 
 
 def get_training_pipeline(img_size: int = 224, augm_strength: float = 0.5) -> transforms.Compose:
@@ -147,7 +147,7 @@ def get_inference_pipeline(img_size: int = 224) -> transforms.Compose:
 
     """
     preprocessor = PlantNetPreprocessor(img_size=img_size, normalize=True, augm_strength=0.0)
-    return preprocessor.get_interference_transform()
+    return preprocessor.get_inference_transform()
 
 
 def preprocess_single_image(image: str | Path, img_size: int = 224) -> torch.Tensor:
