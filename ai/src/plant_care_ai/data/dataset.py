@@ -1,6 +1,7 @@
-# Copyright (c) 2025 Plant Care Assistant
+"""Dataset class for loading PlantNet plant images.
 
-"""Dataset class for loading PlantNet plant images."""
+Copyright 2025 Plant Care Assistant
+"""
 
 from pathlib import Path
 
@@ -18,10 +19,7 @@ class PlantNetDataset(Dataset):
     """
 
     def __init__(
-        self,
-        data_dir: str,
-        split: str = "train",
-        transform: transforms.Compose | None = None
+        self, data_dir: str, split: str = "train", transform: transforms.Compose | None = None
     ) -> None:
         """Initialize dataset.
 
@@ -60,9 +58,7 @@ class PlantNetDataset(Dataset):
             if species_dir.is_dir():
                 species_id = species_dir.name
 
-                paths.extend(
-                    (img_path, species_id) for img_path in species_dir.glob("*.jpg")
-                )
+                paths.extend((img_path, species_id) for img_path in species_dir.glob("*.jpg"))
 
         return paths
 
