@@ -24,10 +24,14 @@ ENV GROUP=plant_group
 RUN addgroup --gid $GID $GROUP && adduser --uid $UID --gid $GID $USER
 
 ENV HOME=/home/$USER
+ENV WORKSPACE=$HOME/work
 WORKDIR $HOME
 
 COPY --from=builder --chown=$UID:$GID /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+RUN mkdir -p "$WORKSPACE"
+WORKDIR $WORKSPACE
 
 COPY --chown=$UID:$GID pyproject.toml .
 COPY --chown=$UID:$GID src ./src
