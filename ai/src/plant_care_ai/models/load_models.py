@@ -7,7 +7,7 @@ import pathlib
 
 import torch
 
-from .effecientnetv2 import EfficientNetV2
+from .efficientnetv2 import EfficientNetV2
 from .resnet18 import Resnet18
 
 
@@ -16,7 +16,7 @@ def get_model(
     num_classes: int = 1081,
     weights_path: str | None = None,
     device: str = "cpu",
-    **kwargs: object
+    **kwargs: object,
 ) -> torch.nn.Module:
     """Initialize models and (optionally) load weights.
 
@@ -40,12 +40,8 @@ def get_model(
         model = Resnet18(num_classes=num_classes)
 
     elif "efficientnet" in model_name:
-        variant = kwargs.get("variant", "b3")
-        model = EfficientNetV2(
-            variant=variant,
-            num_classes=num_classes,
-            **kwargs
-        )
+        variant = kwargs.pop("variant", "b3")
+        model = EfficientNetV2(variant=variant, num_classes=num_classes, **kwargs)
 
     else:
         msg = f"Model '{model_name}' is not supported. Choose 'resnet18' or 'efficientnetv2'."

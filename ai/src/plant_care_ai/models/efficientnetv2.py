@@ -115,16 +115,20 @@ class FusedMBConv(nn.Module):
 
         layers = []
 
-        layers.extend([
-            nn.Conv2d(in_channels, hidden_dim, kernel_size, stride, padding, bias=False),
-            nn.BatchNorm2d(hidden_dim, eps=1e-3, momentum=0.01),
-            nn.SiLU(inplace=True),
-        ])
+        layers.extend(
+            [
+                nn.Conv2d(in_channels, hidden_dim, kernel_size, stride, padding, bias=False),
+                nn.BatchNorm2d(hidden_dim, eps=1e-3, momentum=0.01),
+                nn.SiLU(inplace=True),
+            ]
+        )
 
-        layers.extend([
-            nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.01),
-        ])
+        layers.extend(
+            [
+                nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
+                nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.01),
+            ]
+        )
 
         self.block = nn.Sequential(*layers)
         self.drop_path = StochasticDepth(drop_path_rate) if drop_path_rate > 0 else nn.Identity()
@@ -180,26 +184,39 @@ class MBConv(nn.Module):
         layers = []
 
         if expand_ratio != 1:
-            layers.extend([
-                nn.Conv2d(in_channels, hidden_dim, 1, bias=False),
+            layers.extend(
+                [
+                    nn.Conv2d(in_channels, hidden_dim, 1, bias=False),
+                    nn.BatchNorm2d(hidden_dim, eps=1e-3, momentum=0.01),
+                    nn.SiLU(inplace=True),
+                ]
+            )
+
+        layers.extend(
+            [
+                nn.Conv2d(
+                    hidden_dim,
+                    hidden_dim,
+                    kernel_size,
+                    stride,
+                    padding,
+                    groups=hidden_dim,
+                    bias=False,
+                ),
                 nn.BatchNorm2d(hidden_dim, eps=1e-3, momentum=0.01),
                 nn.SiLU(inplace=True),
-            ])
-
-        layers.extend([
-            nn.Conv2d(hidden_dim, hidden_dim, kernel_size, stride, padding,
-                     groups=hidden_dim, bias=False),
-            nn.BatchNorm2d(hidden_dim, eps=1e-3, momentum=0.01),
-            nn.SiLU(inplace=True),
-        ])
+            ]
+        )
 
         if se_ratio > 0:
             layers.append(SqueezeExcitation(hidden_dim, se_ratio))
 
-        layers.extend([
-            nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.01),
-        ])
+        layers.extend(
+            [
+                nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
+                nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.01),
+            ]
+        )
 
         self.block = nn.Sequential(*layers)
         self.drop_path = StochasticDepth(drop_path_rate) if drop_path_rate > 0 else nn.Identity()
@@ -314,15 +331,24 @@ class EfficientNetV2(nn.Module):
                 if block_type == "fused":
                     stage_blocks.append(
                         FusedMBConv(
-                            in_channels, out_channels, expand, s,
-                            kernel_size=kernel, drop_path_rate=drop_rate
+                            in_channels,
+                            out_channels,
+                            expand,
+                            s,
+                            kernel_size=kernel,
+                            drop_path_rate=drop_rate,
                         )
                     )
                 else:
                     stage_blocks.append(
                         MBConv(
-                            in_channels, out_channels, expand, s,
-                            kernel_size=kernel, se_ratio=se_ratio, drop_path_rate=drop_rate
+                            in_channels,
+                            out_channels,
+                            expand,
+                            s,
+                            kernel_size=kernel,
+                            se_ratio=se_ratio,
+                            drop_path_rate=drop_rate,
                         )
                     )
 
@@ -432,9 +458,7 @@ class EfficientNetV2(nn.Module):
 
 
 def create_efficientnetv2(
-    variant: str = "b3",
-    num_classes: int = 1081,
-    **kwargs: object
+    variant: str = "b3", num_classes: int = 1081, **kwargs: object
 ) -> EfficientNetV2:
     """Create an EfficientNetV2 model instance.
 

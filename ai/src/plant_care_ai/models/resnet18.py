@@ -10,6 +10,54 @@ import torch.nn.functional as F  # noqa: N812
 from torch import nn
 
 
+class BasicBlock(nn.Module):
+    """Residual block implementation."""
+
+    expansion = 1
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 1) -> None:
+        """Initialize the BasicBlock.
+
+        Args:
+            in_channels: number of input channels.
+            out_channels: number of output channels.
+            stride: stride for the first convolution in the block.
+
+        """
+        super().__init__()
+        self.conv1 = nn.Conv2d(
+            in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
+        )
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(
+            out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False
+        )
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+        self.shortcut = nn.Sequential()
+
+        if stride != 1 or in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels),
+            )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Perform forward pass of the residual block.
+
+        Args:
+            x: Input tensor from the previous layer
+
+        Returns:
+            Tensor with residual connection and ReLU applied
+
+        """
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out += self.shortcut(x)
+        return F.relu(out)
+
+
 class Resnet18(nn.Module):
     """ResNet-18 architecture implementation."""
 
@@ -53,8 +101,7 @@ class Resnet18(nn.Module):
         layers.append(BasicBlock(self.in_channels, out_channels, stride))
         self.in_channels = out_channels
         layers.extend(
-            BasicBlock(out_channels, out_channels, stride=1)
-            for _ in range(1, num_blocks)
+            BasicBlock(out_channels, out_channels, stride=1) for _ in range(1, num_blocks)
         )
         return nn.Sequential(*layers)
 
@@ -102,51 +149,3 @@ class Resnet18(nn.Module):
         """Unfreeze all layers in the model for full fine-tuning."""
         for param in self.parameters():
             param.requires_grad = True
-
-
-class BasicBlock(nn.Module):
-    """Residual block implementation."""
-
-    expansion = 1
-
-    def __init__(self, in_channels: int, out_channels: int, stride: int = 1) -> None:
-        """Initialize the BasicBlock.
-
-        Args:
-            in_channels: number of input channels.
-            out_channels: number of output channels.
-            stride: stride for the first convolution in the block.
-
-        """
-        super().__init__()
-        self.conv1 = nn.Conv2d(
-            in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
-        )
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = nn.Conv2d(
-            out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False
-        )
-        self.bn2 = nn.BatchNorm2d(out_channels)
-
-        self.shortcut = nn.Sequential()
-
-        if stride != 1 or in_channels != out_channels:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels),
-            )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Perform forward pass of the resisudual block.
-
-        Args:
-            x: Input tensor from the previous layer
-
-        Returns:
-            Tensor with residual connection and ReLU applied
-
-        """
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        return F.relu(out)
