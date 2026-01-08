@@ -10,11 +10,11 @@ from app.services.users import read_users
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/")
+@router.get("/", response_model=list[UserPublic])
 def read(users: Annotated[list[User], Depends(read_users)]) -> list[User]:
     return users
 
 
-@router.get("/me")
-def read_current_user(user: LoggedUserDepends) -> UserPublic:
-    return UserPublic(**user.model_dump())
+@router.get("/me", response_model=UserPublic)
+def read_current_user(user: LoggedUserDepends) -> User:
+    return user
