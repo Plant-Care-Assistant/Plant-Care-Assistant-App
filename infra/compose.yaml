@@ -1,14 +1,13 @@
-name: PCAA
-networks:
-    frontnet: {}
-    backnet: {}
+name: pcaa
+
 services:
-    # 1. Kontener VPN (to on łączy się do NAS)
+    # 1. KONTENER SIECIOWY (Sidecar & tailscale)
     ts-sidecar:
         image: tailscale/tailscale:latest
         hostname: dev-app-instance
+        env_file:
+            - ../.env
         environment:
-            - TS_AUTHKEY=tskey-auth-kruPAfd2k311CNTRL-LgR56PRCehWmoYMCWU1thWnM8wTocZREd
             - TS_EXTRA_ARGS=--advertise-tags=tag:dev
             - TS_STATE_DIR=/var/lib/tailscale
         cap_add:
@@ -20,17 +19,21 @@ services:
             - "8080:80"
         restart: unless-stopped
 
+    # 2. BACKEND (FastAPI)
     api:
         container_name: pcaa-api
         build:
             context: ..
             dockerfile: infra/api/Dockerfile
+        env_file:
+            - ../.env
         volumes:
             - ../backend:/workroot
         network_mode: service:ts-sidecar
         depends_on:
             - ts-sidecar
 
+    # 3. FRONTEND (Next.js)
     frontend:
         container_name: pcaa-frontend
         build:
@@ -44,6 +47,7 @@ services:
         depends_on:
             - api
 
+    # 4. PROXY (Nginx)
     nginx:
         container_name: pcaa-nginx
         image: nginx:mainline-alpine
@@ -52,7 +56,7 @@ services:
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
         depends_on:
             - api
-
+            - frontend
 
 volumes:
   tailscale-data:
