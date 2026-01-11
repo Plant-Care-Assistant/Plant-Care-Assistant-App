@@ -20,6 +20,7 @@ jobs:
         uses: dorny/paths-filter@v3
         id: changes
         with:
+          base: ${{ github.event.pull_request.base.ref || 'main' }}
           filters: |
             ai:
               - 'ai/**'
@@ -87,6 +88,7 @@ jobs:
         uses: dorny/paths-filter@v3
         id: changes-backend
         with:
+          base: ${{ github.event.pull_request.base.ref || 'main' }}
           filters: |
             backend:
               - 'backend/**'
@@ -141,10 +143,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create dummy .env file
+        run: |
+          touch .env
+          echo "TS_AUTHKEY=dummy" >> .env
+
       - name: Check for changes in infrastructure
         uses: dorny/paths-filter@v3
         id: changes-infra
         with:
+          base: ${{ github.event.pull_request.base.ref || 'main' }}
           filters: |
             infra:
               - 'data/**'
