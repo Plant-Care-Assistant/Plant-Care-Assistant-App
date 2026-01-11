@@ -132,7 +132,7 @@ jobs:
           push: false
           tags: plant-care-backend:ci
 
-data-ci:
+  data-ci:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -162,7 +162,7 @@ data-ci:
       - name: Validate docker-compose configuration
         if: steps.changes-infra.outputs.infra == 'true'
         working-directory: infra
-        run: docker compose config --quiet
+        run: docker compose config
 
       - name: Test service startup
         if: steps.changes-infra.outputs.infra == 'true'
