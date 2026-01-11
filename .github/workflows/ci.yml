@@ -132,35 +132,44 @@ jobs:
           push: false
           tags: plant-care-backend:ci
 
-  data-ci:
+data-ci:
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check for changes in DB setup
+      - name: Check for changes in infrastructure
         uses: dorny/paths-filter@v3
-        id: changes-db
+        id: changes-infra
         with:
           filters: |
-            db:
+            infra:
               - 'data/**'
               - 'infra/**'
               - '.github/workflows/ci.yml'
 
-      - name: Skip - no DB changes
-        if: steps.changes-db.outputs.db != 'true'
-        run: echo "No DB-related changes, skipping CI steps."
+      - name: Skip - no infrastructure changes
+        if: steps.changes-infra.outputs.infra != 'true'
+        run: echo "No infrastructure-related changes, skipping CI steps."
 
       - name: Set up Docker Buildx
-        if: steps.changes-db.outputs.db == 'true'
+        if: steps.changes-infra.outputs.infra == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build DB image from compose
-        if: steps.changes-db.outputs.db == 'true'
+      - name: Validate docker-compose configuration
+        if: steps.changes-infra.outputs.infra == 'true'
         working-directory: infra
-        run: docker compose build db
+        run: docker compose config --quiet
+
+      - name: Test service startup
+        if: steps.changes-infra.outputs.infra == 'true'
+        working-directory: infra
+        run: |
+          docker compose pull ts-sidecar
+          docker compose up -d ts-sidecar
+          sleep 5
+          docker compose ps
+          docker compose down
