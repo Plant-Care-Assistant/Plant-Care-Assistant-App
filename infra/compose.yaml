@@ -1,15 +1,17 @@
 name: pcaa
-
 services:
     # 1. KONTENER SIECIOWY (Sidecar & tailscale)
     ts-sidecar:
         image: tailscale/tailscale:latest
         hostname: dev-app-instance
+        devices:
+            - /dev/net/tun:/dev/net/tun
         env_file:
             - ../.env
         environment:
             - TS_EXTRA_ARGS=--advertise-tags=tag:dev
             - TS_STATE_DIR=/var/lib/tailscale
+            - TS_USERSPACE=false
         cap_add:
             - NET_ADMIN
             - NET_RAW
