@@ -176,8 +176,8 @@ jobs:
         if: steps.changes-infra.outputs.infra == 'true'
         working-directory: infra
         run: |
-          docker compose pull ts-sidecar
-          docker compose up -d ts-sidecar
+          docker compose pull sidecar
+          docker compose up -d sidecar
           sleep 5
           docker compose ps
           docker compose down
