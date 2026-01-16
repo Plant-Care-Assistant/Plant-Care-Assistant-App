@@ -15,7 +15,7 @@ dependencies = [
     "uvicorn>=0.38.0",
     "psycopg2-binary>=2.9.11",
     "argon2-cffi>=25.1.0",
-    "email-validator"
+    "email-validator>=2.3.0",
 ]
 
 [project.urls]
@@ -38,11 +38,15 @@ dev = [
 preview = true
 select = ["ALL"]
 extend-ignore = [
+    "ANN001",
+    "ANN201",
     "CPY001",
     "D100",
     "D101",
+    "D102",
     "D103",
-    "D104"
+    "D104",
+    "D107"
 ]
 
 

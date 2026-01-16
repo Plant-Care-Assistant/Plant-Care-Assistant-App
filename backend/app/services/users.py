@@ -1,48 +1,65 @@
+from typing import Annotated
+
 from argon2 import PasswordHasher
+from fastapi import Depends
 from sqlmodel import select
 
-from app.db import DbDepends
+from app.db import SessionDep
 from app.models.base import User
-from app.models.requests import UserCreate
+from app.models.requests import (
+    UserCreate,
+    UserPreferences,
+    UserPreferencesUpdate,
+    UserUpdate,
+)
 
 
-def read_users(session: DbDepends) -> list[User]:
-    statement = select(User)
-    return list(session.exec(statement).all())
+class UserService:
+    def __init__(self, session: SessionDep) -> None:
+        self.s = session
+
+    def read_users(self) -> list[User]:
+        statement = select(User)
+        return list(self.s.exec(statement).all())
+
+    def read_user_email(self, email: str) -> User | None:
+        statement = select(User).where(User.email == email)
+        return self.s.exec(statement).one_or_none()
+
+    def read_user_id(self, user_id: int) -> User | None:
+        return self.s.get(User, user_id)
+
+    def create_user(self, body: UserCreate) -> User:
+        ph = PasswordHasher()
+        password_hash = ph.hash(body.password)
+        username = body.username or body.email.split("@")[0]
+
+        new_user = User(
+            email=body.email, password_hash=password_hash, username=username,
+        )
+
+        self.s.add(new_user)
+        self.s.commit()
+        self.s.refresh(new_user)
+        return new_user
+
+    def update_user(self, user: User, new_values: UserUpdate) -> User:
+        new_user = user.model_copy(update=new_values.model_dump(exclude_none=True))
+        self.s.add(new_user)
+        self.s.commit()
+        return new_user
+
+    def delete_user(self, user_id) -> None:
+        pass
+
+    def update_preferences(
+        self, user: User, new_prefs: UserPreferencesUpdate,
+    ) -> UserPreferences:
+        user.preferences = new_prefs.model_dump()
+        self.s.add(user)
+        self.s.commit()
+        self.s.refresh(user)
+        return UserPreferences.model_validate(user.preferences)
 
 
-def read_user_id(session: DbDepends, user_id: int) -> User | None:
-    statement = select(User).where(User.id == user_id)
-    return session.exec(statement).one_or_none()
-
-
-# Zmiana nazwy funkcji i pola wyszukiwania
-def read_user_by_email(session: DbDepends, email: str) -> User | None:
-    statement = select(User).where(User.email == email)
-    return session.exec(statement).one_or_none()
-
-
-def create_user(session: DbDepends, user_create: UserCreate) -> User:
-    ph = PasswordHasher()
-
-    # Generowanie username z emaila (np. jan@op.pl -> jan)
-    # Jeśli username nie został podany w requeście (jest opcjonalny w UserCreate)
-    # Uwaga: Musisz dostosować UserCreate w requests.py,
-    # jeśli username ma być opcjonalny
-    base_username = user_create.email.split("@")[0]
-
-    # Hashowanie hasła
-    hashed_password = ph.hash(user_create.password)
-
-    new_user = User(
-        email=user_create.email,
-        password_hash=hashed_password,  # Zapisujemy hash, nie czyste hasło!
-        username=base_username,
-        xp=0,
-        day_streak=0,
-    )
-
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-    return new_user
+UserServiceDep = Annotated[UserService, Depends()]

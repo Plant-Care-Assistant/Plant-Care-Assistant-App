@@ -15,4 +15,4 @@ def start_session() -> Generator[Session]:
         session.commit()
 
 
-DbDepends = Annotated[Session, Depends(start_session)]
+SessionDep = Annotated[Session, Depends(start_session)]

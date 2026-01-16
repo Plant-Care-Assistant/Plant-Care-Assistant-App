@@ -7,7 +7,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
 
 
-# Definicje Enumów (muszą pasować do tych w bazie)
 class LightLevel(StrEnum):
     low = "low"
     medium = "medium"
@@ -29,15 +28,12 @@ class User(SQLModel, table=True):
     password_hash: str = Field(max_length=255)
     username: str = Field(max_length=100)
 
-    # Statystyki
     xp: int = Field(default=0)
     day_streak: int = Field(default=0)
     last_login_at: datetime | None = Field(default=None)
 
-    # Lokalizacja i ustawienia
     location_city: str | None = Field(default=None, max_length=100)
 
-    # JSONB - używamy sa_column dla specyficznych typów Postgresa
     preferences: dict[str, Any] | None = Field(
         default_factory=lambda: {
             "dark_mode": False,
@@ -53,7 +49,7 @@ class User(SQLModel, table=True):
 
 
 # 2. KATALOG ROŚLIN
-class PlantsCatalog(SQLModel, table=True):
+class Plant(SQLModel, table=True):
     __tablename__: str = "plants_catalog"  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
@@ -70,7 +66,7 @@ class PlantsCatalog(SQLModel, table=True):
 
 
 # 3. ROŚLINY UŻYTKOWNIKA
-class UserPlants(SQLModel, table=True):
+class UserPlant(SQLModel, table=True):
     __tablename__: str = "user_plants"  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
@@ -88,11 +84,6 @@ class UserPlants(SQLModel, table=True):
 # 4. HISTORIA PODLEWANIA
 class WateringData(SQLModel, table=True):
     __tablename__: str = "watering_data"  # type: ignore
-
-    # SQLModel wymaga PK, chociaż w SQL jej nie zdefiniowaliśmy jawnie
-    # (zazwyczaj dodaje się ID).
-    # Tutaj zrobimy obejście, ale lepiej dodać ID w SQL.
-    # Zakładając że plant_id + timestamp to klucz:
     plant_id: int = Field(foreign_key="user_plants.id", primary_key=True)
     timestamp_of_watering: datetime = Field(
         default_factory=datetime.now,
@@ -107,8 +98,12 @@ class LevelsXpRanges(SQLModel, table=True):
     req_xp: int
 
 
-# TOKEN (bez zmian lub drobne poprawki)
 class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+
+
+class PageParams(BaseModel):
+    limit: int = Field(100, gt=0, le=100)
+    offset: int = Field(0, ge=0)
