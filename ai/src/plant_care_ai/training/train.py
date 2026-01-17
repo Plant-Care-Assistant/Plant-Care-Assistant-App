@@ -4,10 +4,12 @@ Copyright 2025 Plant Care Assistant
 """
 
 import json
+import random
 import time
 from pathlib import Path
 from typing import Any, ClassVar
 
+import numpy as np
 import torch
 from torch import nn
 from torch.optim import AdamW, Optimizer
@@ -67,6 +69,7 @@ class PlantTrainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
 
+        self.scaler = torch.amp.GradScaler("cuda")
         self.criterion = None
         self.train_loader = None
         self.val_loader = None
@@ -86,6 +89,12 @@ class PlantTrainer:
         self.class_to_idx = None  # plant_id (str) -> model_output_idx (int)
         self.idx_to_class = None  # model_output_idx (int) -> plant_id (str)
         self.id_to_name = None  # plant_id (str) -> plant_name (str)
+
+        seed = 42
+        random.seed(seed)
+        np.random.Generator(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
     def _validate_config(self, config: dict[str, Any]) -> None:
         """Validate that all required config keys are present.
@@ -247,12 +256,16 @@ class PlantTrainer:
             labels = batch_labels.to(self.device)
 
             self.optimizer.zero_grad()
-            outputs = self.model(images)
-            loss = self.criterion(outputs, labels)
-            loss.backward()
 
+            with torch.amp.autocast("cuda"):
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+
+            self.scaler.scale(loss).backward()
+            self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-            self.optimizer.step()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
 
             total_loss += loss.item()
             _, pred = outputs.max(1)
@@ -346,8 +359,9 @@ class PlantTrainer:
                 images = batch_images.to(self.device)
                 labels = batch_labels.to(self.device)
 
-                outputs = self.model(images)
-                loss = self.criterion(outputs, labels)
+                with torch.amp.autocast("cuda"):
+                    outputs = self.model(images)
+                    loss = self.criterion(outputs, labels)
 
                 total_loss += loss.item()
 
