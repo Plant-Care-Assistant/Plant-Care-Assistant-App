@@ -1,20 +1,55 @@
-from typing import Annotated
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends
-
-from app.models.base import User
-from app.models.requests import UserPublic
-from app.services.security import LoggedUserDepends
-from app.services.users import read_users
+from app.models.requests import (
+    UserPreferences,
+    UserPublic,
+    UserUpdate,
+)
+from app.services.security import LoggedUserDep
+from app.services.users import UserServiceDep
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/")
-def read(users: Annotated[list[User], Depends(read_users)]) -> list[User]:
-    return users
+@router.get("/", response_model=list[UserPublic])
+def read_users(service: UserServiceDep):
+    return service.read_users()
 
 
-@router.get("/me")
-def read_current_user(user: LoggedUserDepends) -> UserPublic:
-    return UserPublic(**user.model_dump())
+@router.get("/me", response_model=UserPublic)
+def read_current_user(user: LoggedUserDep):
+    return user
+
+
+@router.delete("/me")
+def delete_current_user(user: LoggedUserDep, service: UserServiceDep) -> None:
+    return service.delete_user(user)
+
+
+@router.patch("/me", response_model=UserPublic)
+def patch_current_user(body: UserUpdate, user: LoggedUserDep, service: UserServiceDep):
+    return service.update_user(user, body)
+
+
+@router.get("/me/stats", response_model=UserPublic)
+def read_current_user_stats(user: LoggedUserDep):
+    pass
+
+
+@router.get("/me/achievement", response_model=UserPublic)
+def read_current_user_achievements(user: LoggedUserDep):
+    pass
+
+
+@router.get("/me/settings", response_model=UserPreferences)
+def read_current_user_settings(user: LoggedUserDep):
+    return user.preferences
+
+
+@router.put("/me/settings", response_model=UserPreferences)
+def update_current_user_settings(
+    body: UserPreferences,
+    user: LoggedUserDep,
+    service: UserServiceDep,
+):
+    return service.update_preferences(user, body)
