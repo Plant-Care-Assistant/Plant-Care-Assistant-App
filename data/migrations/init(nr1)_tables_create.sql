@@ -1,27 +1,18 @@
---ale najpierw usuwanie, ostroznie!!!!!
-DROP TABLE IF EXISTS watering_data CASCADE;
-DROP TABLE IF EXISTS user_plants CASCADE;
-DROP TABLE IF EXISTS levels_xp_ranges CASCADE;
-DROP TABLE IF EXISTS plants_catalog CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
--- 2. Usuwamy typy (CASCADE wyczyści powiązania, jeśli jakieś zostały)
-DROP TYPE IF EXISTS light_level CASCADE;
-DROP TYPE IF EXISTS humidity_level CASCADE;
-
-
-
-
-
-
 ---------tworzenie-----------
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'light_level') THEN
+        CREATE TYPE light_level AS ENUM ('low', 'medium', 'high');
+    END IF;
 
-CREATE TYPE light_level AS ENUM ('low', 'medium', 'high');
-CREATE TYPE humidity_level AS ENUM ('low', 'medium', 'high');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'humidity_level') THEN
+        CREATE TYPE humidity_level AS ENUM ('low', 'medium', 'high');
+    END IF;
+END $$;
 
 
 -- 1. TABELA UŻYTKOWNIKÓW
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -47,7 +38,7 @@ CREATE TABLE users (
 
 
 -- 2. TABELA KATALOGU ROŚLIN (Zdefiniowane gatunki)
-CREATE TABLE plants_catalog (
+CREATE TABLE IF NOT EXISTS plants_catalog (
     id SERIAL PRIMARY KEY,
     common_name VARCHAR(150) NOT NULL, --popolskiemu
     scientific_name VARCHAR(150), --lacina
@@ -59,13 +50,13 @@ CREATE TABLE plants_catalog (
     air_humidity_req humidity_level,
     soil_humidity_req humidity_level,
     --
-    --prefered_watering_interval_days INTEGER
-    prefered_watering_interval_days INTEGER CHECK (prefered_watering_interval_days > 0)
+    --preferred_watering_interval_days INTEGER
+    preferred_watering_interval_days INTEGER CHECK (preferred_watering_interval_days > 0)
 );
 
 
 -- 3. TABELA ROŚLIN UŻYTKOWNIKÓW (Konkretne egzemplarze/ biblioteka roslin uzytkownikow)
-CREATE TABLE user_plants (
+CREATE TABLE IF NOT EXISTS user_plants (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     plant_catalog_id INTEGER REFERENCES plants_catalog(id),
@@ -80,14 +71,15 @@ CREATE TABLE user_plants (
 
 
 --to do trigger do usuwania starszych niz 7 dni, bha bhahahaha
-CREATE TABLE watering_data (
+CREATE TABLE IF NOT EXISTS watering_data (
+    id BIGSERIAL PRIMARY KEY,
     plant_id INTEGER REFERENCES user_plants(id),
     timestamp_of_watering TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 
 --tabela z poziomami
-CREATE TABLE levels_xp_ranges (
+CREATE TABLE IF NOT EXISTS levels_xp_ranges (
     level_val INTEGER,
     req_xp INTEGER
 );
