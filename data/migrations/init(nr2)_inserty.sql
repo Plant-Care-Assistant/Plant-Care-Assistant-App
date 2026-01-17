@@ -28,9 +28,9 @@ VALUES
 -- 2. TWORZENIE UŻYTKOWNIKÓW (USERS)
 -- ==========================================
 INSERT INTO users (email, password_hash, username, xp, day_streak, location_city, preferences) VALUES
-('jan.kowalski@example.com', 'hash_haslo_123', 'JanuszOgrodnik', 150, 5, 'Warszawa', '{"dark_mode": true, "care_reminders": true, "weather_tips": false}'::jsonb),
-('anna.nowak@example.com', 'hash_haslo_456', 'AniaZZielonegoWzg', 1200, 45, 'Kraków', '{"dark_mode": false, "care_reminders": true, "weather_tips": true}'::jsonb),
-('test.user@example.com', 'hash_haslo_789', 'TesterBazy', 0, 0, 'Gdańsk', '{"dark_mode": true, "care_reminders": false, "weather_tips": false}'::jsonb);
+('jan.kowalski@example.com', '$argon2id$v=19$m=16,t=2,p=1$ZVBlbDMyaFJzSUVRVGhTaQ$2CApfmG+774nfaR0hi4HxQ', 'JanuszOgrodnik', 150, 5, 'Warszawa', '{"dark_mode": true, "care_reminders": true, "weather_tips": false}'::jsonb),
+('anna.nowak@example.com', '$argon2id$v=19$m=16,t=2,p=1$ZVBlbDMyaFJzSUVRVGhTaQ$rPGnR6wN8P7aJuzsHyrnBg', 'AniaZZielonegoWzg', 1200, 45, 'Kraków', '{"dark_mode": false, "care_reminders": true, "weather_tips": true}'::jsonb),
+('test.user@example.com', '$argon2id$v=19$m=16,t=2,p=1$ZVBlbDMyaFJzSUVRVGhTaQ$OZlVSPAT4AxSy0gF9wNvlA', 'TesterBazy', 0, 0, 'Gdańsk', '{"dark_mode": true, "care_reminders": false, "weather_tips": false}'::jsonb);
 
 -- ==========================================
 -- 3. PRZYPISYWANIE ROŚLIN DO UŻYTKOWNIKÓW (USER_PLANTS)
