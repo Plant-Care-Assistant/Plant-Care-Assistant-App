@@ -51,12 +51,15 @@ class PlantClassifier:
         cls,
         checkpoint_path: str | Path,
         device: str | None = None,
+        *,
+        verbose: bool = True,
     ) -> "PlantClassifier":
         """Load classifier from training checkpoint.
 
         Args:
             checkpoint_path: Path to checkpoint file (.pth).
             device: Device to load model on. If None, uses CUDA if available.
+            verbose: Whether to print loading information.
 
         Returns:
             PlantClassifier instance ready for inference.
@@ -64,14 +67,13 @@ class PlantClassifier:
         Raises:
             ValueError: If model type is unknown or num_classes cannot be determined.
 
-
         Example:
             >>> classifier = PlantClassifier.from_checkpoint("checkpoints/best.pth")
             >>> result = classifier.predict("image.jpg")
 
         """
         checkpoint_path = Path(checkpoint_path)
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
         config = checkpoint["config"]
         model_type = config["model"]
@@ -99,11 +101,12 @@ class PlantClassifier:
             device=device,
         )
 
-        print(f"Loaded checkpoint from {checkpoint_path}")
-        print(f"Model: {model_type}")
-        print(f"Classes: {num_classes}")
-        if "best_acc" in checkpoint:
-            print(f"Best validation accuracy: {checkpoint['best_acc']:.2f}%")
+        if verbose:
+            print(f"Loaded checkpoint from {checkpoint_path}")
+            print(f"Model: {model_type}")
+            print(f"Classes: {num_classes}")
+            if "best_acc" in checkpoint:
+                print(f"Best validation accuracy: {checkpoint['best_acc']:.2f}%")
 
         return classifier
 
@@ -180,7 +183,7 @@ class PlantClassifier:
                 "confidence": float(prob),
             }
 
-            # add plant name,if mapping available
+            # add plant name, if mapping available
             if self.id_to_name and plant_id in self.id_to_name:
                 prediction["class_name"] = self.id_to_name[plant_id]
 
