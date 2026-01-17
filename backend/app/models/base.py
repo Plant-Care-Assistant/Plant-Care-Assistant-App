@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 class LightLevel(StrEnum):
@@ -44,7 +48,7 @@ class User(SQLModel, table=True):
     )
 
     # Metadane
-    created_at: datetime | None = Field(default_factory=datetime.now)
+    created_at: datetime | None = Field(default_factory=utc_now)
     deleted_at: datetime | None = Field(default=None)
 
 
@@ -77,7 +81,7 @@ class UserPlant(SQLModel, table=True):
     note: str | None = None
     photo_url: str | None = None
 
-    created_at: datetime | None = Field(default_factory=datetime.now)
+    created_at: datetime | None = Field(default_factory=utc_now)
     age: datetime | None = None
 
 
@@ -86,7 +90,7 @@ class WateringData(SQLModel, table=True):
     __tablename__: str = "watering_data"  # type: ignore
     plant_id: int = Field(foreign_key="user_plants.id", primary_key=True)
     timestamp_of_watering: datetime = Field(
-        default_factory=datetime.now,
+        default_factory=utc_now,
         primary_key=True,
     )
 

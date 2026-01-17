@@ -2,7 +2,6 @@ from fastapi import APIRouter
 
 from app.models.requests import (
     UserPreferences,
-    UserPreferencesUpdate,
     UserPublic,
     UserUpdate,
 )
@@ -24,12 +23,12 @@ def read_current_user(user: LoggedUserDep):
 
 @router.delete("/me")
 def delete_current_user(user: LoggedUserDep, service: UserServiceDep) -> None:
-    return service.delete_user(user.id)
+    return service.delete_user(user)
 
 
 @router.patch("/me", response_model=UserPublic)
 def patch_current_user(body: UserUpdate, user: LoggedUserDep, service: UserServiceDep):
-    service.update_user(user, body)
+    return service.update_user(user, body)
 
 
 @router.get("/me/stats", response_model=UserPublic)
@@ -49,6 +48,8 @@ def read_current_user_settings(user: LoggedUserDep):
 
 @router.put("/me/settings", response_model=UserPreferences)
 def update_current_user_settings(
-    body: UserPreferencesUpdate, user: LoggedUserDep, service: UserServiceDep,
+    body: UserPreferences,
+    user: LoggedUserDep,
+    service: UserServiceDep,
 ):
     return service.update_preferences(user, body)

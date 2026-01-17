@@ -22,6 +22,8 @@ credentials_exception = HTTPException(
     headers={"WWW-Authenticate": "Bearer"},
 )
 
+account_deleted = HTTPException(status_code=403, detail="Account has been deleted")
+
 
 class AuthService:
     def __init__(self, session: SessionDep, users: UserServiceDep) -> None:
@@ -39,6 +41,8 @@ class AuthService:
         user = self.users.read_user_email(login)
         if user is None:
             raise credentials_exception
+        if user.deleted_at is not None:
+            raise account_deleted
         return user
 
     def password_login(self, form_data: OAuth2PasswordRequestForm) -> Token:
@@ -54,6 +58,9 @@ class AuthService:
         except argon2.exceptions.InvalidHashError:
             raise credentials_exception from None
 
+        if user.deleted_at is not None:
+            raise account_deleted
+
         expire = datetime.now(UTC) + timedelta(weeks=4)
         data = {"sub": user.email, "exp": expire}
         access_token = jwt.encode(data, SECRET_KEY, ALGORITHM)
@@ -64,7 +71,8 @@ AuthServiceDep = Annotated[AuthService, Depends()]
 
 
 def get_logged_user(
-    token: Annotated[str, Depends(oauth2_scheme)], service: AuthServiceDep,
+    token: Annotated[str, Depends(oauth2_scheme)],
+    service: AuthServiceDep,
 ) -> User:
     return service.authenticate(token)
 

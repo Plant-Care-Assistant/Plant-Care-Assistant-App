@@ -1,7 +1,8 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from argon2 import PasswordHasher
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlmodel import select
 
 from app.db import SessionDep
@@ -9,7 +10,6 @@ from app.models.base import User
 from app.models.requests import (
     UserCreate,
     UserPreferences,
-    UserPreferencesUpdate,
     UserUpdate,
 )
 
@@ -30,12 +30,17 @@ class UserService:
         return self.s.get(User, user_id)
 
     def create_user(self, body: UserCreate) -> User:
+        if self.read_user_email(body.email) is not None:
+            raise HTTPException(409, "Email already in use")
+
         ph = PasswordHasher()
         password_hash = ph.hash(body.password)
         username = body.username or body.email.split("@")[0]
 
         new_user = User(
-            email=body.email, password_hash=password_hash, username=username,
+            email=body.email,
+            password_hash=password_hash,
+            username=username,
         )
 
         self.s.add(new_user)
@@ -49,11 +54,13 @@ class UserService:
         self.s.commit()
         return new_user
 
-    def delete_user(self, user_id) -> None:
-        pass
+    def delete_user(self, user) -> None:
+        user.deleted_at = datetime.now(UTC)
+        self.s.add(user)
+        self.s.commit()
 
     def update_preferences(
-        self, user: User, new_prefs: UserPreferencesUpdate,
+        self, user: User, new_prefs: UserPreferences,
     ) -> UserPreferences:
         user.preferences = new_prefs.model_dump()
         self.s.add(user)

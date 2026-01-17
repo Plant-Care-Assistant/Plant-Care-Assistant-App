@@ -31,9 +31,3 @@ class UserPreferences(BaseModel):
     dark_mode: bool = False
     care_reminders: bool = True
     weather_tips: bool = True
-
-
-class UserPreferencesUpdate(BaseModel):
-    dark_mode: bool | None = None
-    care_reminders: bool | None = None
-    weather_tips: bool | None = None
