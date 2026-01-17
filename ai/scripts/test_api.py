@@ -37,11 +37,9 @@ def test_health(base_url: str) -> bool:
 
         print("✓ Health check passed!")
         print(f"  Status: {data['status']}")
-        print(f"  Model: {data['model']}")
         print(f"  Device: {data['device']}")
         print(f"  Classes: {data['num_classes']}")
-        print(f"  Has weights: {data['has_weights']}")
-        print(f"  Class mappings: {data['num_class_mappings']}")
+        print(f"  Checkpoint loaded: {data['checkpoint_loaded']}")
 
     except requests.exceptions.RequestException as e:
         print(f"✗ Health check failed: {e}")
@@ -93,9 +91,9 @@ def test_predict(image_path: Path, base_url: str, top_k: int) -> bool:
 
         for i, pred in enumerate(data["predictions"], 1):
             confidence_pct = pred["confidence"] * 100
+            class_name = pred.get("class_name") or "Unknown"
             print(
-                f"  {i}. {pred['class_name']} "
-                f"(ID: {pred['class_id']}, confidence: {confidence_pct:.2f}%)"
+                f"  {i}. {class_name} (ID: {pred['class_id']}, confidence: {confidence_pct:.2f}%)"
             )
 
     except requests.exceptions.RequestException as e:

@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+import plant_care_ai.api.main as main_module
 from plant_care_ai.api.main import app
 
 client = TestClient(app)
@@ -16,23 +17,6 @@ client = TestClient(app)
 # Constants for expected values
 DEFAULT_TOP_K = 5
 TOP_K_TEST_VALUE = 3
-
-
-@pytest.fixture
-def test_image_path() -> Path:
-    """Get path to test image.
-
-    Returns:
-        Path to a test image file.
-
-    """
-    # Use test image from artifacts
-    image_path = Path("tests/artifacts/images/test/1355868")
-    image_files = list(image_path.glob("*.jpg"))
-    if image_files:
-        return image_files[0]
-    # Fallback to any test image
-    return next(Path("tests/artifacts/images/test").rglob("*.jpg"))
 
 
 # ===== Health Endpoint Tests =====
@@ -49,12 +33,10 @@ def test_health_check_contains_model_info() -> None:
     response = client.get("/health")
     data = response.json()
 
-    assert data["status"] == "healthy"
-    assert "model" in data
+    assert data["status"] in {"healthy", "not_ready"}
     assert "device" in data
     assert "num_classes" in data
-    assert isinstance(data["has_weights"], bool)
-    assert isinstance(data["num_class_mappings"], int)
+    assert isinstance(data["checkpoint_loaded"], bool)
 
 
 # ===== Root Endpoint Tests =====
@@ -74,6 +56,7 @@ def test_root_returns_api_info() -> None:
 # ===== Predict Endpoint Tests =====
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_with_valid_jpeg_image(test_image_path: Path) -> None:
     """Predict endpoint should accept valid JPEG images."""
     if not test_image_path.exists():
@@ -98,10 +81,11 @@ def test_predict_with_valid_jpeg_image(test_image_path: Path) -> None:
     # Check prediction structure
     for pred in data["predictions"]:
         assert "class_id" in pred
-        assert "class_name" in pred
         assert "confidence" in pred
-        assert isinstance(pred["class_id"], int)
-        assert isinstance(pred["class_name"], str)
+        assert isinstance(pred["class_id"], str)
+        # class_name is optional (only if name mapping is loaded)
+        if "class_name" in pred and pred["class_name"] is not None:
+            assert isinstance(pred["class_name"], str)
         assert 0.0 <= pred["confidence"] <= 1.0
 
     # Predictions should be sorted by confidence (descending)
@@ -109,6 +93,7 @@ def test_predict_with_valid_jpeg_image(test_image_path: Path) -> None:
     assert confidences == sorted(confidences, reverse=True)
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_with_default_top_k(test_image_path: Path) -> None:
     """Predict should use default top_k=5 if not specified."""
     if not test_image_path.exists():
@@ -122,6 +107,7 @@ def test_predict_with_default_top_k(test_image_path: Path) -> None:
     assert len(data["predictions"]) == DEFAULT_TOP_K
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_with_top_k_1(test_image_path: Path) -> None:
     """Predict should return only 1 prediction when top_k=1."""
     if not test_image_path.exists():
@@ -139,6 +125,7 @@ def test_predict_with_top_k_1(test_image_path: Path) -> None:
     assert len(data["predictions"]) == 1
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_with_invalid_file_type() -> None:
     """Predict should reject non-image file types."""
     response = client.post("/predict", files={"file": ("test.txt", b"not an image", "text/plain")})
@@ -147,6 +134,7 @@ def test_predict_with_invalid_file_type() -> None:
     assert "Invalid file type" in response.json()["detail"]
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_with_invalid_top_k_too_low(test_image_path: Path) -> None:
     """Predict should reject top_k < 1."""
     if not test_image_path.exists():
@@ -163,6 +151,7 @@ def test_predict_with_invalid_top_k_too_low(test_image_path: Path) -> None:
     assert "top_k must be between 1 and 20" in response.json()["detail"]
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_with_invalid_top_k_too_high(test_image_path: Path) -> None:
     """Predict should reject top_k > 20."""
     if not test_image_path.exists():
@@ -179,6 +168,7 @@ def test_predict_with_invalid_top_k_too_high(test_image_path: Path) -> None:
     assert "top_k must be between 1 and 20" in response.json()["detail"]
 
 
+@pytest.mark.usefixtures("mock_classifier")
 def test_predict_processing_time_is_positive(test_image_path: Path) -> None:
     """Processing time should be a positive number."""
     if not test_image_path.exists():
@@ -190,6 +180,22 @@ def test_predict_processing_time_is_positive(test_image_path: Path) -> None:
     assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert data["processing_time_ms"] > 0
+
+
+def test_predict_without_classifier_returns_503() -> None:
+    """Predict should return 503 when classifier is not loaded."""
+    # Ensure classifier is None
+    original = main_module.classifier
+    main_module.classifier = None
+
+    try:
+        response = client.post(
+            "/predict", files={"file": ("test.jpg", b"fake image data", "image/jpeg")}
+        )
+        assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert "Model not loaded" in response.json()["detail"]
+    finally:
+        main_module.classifier = original
 
 
 # ===== API Documentation Tests =====

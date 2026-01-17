@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Wersja | ![Version](https://img.shields.io/badge/version-0.0.2-blue)
+| Wersja | ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 | Pokrycie testami | ![Coverage](./assets/unit-coverage.svg)
 | Python | 3.11+
 | Framework | PyTorch 2.9.1
@@ -25,8 +25,8 @@ docker build -f docker/api.Dockerfile -t plant-care-ai:api .
 docker run --name plant-care-ai-api \
   -p 8001:8001 \
   -v ${PWD}/models:/app/models:ro \
-  -e MODEL_NAME=resnet18 \
   -e DEVICE=cpu \
+  -e MODEL_CHECKPOINT_PATH=/app/models/best.pth \
   plant-care-ai:api
 
 # API dostępne pod adresem: http://localhost:8001
@@ -75,11 +75,9 @@ GET /health
 # Odpowiedź:
 {
   "status": "healthy",
-  "model": "resnet18",
   "device": "cpu",
-  "num_classes": 1081,
-  "has_weights": true,
-  "num_class_mappings": 1081
+  "num_classes": 100,
+  "checkpoint_loaded": true
 }
 ```
 
@@ -101,12 +99,12 @@ curl -X POST http://localhost:8001/predict \
 {
   "predictions": [
     {
-      "class_id": 123,
+      "class_id": "1363227",
       "class_name": "Rosa canina (Dzika róża)",
       "confidence": 0.87
     },
     {
-      "class_id": 456,
+      "class_id": "1392475",
       "class_name": "Tulipa gesneriana (Tulipan)",
       "confidence": 0.05
     }
@@ -134,11 +132,15 @@ ai/
 │   │   ├── dataset.py
 │   │   ├── dataloader.py
 │   │   └── preprocessing.py
+│   ├── training/            # Moduł trenowania
+│   │   ├── train.py         # PlantTrainer
+│   │   └── class_selection.py
+│   ├── inference/           # Moduł inferencji
+│   │   └── classifier.py    # PlantClassifier
 │   └── api/                 # Usługa FastAPI
-│       ├── __init__.py
 │       └── main.py          # Endpointy API
 ├── models/                  # Wytrenowane wagi (nie w git)
-│   ├── best_model.pth       # Checkpoint modelu
+│   ├── best.pth             # Checkpoint modelu
 │   ├── class_id_to_name.json
 │   └── README.md
 ├── tests/
@@ -185,29 +187,41 @@ pytest tests/integration/test_api.py -v
 
 ---
 
-## 🔧 Konfiguracja
+## Konfiguracja
 
 ### Zmienne środowiskowe
 
 | Zmienna | Opis | Domyślna wartość |
 |---------|------|------------------|
-| `MODEL_NAME` | Architektura modelu (`resnet18` lub `efficientnetv2`) | `resnet18` |
-| `MODEL_WEIGHTS_PATH` | Ścieżka do checkpointu modelu | `/app/models/best_model.pth` |
+| `MODEL_CHECKPOINT_PATH` | Ścieżka do checkpointu modelu (plik .pth z PlantTrainer) | `/app/models/best.pth` |
 | `DEVICE` | Urządzenie obliczeniowe (`cpu` lub `cuda`) | `cpu` |
-| `NUM_CLASSES` | Liczba klas roślin | `1081` |
-| `CLASS_MAPPING_PATH` | Ścieżka do JSON z mapowaniem ID klasy → nazwa | `/app/models/class_id_to_name.json` |
+| `CLASS_MAPPING_PATH` | Ścieżka do JSON z mapowaniem plant_id → nazwa | `/app/models/class_id_to_name.json` |
 
-### Wagi modelu
+### Checkpoint modelu
 
-Umieść wytrenowany model w `ai/models/`:
+API wymaga checkpointu wygenerowanego przez `PlantTrainer`. Checkpoint zawiera:
+- Wagi modelu (`model_state_dict`)
+- Konfigurację (typ modelu, liczba klas, rozmiar obrazu)
+- Mapowanie `idx_to_class` (indeks wyjścia → plant_id)
 
 ```bash
 # Przykład: Skopiuj wytrenowany model
-cp /sciezka/do/twojego/checkpoint.pth ai/models/best_model.pth
-
-# Upewnij się, że mapowanie klas istnieje
-cat ai/models/class_id_to_name.json
+cp /sciezka/do/checkpoints/best.pth ai/models/best.pth
 ```
+
+### Mapowanie nazw (opcjonalne)
+
+Plik `class_id_to_name.json` mapuje plant_id na czytelne nazwy:
+
+```json
+{
+  "1363227": "Rosa canina (Dzika róża)",
+  "1392475": "Bellis perennis (Stokrotka)",
+  ...
+}
+```
+
+Bez tego pliku API zwróci tylko `class_id` bez `class_name`.
 
 Zobacz [models/README.md](models/README.md) po szczegóły.
 
@@ -237,15 +251,15 @@ uvicorn plant_care_ai.api.main:app --host 0.0.0.0 --port 8001 --reload
 
 ##  Rozwiązywanie problemów
 
-### API zwraca "Model weights not found"
+### API zwraca "Checkpoint not found"
 
 **Rozwiązanie:**
 ```bash
-# Sprawdź czy plik wag istnieje
-ls -lh ai/models/best_model.pth
+# Sprawdź czy plik checkpointu istnieje
+ls -lh ai/models/best.pth
 
 # Jeśli brakuje, skopiuj wytrenowany model:
-cp /sciezka/do/checkpoint.pth ai/models/best_model.pth
+cp /sciezka/do/checkpoints/best.pth ai/models/best.pth
 ```
 
 ### Ostrzeżenie "Class mapping file not found"
@@ -256,7 +270,7 @@ cp /sciezka/do/checkpoint.pth ai/models/best_model.pth
 cat ai/models/class_id_to_name.json
 
 # Jeśli brakuje, utwórz z danych treningowych
-# Zobacz models/README.md po format
+# Format: {"plant_id": "nazwa rośliny", ...}
 ```
 
 ### Brak pamięci na GPU
@@ -265,7 +279,4 @@ cat ai/models/class_id_to_name.json
 ```bash
 # Użyj CPU zamiast GPU
 docker run -e DEVICE=cpu ...
-
-# Lub użyj mniejszego modelu
-docker run -e MODEL_NAME=resnet18 ...
 ```

@@ -43,10 +43,8 @@ services:
             context: ../ai
             dockerfile: docker/api.Dockerfile
         environment:
-            - MODEL_NAME=resnet18
             - DEVICE=cpu
-            - NUM_CLASSES=100
-            - MODEL_WEIGHTS_PATH=/app/models/best_model.pth
+            - MODEL_CHECKPOINT_PATH=/app/models/best.pth
             - CLASS_MAPPING_PATH=/app/models/class_id_to_name.json
         volumes:
             - ../ai/models:/app/models:ro
