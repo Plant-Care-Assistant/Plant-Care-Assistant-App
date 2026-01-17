@@ -36,7 +36,26 @@ services:
         depends_on:
             - sidecar
 
-    # 3. FRONTEND (Next.js)
+    # 3. AI SERVICE (PyTorch inference)
+    ai:
+        container_name: pcaa-ai
+        build:
+            context: ../ai
+            dockerfile: docker/api.Dockerfile
+        environment:
+            - MODEL_NAME=resnet18
+            - DEVICE=cpu
+            - NUM_CLASSES=100
+            - MODEL_WEIGHTS_PATH=/app/models/best_model.pth
+            - CLASS_MAPPING_PATH=/app/models/class_id_to_name.json
+        volumes:
+            - ../ai/models:/app/models:ro
+        network_mode: service:sidecar
+        depends_on:
+            - sidecar
+        command: uvicorn plant_care_ai.api.main:app --host 0.0.0.0 --port 8001
+
+    # 4. FRONTEND (Next.js)
     frontend:
         container_name: pcaa-frontend
         build:
@@ -50,7 +69,7 @@ services:
         depends_on:
             - api
 
-    # 4. PROXY (Nginx)
+    # 5. PROXY (Nginx)
     nginx:
         container_name: pcaa-nginx
         image: nginx:mainline-alpine

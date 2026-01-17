@@ -74,6 +74,15 @@ jobs:
           push: false
           tags: plant-care-ai:ci-cpu
 
+      - name: Build AI API image
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai
+          file: ./ai/docker/api.Dockerfile
+          push: false
+          tags: plant-care-ai:ci-api
+
   backend-ci:
     runs-on: ubuntu-latest
     defaults:
