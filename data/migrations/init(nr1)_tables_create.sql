@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS user_plants (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     age DATE
 );
+CREATE INDEX idx_user_plants_user_id ON user_plants(user_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_user_plants_catalog_id ON user_plants(plant_catalog_id);
 
 
 --to do trigger do usuwania starszych niz 7 dni, bha bhahahaha
@@ -76,7 +78,9 @@ CREATE TABLE IF NOT EXISTS watering_data (
     plant_id INTEGER REFERENCES user_plants(id),
     timestamp_of_watering TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
+CREATE INDEX idx_watering_plant_id ON watering_data(plant_id);
+CREATE INDEX idx_watering_timestamp ON watering_data(timestamp_of_watering DESC);
+CREATE INDEX idx_watering_plant_timestamp ON watering_data(plant_id, timestamp_of_watering DESC);
 
 --tabela z poziomami
 CREATE TABLE IF NOT EXISTS levels_xp_ranges (
