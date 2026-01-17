@@ -69,7 +69,9 @@ class PlantTrainer:
         self.best_acc = 0.0
         self.best_epoch = 0
 
-        self.checkpoint_dir = None
+        self.class_to_idx = None  # plant_id (str) -> model_output_idx (int)
+        self.idx_to_class = None  # model_output_idx (int) -> plant_id (str)
+        self.id_to_name = None  # plant_id (str) -> plant_name (str)
 
     def prepare_data(self) -> None:
         """Load and prepare data with subset creation."""
@@ -96,9 +98,11 @@ class PlantTrainer:
         self.class_to_idx = {
             species_id: i for i, species_id in enumerate(selected_classes)
         }
+        self.idx_to_class = dict(enumerate(selected_classes))
 
-        print(f"Total train samples in dataset: {len(train_dataset.paths)}")
-        print(f"Selected classes: {len(selected_classes)}")
+        if self.verbose:
+            print(f"Total train samples in dataset: {len(train_dataset.paths)}")
+            print(f"Selected classes: {len(selected_classes)}")
 
         train_indices = []
         train_class_counts = {}
@@ -141,6 +145,10 @@ class PlantTrainer:
             num_workers=self.config.get("num_workers", 2),
             pin_memory=True,
         )
+
+        if self.verbose:
+            print(f"Train samples: {len(train_indices)}")
+            print(f"Val samples: {len(val_indices)}")
 
     def build_model(self) -> None:
         """Build model if not provided from outside."""
@@ -380,6 +388,9 @@ class PlantTrainer:
             "best_acc": self.best_acc,
             "config": self.config,
             "history": self.history,
+            "class_to_idx": self.class_to_idx,
+            "idx_to_class": self.idx_to_class,  # model_idx -> plant_id
+            "num_classes": self.num_classes
         }
 
         torch.save(checkpoint, self.checkpoint_dir / "last.pth")
