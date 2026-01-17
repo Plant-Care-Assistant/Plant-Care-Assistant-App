@@ -49,6 +49,7 @@ dev = [
     "pydantic==2.12.4",
     "httpx==0.28.1",
     "fastapi==0.115.12",
+    "python-multipart==0.0.20",
 ]
 
 [tool.ruff]
