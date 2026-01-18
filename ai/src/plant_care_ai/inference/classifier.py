@@ -149,6 +149,9 @@ class PlantClassifier:
                 "processing_time_ms": 52.3
             }
 
+        Raises:
+            KeyError: If model output index is not found in idx_to_class mapping.
+
         Example:
             >>> result = classifier.predict("rose.jpg", top_k=3)
             >>> print(result["predictions"][0]["class_name"])
@@ -176,7 +179,12 @@ class PlantClassifier:
             top_indices[0].cpu().numpy(),
             strict=False,
         ):
-            plant_id = self.idx_to_class[int(idx)]
+            idx_int = int(idx)
+            if idx_int not in self.idx_to_class:
+                msg = f"Model output index {idx_int} not found in idx_to_class mapping"
+                raise KeyError(msg)
+
+            plant_id = self.idx_to_class[idx_int]
 
             prediction = {
                 "class_id": plant_id,

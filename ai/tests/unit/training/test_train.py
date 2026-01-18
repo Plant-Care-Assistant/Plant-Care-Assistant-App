@@ -297,6 +297,23 @@ class TestBuildModel:
 
         assert trainer.model is custom_model
 
+    @staticmethod
+    def test_build_model_unknown_type_raises(tmp_path: Path, sample_data_dir: Path) -> None:
+        """Test that build_model raises ValueError for unknown model type.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        config["model"] = "unknown_model"
+        trainer = PlantTrainer(config, verbose=False)
+        trainer.prepare_data()
+
+        with pytest.raises(ValueError, match="Unknown model type"):
+            trainer.build_model()
+
 
 class TestSetupTraining:
     """Tests for PlantTrainer.setup_training method."""
