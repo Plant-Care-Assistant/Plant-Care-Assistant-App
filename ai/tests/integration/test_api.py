@@ -5,6 +5,7 @@ Copyright (c) 2026 Plant Care Assistant. All rights reserved.
 
 from http import HTTPStatus
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -194,6 +195,32 @@ def test_predict_without_classifier_returns_503() -> None:
         )
         assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert "Model not loaded" in response.json()["detail"]
+    finally:
+        main_module.classifier = original
+
+
+@pytest.mark.usefixtures("mock_classifier")
+def test_predict_handles_classifier_exception(test_image_path: Path) -> None:
+    """Predict should return 500 when classifier raises an exception."""
+    if not test_image_path.exists():
+        pytest.skip("Test image not found")
+
+    # Create a mock that raises an exception
+    mock = MagicMock()
+    mock.num_classes = 100
+    mock.predict.side_effect = RuntimeError("Model inference failed")
+
+    original = main_module.classifier
+    main_module.classifier = mock
+
+    try:
+        with test_image_path.open("rb") as f:
+            response = client.post(
+                "/predict",
+                files={"file": ("test.jpg", f, "image/jpeg")},
+            )
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert "Prediction failed" in response.json()["detail"]
     finally:
         main_module.classifier = original
 
