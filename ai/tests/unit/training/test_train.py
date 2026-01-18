@@ -770,3 +770,127 @@ class TestTrainerVerbose:
         assert "Val samples" in captured.out
         assert "Epoch 1" in captured.out
         assert "Results" in captured.out
+
+
+class TestValidateReal:
+    """Tests for PlantTrainer.validate method without mocking."""
+
+    @staticmethod
+    def test_validate_runs_without_mocking(tmp_path: Path, sample_data_dir: Path) -> None:
+        """Test that validate actually runs and returns metrics.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        trainer = PlantTrainer(config, verbose=False)
+        trainer.prepare_data()
+        trainer.build_model()
+        trainer.setup_training()
+
+        val_loss, val_acc, val_top5 = trainer.validate()
+
+        assert isinstance(val_loss, float)
+        assert isinstance(val_acc, float)
+        assert isinstance(val_top5, float)
+        assert val_loss >= 0
+        assert 0 <= val_acc <= MAX_ACCURACY_PERCENT
+        assert 0 <= val_top5 <= MAX_ACCURACY_PERCENT
+
+    @staticmethod
+    def test_validate_verbose_output(
+        tmp_path: Path,
+        sample_data_dir: Path,
+    ) -> None:
+        """Test that validate works with verbose mode (coverage for pbar.set_postfix).
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        trainer = PlantTrainer(config, verbose=True)
+        trainer.prepare_data()
+        trainer.build_model()
+        trainer.setup_training()
+
+        val_loss, val_acc, val_top5 = trainer.validate()
+
+        assert isinstance(val_loss, float)
+        assert isinstance(val_acc, float)
+        assert isinstance(val_top5, float)
+
+
+class TestPrepareDataWithValData:
+    """Tests for prepare_data with validation data present."""
+
+    @staticmethod
+    def test_prepare_data_creates_val_loader_with_samples(
+        tmp_path: Path,
+        sample_data_dir: Path,
+    ) -> None:
+        """Test that prepare_data creates val_loader with validation samples.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        trainer = PlantTrainer(config, verbose=False)
+        trainer.prepare_data()
+
+        assert trainer.val_loader is not None
+        assert len(trainer.val_loader.dataset) > 0
+
+    @staticmethod
+    def test_prepare_data_val_indices_collected(
+        tmp_path: Path,
+        sample_data_dir: Path,
+    ) -> None:
+        """Test that prepare_data collects validation indices correctly.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        trainer = PlantTrainer(config, verbose=False)
+        trainer.prepare_data()
+
+        # Should have loaded validation samples
+        val_dataset_len = len(trainer.val_loader.dataset)
+        assert val_dataset_len >= 1
+
+
+class TestTrainWithRealValidation:
+    """Tests for full training loop with real validation."""
+
+    @staticmethod
+    def test_train_with_real_validate(tmp_path: Path, sample_data_dir: Path) -> None:
+        """Test full training loop without mocking validate.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        config["epochs"] = 1
+        trainer = PlantTrainer(config, verbose=False)
+        trainer.prepare_data()
+        trainer.build_model()
+        trainer.setup_training()
+
+        history = trainer.train()
+
+        assert "val_loss" in history
+        assert "val_acc" in history
+        assert "val_top5" in history
+        assert len(history["val_loss"]) == 1
+        assert len(history["val_acc"]) == 1
+        assert len(history["val_top5"]) == 1

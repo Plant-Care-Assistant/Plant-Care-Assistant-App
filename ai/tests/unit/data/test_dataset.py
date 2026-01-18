@@ -16,7 +16,7 @@ from plant_care_ai.data.dataset import PlantNetDataset
     ("split", "expected_count"),
     [
         ("train", 2),
-        ("val", 2),
+        ("val", 3),
         ("test", 2),
     ],
 )
@@ -38,8 +38,8 @@ def test_len_counts_images(sample_data_dir: Path, split: str, expected_count: in
     ("split", "expected_classes"),
     [
         ("train", ["1355936"]),
-        ("val", ["1355932", "1355868"]),
-        ("test", ["1355932", "1355868"]),
+        ("val", ["1355868", "1355932", "1355936"]),
+        ("test", ["1355868", "1355932"]),
     ],
 )
 def test_classes_and_mapping(
