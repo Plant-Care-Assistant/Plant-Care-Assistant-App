@@ -92,7 +92,7 @@ class PlantTrainer:
 
         seed = 42
         random.seed(seed)
-        np.random.Generator(seed)
+        np.random.default_rng(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
