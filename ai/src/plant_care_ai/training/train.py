@@ -69,7 +69,9 @@ class PlantTrainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
 
-        self.scaler = torch.amp.GradScaler("cuda")
+        # GradScaler only used when training on CUDA
+        self.use_amp = "cuda" in self.device
+        self.scaler = torch.amp.GradScaler("cuda", enabled=self.use_amp)
         self.criterion = None
         self.train_loader = None
         self.val_loader = None
@@ -92,7 +94,7 @@ class PlantTrainer:
 
         seed = 42
         random.seed(seed)
-        np.random.Generator(seed)
+        np.random.default_rng(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
@@ -257,7 +259,7 @@ class PlantTrainer:
 
             self.optimizer.zero_grad()
 
-            with torch.amp.autocast("cuda"):
+            with torch.amp.autocast("cuda", enabled=self.use_amp):
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
 
@@ -359,7 +361,7 @@ class PlantTrainer:
                 images = batch_images.to(self.device)
                 labels = batch_labels.to(self.device)
 
-                with torch.amp.autocast("cuda"):
+                with torch.amp.autocast("cuda", enabled=self.use_amp):
                     outputs = self.model(images)
                     loss = self.criterion(outputs, labels)
 

@@ -65,14 +65,14 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build AI CPU image
+      - name: Build AI API image
         if: steps.changes.outputs.ai == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./ai
-          file: ./ai/docker/cpu.Dockerfile
+          file: ./ai/docker/api.Dockerfile
           push: false
-          tags: plant-care-ai:ci-cpu
+          tags: plant-care-ai:ci-api
 
   backend-ci:
     runs-on: ubuntu-latest

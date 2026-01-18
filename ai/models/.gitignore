@@ -1,0 +1,10 @@
+# Model weights
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.pkl
+*.pickle
+
+# Allow the class mapping JSON
+!class_id_to_name.json

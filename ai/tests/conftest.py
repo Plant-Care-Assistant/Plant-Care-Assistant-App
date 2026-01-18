@@ -4,12 +4,17 @@ Copyright 2025 Plant Care Assistant
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 import torch
 
 from plant_care_ai.models.efficientnetv2 import EfficientNetV2
 from plant_care_ai.models.resnet18 import Resnet18
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent / "artifacts"
 
@@ -134,3 +139,70 @@ def saved_resnet_weights_wrapped(tmp_path: Path) -> Path:
     }
     torch.save(checkpoint, weights_path)
     return weights_path
+
+
+# ===== Integration Test Fixtures =====
+
+
+@pytest.fixture
+def test_image_path() -> Path:
+    """Get path to test image for API tests.
+
+    Returns:
+        Path to a test image file.
+
+    """
+    image_path = ARTIFACTS_DIR / "images" / "test" / "1355868"
+    image_files = list(image_path.glob("*.jpg"))
+    if image_files:
+        return image_files[0]
+    # Fallback to any test image
+    return next((ARTIFACTS_DIR / "images" / "test").rglob("*.jpg"))
+
+
+@pytest.fixture
+def mock_classifier() -> "Generator[MagicMock, None, None]":
+    """Mock the classifier for predict endpoint tests.
+
+    Yields:
+        MagicMock classifier that returns fake predictions.
+
+    """
+    import plant_care_ai.api.main as main_module  # noqa: PLC0415
+
+    all_predictions = [
+        {"class_id": "1363227", "class_name": "Rosa canina", "confidence": 0.87},
+        {"class_id": "1392475", "class_name": "Bellis perennis", "confidence": 0.08},
+        {"class_id": "1356022", "class_name": "Taraxacum officinale", "confidence": 0.03},
+        {"class_id": "1364099", "class_name": "Trifolium repens", "confidence": 0.01},
+        {"class_id": "1355937", "class_name": "Plantago major", "confidence": 0.005},
+    ]
+
+    def mock_predict(_image: object, top_k: int = 5) -> dict:
+        """Return fake predictions respecting top_k parameter.
+
+        Args:
+            _image: Input image (unused in mock).
+            top_k: Number of predictions to return.
+
+        Returns:
+            Dictionary with predictions and processing time.
+
+        """
+        return {
+            "predictions": all_predictions[:top_k],
+            "processing_time_ms": 52.3,
+        }
+
+    mock = MagicMock()
+    mock.num_classes = 100
+    mock.predict.side_effect = mock_predict
+
+    # Store original and set mock
+    original_classifier = main_module.classifier
+    main_module.classifier = mock
+
+    yield mock
+
+    # Restore original
+    main_module.classifier = original_classifier

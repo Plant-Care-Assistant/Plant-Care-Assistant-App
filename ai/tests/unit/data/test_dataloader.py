@@ -9,6 +9,11 @@ from torch.utils.data import RandomSampler, SequentialSampler
 
 from plant_care_ai.data.dataloader import PlantNetDataLoader
 
+# Sample data sizes
+TRAIN_DATASET_SIZE = 2
+VAL_DATASET_SIZE = 3
+TEST_DATASET_SIZE = 2
+
 
 def test_dataloader_initializes_splits_and_num_classes(sample_data_dir: Path) -> None:
     """Test that datasets and num_classes are set correctly.
@@ -19,14 +24,9 @@ def test_dataloader_initializes_splits_and_num_classes(sample_data_dir: Path) ->
     """
     loader = PlantNetDataLoader(data_dir=sample_data_dir, batch_size=2)
 
-    expected_dataset_size = 2  # Each split has 2 images in the sample data
-
-    assert (
-        len(loader.train_dataset)
-        == len(loader.val_dataset)
-        == len(loader.test_dataset)
-        == expected_dataset_size
-    )
+    assert len(loader.train_dataset) == TRAIN_DATASET_SIZE
+    assert len(loader.val_dataset) == VAL_DATASET_SIZE
+    assert len(loader.test_dataset) == TEST_DATASET_SIZE
 
 
 def test_train_loader_shuffles_and_batch_size(sample_data_dir: Path) -> None:
