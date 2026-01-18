@@ -189,7 +189,12 @@ class PlantTrainer:
             print(f"Val samples: {len(val_indices)}")
 
     def build_model(self) -> None:
-        """Build model if not provided from outside."""
+        """Build model if not provided from outside.
+
+        Raises:
+            ValueError: If model type is unknown.
+
+        """
         if self.model is not None:
             self.model = self.model.to(self.device)
             return
@@ -202,6 +207,9 @@ class PlantTrainer:
                 variant=self.config["variant"],
                 num_classes=self.num_classes,
             )
+        else:
+            msg = f"Unknown model type: {model_type}. Supported: 'resnet18', 'efficientnetv2'"
+            raise ValueError(msg)
 
         self.model = self.model.to(self.device)
 

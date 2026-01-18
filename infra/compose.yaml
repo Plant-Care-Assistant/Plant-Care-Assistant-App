@@ -51,6 +51,12 @@ services:
         network_mode: service:sidecar
         depends_on:
             - sidecar
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
         command: uvicorn plant_care_ai.api.main:app --host 0.0.0.0 --port 8001
 
     # 4. FRONTEND (Next.js)

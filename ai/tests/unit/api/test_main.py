@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi import HTTPException, status
 
-from plant_care_ai.api.main import load_classifier, load_name_mapping
+from plant_care_ai.api.main import load_classifier, load_name_mapping, predict_plant
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -198,3 +199,33 @@ class TestLifespan:
                         pass
             finally:
                 main_module.classifier = original_classifier
+
+
+class TestPredictPlant:
+    """Tests for the predict_plant endpoint."""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_predict_plant_rejects_large_file() -> None:
+        """Test that predict_plant rejects files over the size limit."""
+
+        class DummyUploadFile:
+            """Minimal UploadFile replacement for unit testing."""
+
+            def __init__(self, content: bytes, content_type: str) -> None:
+                self._content = content
+                self.content_type = content_type
+
+            async def read(self) -> bytes:
+                return self._content
+
+        dummy_file = DummyUploadFile(b"aa", "image/png")
+
+        with (
+            patch("plant_care_ai.api.main.classifier", MagicMock()),
+            patch("plant_care_ai.api.main.MAX_FILE_SIZE_BYTES", 1),
+            pytest.raises(HTTPException) as exc_info,
+        ):
+            await predict_plant(dummy_file, top_k=1)
+
+        assert exc_info.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE

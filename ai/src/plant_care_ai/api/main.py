@@ -25,6 +25,8 @@ CLASS_MAPPING_PATH = os.getenv("CLASS_MAPPING_PATH", "/app/models/class_id_to_na
 # Constants
 MAX_TOP_K = 20
 MIN_TOP_K = 1
+MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # ===== GLOBAL CLASSIFIER =====
 classifier: PlantClassifier | None = None
@@ -202,9 +204,15 @@ async def predict_plant(
             detail=f"top_k must be between {MIN_TOP_K} and {MAX_TOP_K}",
         )
 
+    # Read image and validate size
+    image_bytes = await file.read()
+    if len(image_bytes) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB.",
+        )
+
     try:
-        # Read image
-        image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
         # Run inference using PlantClassifier

@@ -372,3 +372,26 @@ class TestPredict:
 
         # Sum of all confidences should not exceed 1 (they're probabilities)
         assert sum(confidences) <= 1.0 + 1e-6  # Small epsilon for floating point
+
+    @staticmethod
+    def test_predict_unknown_class_index_raises() -> None:
+        """Test that predict raises when output index is missing from mapping."""
+
+        class DummyModel(torch.nn.Module):
+            """Return logits where the top class index is not in idx_to_class."""
+
+            @staticmethod
+            def forward(x: torch.Tensor) -> torch.Tensor:
+                return x.new_tensor([[0.0, 1.0]])
+
+        classifier = PlantClassifier(
+            model=DummyModel(),
+            idx_to_class={0: "class_0"},
+            img_size=DEFAULT_IMG_SIZE,
+            device="cpu",
+        )
+
+        image = Image.new("RGB", (256, 256), color="white")
+
+        with pytest.raises(KeyError, match="not found in idx_to_class mapping"):
+            classifier.predict(image, top_k=1)
