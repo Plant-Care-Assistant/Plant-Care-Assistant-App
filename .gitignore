@@ -17,6 +17,8 @@ eggs/
 lib/
 lib64/
 parts/
+# Allow frontend lib folder
+!frontend/src/lib/
 sdist/
 var/
 wheels/
