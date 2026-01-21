@@ -1,30 +1,113 @@
-from datetime import datetime
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel
-from sqlmodel import Field, SQLModel
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlmodel import Column, Field, SQLModel
 
 
+def utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+class LightLevel(StrEnum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class HumidityLevel(StrEnum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+# 1. TABELA UŻYTKOWNIKÓW
 class User(SQLModel, table=True):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    name: str
-    login: str = Field(index=True)
-    password: str
-    email: str
-    created_at: datetime
     __tablename__: str = "users"  # type: ignore
 
-
-class Plant(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    common_name: str
-    species_name: str
-    image_reference: str
-    description: str
-    __tablename__: str = "plant_info"  # type: ignore
+    email: str = Field(unique=True, index=True, max_length=255)
+    password_hash: str = Field(max_length=255)
+    username: str = Field(max_length=100)
+
+    xp: int = Field(default=0)
+    day_streak: int = Field(default=0)
+    last_login_at: datetime | None = Field(default=None)
+
+    location_city: str | None = Field(default=None, max_length=100)
+
+    preferences: dict[str, Any] | None = Field(
+        default_factory=lambda: {
+            "dark_mode": False,
+            "care_reminders": True,
+            "weather_tips": True,
+        },
+        sa_column=Column(JSONB),
+    )
+
+    # Metadane
+    created_at: datetime | None = Field(default_factory=utc_now)
+    deleted_at: datetime | None = Field(default=None)
+
+
+# 2. KATALOG ROŚLIN
+class Plant(SQLModel, table=True):
+    __tablename__: str = "plants_catalog"  # type: ignore
+
+    id: int | None = Field(default=None, primary_key=True)
+    common_name: str = Field(max_length=150)
+    scientific_name: str | None = Field(default=None, max_length=150)
+
+    preferred_sunlight: LightLevel
+    preferred_temp_min: int | None = None
+    preferred_temp_max: int | None = None
+    air_humidity_req: HumidityLevel | None = None
+    soil_humidity_req: HumidityLevel | None = None
+
+    prefered_watering_interval_days: int | None = None
+
+
+# 3. ROŚLINY UŻYTKOWNIKA
+class UserPlant(SQLModel, table=True):
+    __tablename__: str = "user_plants"  # type: ignore
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    plant_catalog_id: int | None = Field(default=None, foreign_key="plants_catalog.id")
+
+    custom_name: str | None = Field(default=None, max_length=100)
+    note: str | None = None
+    photo_url: str | None = None
+
+    created_at: datetime | None = Field(default_factory=utc_now)
+    age: datetime | None = None
+
+
+# 4. HISTORIA PODLEWANIA
+class WateringData(SQLModel, table=True):
+    __tablename__: str = "watering_data"  # type: ignore
+    plant_id: int = Field(foreign_key="user_plants.id", primary_key=True)
+    timestamp_of_watering: datetime = Field(
+        default_factory=utc_now,
+        primary_key=True,
+    )
+
+
+# 5. POZIOMY
+class LevelsXpRanges(SQLModel, table=True):
+    __tablename__: str = "levels_xp_ranges"  # type: ignore
+    level_val: int = Field(primary_key=True)
+    req_xp: int
 
 
 class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+
+
+class PageParams(BaseModel):
+    limit: int = Field(100, gt=0, le=100)
+    offset: int = Field(0, ge=0)

@@ -1,52 +1,88 @@
-name: PCAA
-networks:
-    frontnet: {}
-    backnet: {}
+name: pcaa
 services:
-    db:
-        image: postgres:18-alpine
-        container_name: pcaa-db
-        restart: always
+    # 1. KONTENER SIECIOWY (Sidecar & tailscale)
+    sidecar:
+        container_name: pcaa-sidecar
+        image: tailscale/tailscale:latest
+        hostname: dev-app-instance
+        devices:
+            - /dev/net/tun:/dev/net/tun
+        env_file:
+            - ../.env
         environment:
-            POSTGRES_USER: pca_devuser
-            POSTGRES_PASSWORD: pca_devpass
-            PGDATA: ../data/postgres_data
-            POSTGRES_DB: pca_localdb
-        expose:
-            - "5432"
+            - TS_EXTRA_ARGS=--advertise-tags=tag:dev
+            - TS_STATE_DIR=/var/lib/tailscale
+            - TS_USERSPACE=false
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
         volumes:
-            - ../data/postgres_data:/var/lib/postgresql/data
-            - ../data/migrations:/docker-entrypoint-initdb.d:ro
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U pca_devuser -d pca_localdb"]
-            interval: 5s
-            timeout: 5s
-            retries: 5
-        networks:
-            - backnet
+            - tailscale-data:/var/lib/tailscale
+        restart: unless-stopped
+        ports:
+            - "8080:80"
+
+    # 2. BACKEND (FastAPI)
     api:
         container_name: pcaa-api
         build:
             context: ..
             dockerfile: infra/api/Dockerfile
+        env_file:
+            - ../.env
         volumes:
             - ../backend:/workroot
-        expose:
-            - "8000"
+        network_mode: service:sidecar
         depends_on:
-            - db
-        networks:
-            - frontnet
-            - backnet
+            - sidecar
+
+    # 3. AI SERVICE (PyTorch inference)
+    ai:
+        container_name: pcaa-ai
+        build:
+            context: ../ai
+            dockerfile: docker/api.Dockerfile
+        environment:
+            - DEVICE=cpu
+            - MODEL_CHECKPOINT_PATH=/app/models/best.pth
+            - CLASS_MAPPING_PATH=/app/models/class_id_to_name.json
+        volumes:
+            - ../ai/models:/app/models:ro
+        network_mode: service:sidecar
+        depends_on:
+            - sidecar
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
+        command: uvicorn plant_care_ai.api.main:app --host 0.0.0.0 --port 8001
+
+    # 4. FRONTEND (Next.js)
+    frontend:
+        container_name: pcaa-frontend
+        build:
+            context: ../frontend
+            dockerfile: Dockerfile
+        volumes:
+            - ../frontend:/app
+            - /app/node_modules
+            - /app/.next
+        network_mode: service:sidecar
+        depends_on:
+            - api
+
+    # 5. PROXY (Nginx)
     nginx:
         container_name: pcaa-nginx
         image: nginx:mainline-alpine
+        network_mode: service:sidecar
         volumes:
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-            - ../frontend/static:/usr/share/nginx/html:ro
-        ports:
-            - "8080:80"
         depends_on:
             - api
-        networks:
-            - frontnet
+            - frontend
+
+volumes:
+  tailscale-data:

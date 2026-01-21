@@ -1,24 +1,33 @@
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserCreate(BaseModel):
-    username: str = Field(..., min_length=1, examples=["littlegamer"])
-    password: str = Field(..., min_length=1, examples=["haslo123"])
-    email: str = Field(..., min_length=1, examples=["lg@example.com"])
-    game_ids: list[int] | None = Field(default=None, min_length=1)
+    email: EmailStr = Field(..., max_length=64, examples=["ogrodnik@example.com"])
+    password: str = Field(..., min_length=6, max_length=64, examples=["tajnehaslo"])
+    username: str | None = Field(None, max_length=30, examples=["FoxLvr"])
 
 
 class UserUpdate(BaseModel):
-    username: str | None = Field(default=None, min_length=1, examples=["littlegamer"])
-    password: str | None = Field(default=None, min_length=1, examples=["haslo123"])
-    email: str | None = Field(default=None, min_length=1, examples=["lg@example.com"])
-    game_ids: list[int] | None = Field(default=None, min_length=1)
+    username: str | None = None
+    email: EmailStr | None = None
+    location_city: str | None = None
+    preferences: dict[str, Any] | None = None
 
 
 class UserPublic(BaseModel):
-    name: str
-    login: str
-    created_at: datetime
-    email: str
+    id: int
+    username: str
+    email: EmailStr
+    xp: int
+    day_streak: int
+    location_city: str | None = None
+    created_at: datetime | None = None
+
+
+class UserPreferences(BaseModel):
+    dark_mode: bool = False
+    care_reminders: bool = True
+    weather_tips: bool = True
