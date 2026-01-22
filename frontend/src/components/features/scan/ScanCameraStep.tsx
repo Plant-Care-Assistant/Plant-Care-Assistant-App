@@ -1,8 +1,10 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Camera, Image as ImageIcon } from 'lucide-react';
+import { CameraCapture } from './CameraCapture';
 
 interface ScanCameraStepProps {
   onImageCaptured: (imageUrl: string) => void;
@@ -14,6 +16,7 @@ export function ScanCameraStep({
   darkMode,
 }: ScanCameraStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,12 +31,19 @@ export function ScanCameraStep({
   };
 
   const handleCameraClick = () => {
-    // In a real app, this would open the device camera
-    // For now, trigger file input with camera preference
-    if (fileInputRef.current) {
-      fileInputRef.current.capture = 'environment';
-      fileInputRef.current.click();
-    }
+    // Open the CameraCapture component
+    setIsCameraOpen(true);
+  };
+
+  const handleCameraCapture = (imageBlob: Blob) => {
+    // Convert blob to data URL for backward compatibility
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      onImageCaptured(result);
+    };
+    reader.readAsDataURL(imageBlob);
+    setIsCameraOpen(false);
   };
 
   const handleGalleryClick = () => {
@@ -113,6 +123,16 @@ export function ScanCameraStep({
           💡 <strong>Tip:</strong> For best results, take a clear photo with good lighting showing the plant's leaves and overall shape.
         </p>
       </div>
+
+      {/* Camera Capture Component - rendered as portal to escape modal z-index */}
+      {typeof window !== 'undefined' && createPortal(
+        <CameraCapture
+          isOpen={isCameraOpen}
+          onClose={() => setIsCameraOpen(false)}
+          onCapture={handleCameraCapture}
+        />,
+        document.body
+      )}
     </div>
   );
 }

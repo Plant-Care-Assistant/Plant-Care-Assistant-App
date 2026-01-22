@@ -41,7 +41,10 @@ export function ScanResultsStep({
   const isAIIdentified = plantData.aiIdentified && (plantData.confidence || 0) > 50;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-4 min-h-[80vh] pb-28"
+    >
       {/* AI Result Banner */}
       {isAIIdentified ? (
         <div className={`rounded-xl p-4 flex items-start gap-3 ${
@@ -185,27 +188,35 @@ export function ScanResultsStep({
         />
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className={`flex items-center gap-2 rounded-xl px-4 py-3 font-medium transition-colors ${
-            darkMode
-              ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-              : 'bg-neutral-200 text-neutral-700 hover:bg-neutral-300'
-          }`}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </button>
+      {/* Action Buttons - sticky bottom on mobile */}
+      <div
+        className={`sticky bottom-16 left-0 right-0 z-30 pt-3 pb-4 px-1 safe-area-inset-bottom ${
+          darkMode
+            ? 'bg-transparent border-transparent'
+            : 'bg-transparent border-transparent'
+        }`}
+      >
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className={`flex items-center gap-2 rounded-xl px-4 py-3 font-medium transition-colors ${
+              darkMode
+                ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                : 'bg-neutral-200 text-neutral-700 hover:bg-neutral-300'
+            }`}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </button>
 
-        <button
-          type="submit"
-          className="flex-1 rounded-xl bg-secondary px-4 py-3 font-medium text-white transition-colors hover:bg-secondary/90"
-        >
-          Continue to Summary
-        </button>
+          <button
+            type="submit"
+            className="flex-1 rounded-xl bg-secondary px-4 py-3 font-medium text-white transition-colors hover:bg-secondary/90"
+          >
+            Continue to Summary
+          </button>
+        </div>
       </div>
     </form>
   );
