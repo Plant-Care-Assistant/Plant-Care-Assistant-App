@@ -20,13 +20,7 @@ RUN pip install torch==2.9.1 torchvision==0.24.1 \
     --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 
 # Install project dependencies (dev includes all deps)
-RUN pip install --no-cache-dir ".[dev]" && rm -rf "src"
-
-# Install FastAPI and uvicorn for API server
-RUN pip install --no-cache-dir \
-    fastapi==0.115.12 \
-    uvicorn[standard]==0.34.0 \
-    python-multipart==0.0.20
+RUN pip install --no-cache-dir ".[dev,api]" && rm -rf "src"
 
 # Copy source code and install package
 COPY src ./src
