@@ -14,7 +14,7 @@ export interface ScanPlantData {
   lightLevel: 'low' | 'medium' | 'high';
   wateringFrequency: number; // days
   location?: string;
-  confidence?: number; // AI confidence score 0-100
+  confidence?: number; // Confidence score 0-100
   aiIdentified?: boolean;
 }
 

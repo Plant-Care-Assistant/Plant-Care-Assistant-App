@@ -27,7 +27,7 @@ export function ScanConfirmStep({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-30">
       {/* Title */}
       <div className="text-center">
         <motion.div
@@ -65,7 +65,7 @@ export function ScanConfirmStep({
           {plantData.aiIdentified && (
             <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-white">
               <Sparkles className="h-3 w-3" />
-              AI Identified
+              Identified
             </div>
           )}
         </div>
@@ -123,12 +123,12 @@ export function ScanConfirmStep({
             </div>
           </div>
 
-          {/* AI Confidence Score */}
+          {/* Confidence Score */}
           {plantData.aiIdentified && plantData.confidence && (
             <div className={`rounded-xl p-3 ${darkMode ? 'bg-neutral-900' : 'bg-neutral-50'}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                  AI Confidence
+                  Confidence
                 </span>
                 <span className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                   {plantData.confidence}%
@@ -147,8 +147,8 @@ export function ScanConfirmStep({
         </div>
       </motion.div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-3">
+      {/* Action Buttons - fixed bottom on mobile */}
+      <div className="pt-3 pb-4 px-1 flex flex-col gap-3">
         <div className="flex gap-3">
           <button
             type="button"

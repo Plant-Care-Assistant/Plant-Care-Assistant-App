@@ -26,10 +26,34 @@ export function ScanResultsStep({
     lightLevel: plantData.lightLevel || 'medium',
     wateringFrequency: plantData.wateringFrequency || 3,
   });
+  const [errors, setErrors] = useState<{
+    name?: string;
+    species?: string;
+    location?: string;
+  }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    setSubmitError(null);
+    const newErrors: typeof errors = {};
+
+    if (!formData.name?.trim()) {
+      newErrors.name = 'Plant name is required';
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length === 0) {
+      setIsSubmitting(true);
+      try {
+        await Promise.resolve(onSubmit(formData));
+        setIsSubmitting(false);
+      } catch (err: any) {
+        setIsSubmitting(false);
+        setSubmitError(err?.message || 'Failed to submit. Please try again.');
+      }
+    }
   };
 
   const lightLevels = [
@@ -45,6 +69,18 @@ export function ScanResultsStep({
       onSubmit={handleSubmit}
       className="flex flex-col gap-4 min-h-[80vh] pb-28"
     >
+      {submitError && (
+        <div className="rounded-xl bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 text-center font-medium">
+          {submitError}
+          <button
+            type="button"
+            className="ml-4 px-3 py-1 rounded bg-red-500 text-white text-sm font-semibold hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+            onClick={() => setSubmitError(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       {/* AI Result Banner */}
       {isAIIdentified ? (
         <div className={`rounded-xl p-4 flex items-start gap-3 ${
@@ -53,7 +89,7 @@ export function ScanResultsStep({
           <Sparkles className="h-5 w-5 text-secondary flex-shrink-0 mt-0.5" />
           <div>
             <p className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              AI Identified with {plantData.confidence}% confidence
+              Identified with {plantData.confidence}% confidence
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
               We think this is a {plantData.name}. You can edit the details below if needed.
@@ -97,14 +133,23 @@ export function ScanResultsStep({
           type="text"
           required
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, name: e.target.value });
+            // Clear error when user starts typing
+            if (errors.name) {
+              setErrors({ ...errors, name: undefined });
+            }
+          }}
           placeholder="e.g., My Monstera"
           className={`w-full rounded-xl border px-4 py-3 transition-colors ${
+            errors.name ? 'border-red-500' : darkMode ? 'border-neutral-700' : 'border-neutral-300'
+          } ${
             darkMode
-              ? 'bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-secondary'
-              : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-secondary'
+              ? 'bg-neutral-800 text-white placeholder:text-neutral-500 focus:border-secondary'
+              : 'bg-white text-neutral-900 placeholder:text-neutral-400 focus:border-secondary'
           } focus:outline-none focus:ring-2 focus:ring-secondary/20`}
         />
+        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
       </div>
 
       {/* Species (Optional) */}
@@ -188,13 +233,9 @@ export function ScanResultsStep({
         />
       </div>
 
-      {/* Action Buttons - sticky bottom on mobile */}
+      {/* Action Buttons - fixed bottom on mobile */}
       <div
-        className={`sticky bottom-16 left-0 right-0 z-30 pt-3 pb-4 px-1 safe-area-inset-bottom ${
-          darkMode
-            ? 'bg-transparent border-transparent'
-            : 'bg-transparent border-transparent'
-        }`}
+        className="pt-3 pb-4 px-1"
       >
         <div className="flex gap-3">
           <button
@@ -212,9 +253,10 @@ export function ScanResultsStep({
 
           <button
             type="submit"
-            className="flex-1 rounded-xl bg-secondary px-4 py-3 font-medium text-white transition-colors hover:bg-secondary/90"
+            className="flex-1 rounded-xl bg-secondary px-4 py-3 font-medium text-white transition-colors hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
           >
-            Continue to Summary
+            {isSubmitting ? 'Submitting...' : 'Continue to Summary'}
           </button>
         </div>
       </div>

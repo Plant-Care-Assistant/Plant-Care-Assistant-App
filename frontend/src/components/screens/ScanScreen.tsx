@@ -26,16 +26,15 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
   };
 
   const handleAddToCollection = (plant: ScanPlantData) => {
-    // Convert ScanPlantData to Plant format
+    // Convert ScanPlantData to Plant format (match Plant interface exactly)
     const newPlant: Plant = {
       id: `plant-${Date.now()}`,
-      name: plant.name,
+      name: plant.name || 'Unknown Plant',
       species: plant.species || '',
-      health: 'healthy', // New plants start healthy
-      lightLevel: plant.lightLevel,
-      imageUrl: plant.imageUrl,
-      lastWatered: 'today',
-      // Store additional scan data if needed
+      health: 'healthy', // Default for new plants
+      lightLevel: plant.lightLevel || 'medium',
+      imageUrl: plant.imageUrl || '',
+      lastWatered: 'today', // Keep as string for UI compatibility
       location: plant.location,
       wateringFrequency: plant.wateringFrequency,
       aiIdentified: plant.aiIdentified,

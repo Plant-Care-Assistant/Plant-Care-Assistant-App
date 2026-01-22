@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Webcam from 'react-webcam';
-import { Check, Loader2, RefreshCw, X, Zap, Camera as CameraIcon } from 'lucide-react';
+import { Check, Loader2, RefreshCw, X, Camera as CameraIcon } from 'lucide-react';
 
 export interface CameraCaptureProps {
   isOpen: boolean;
@@ -22,10 +22,11 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
   const [isLoading, setIsLoading] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isFlashOn, setIsFlashOn] = useState(false);
 
   const videoConstraints = {
     facingMode: { ideal: 'environment' },
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
   } satisfies MediaTrackConstraints;
 
   const resetState = () => {
@@ -51,19 +52,52 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
     } else {
       resetState();
     }
+
+    // Cleanup function - stop webcam stream when closing
+    return () => {
+      if (webcamRef.current) {
+        const stream = webcamRef.current.video?.srcObject as MediaStream;
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+      }
+      resetState();
+    };
   }, [isOpen]);
 
-  const dataUrlToBlob = (dataUrl: string) => {
-    const [meta, content] = dataUrl.split(',');
-    const mimeMatch = /data:(.*?);base64/.exec(meta);
-    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-    const binary = atob(content);
-    const len = binary.length;
-    const buffer = new Uint8Array(len);
-    for (let i = 0; i < len; i += 1) {
-      buffer[i] = binary.charCodeAt(i);
+  // Add timeout for camera access - prevent infinite loading state
+  useEffect(() => {
+    if (isOpen && isLoading) {
+      const timeoutId = setTimeout(() => {
+        setPermissionError('Camera access timed out. Please try again.');
+        setHasPermission(false);
+        setIsLoading(false);
+      }, 5000); // 5 second timeout
+
+      return () => clearTimeout(timeoutId);
     }
-    return new Blob([buffer], { type: mime });
+  }, [isLoading, isOpen]);
+
+  const dataUrlToBlob = (dataUrl: string): Blob | null => {
+    try {
+      if (!dataUrl || !dataUrl.includes(',')) {
+        throw new Error('Invalid data URL format');
+      }
+
+      const [meta, content] = dataUrl.split(',');
+      const mimeMatch = /data:(.*?);base64/.exec(meta);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const binary = atob(content);
+      const len = binary.length;
+      const buffer = new Uint8Array(len);
+      for (let i = 0; i < len; i += 1) {
+        buffer[i] = binary.charCodeAt(i);
+      }
+      return new Blob([buffer], { type: mime });
+    } catch (error) {
+      console.error('❌ Failed to convert data URL to blob:', error);
+      return null;
+    }
   };
 
   const handleCapture = () => {
@@ -76,6 +110,11 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
   const handleConfirm = () => {
     if (!capturedDataUrl) return;
     const blob = dataUrlToBlob(capturedDataUrl);
+    if (!blob) {
+      console.error('Failed to process captured image');
+      setPermissionError('Failed to process image. Please try again.');
+      return;
+    }
     onCapture(blob);
     onClose();
     setCapturedDataUrl(null);
@@ -131,7 +170,9 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
                 setPermissionError(null);
                 setIsLoading(true);
               }}
-              className="rounded-full bg-secondary px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-secondary/90"
+              className="rounded-full bg-secondary px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-secondary/90 focus:ring-2 focus:ring-secondary focus:outline-none"
+              aria-label="Retry camera access"
+              autoFocus
             >
               Try Again
             </button>
@@ -139,7 +180,8 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20"
+            className="rounded-full bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 focus:ring-2 focus:ring-secondary focus:outline-none"
+            aria-label={isHttpsRequired && isHttpConnection ? 'Use gallery instead' : 'Close error dialog'}
           >
             {isHttpsRequired && isHttpConnection ? 'Use Gallery Instead' : 'Close'}
           </button>
@@ -173,7 +215,6 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
                   audio={false}
                   screenshotFormat="image/jpeg"
                   videoConstraints={videoConstraints}
-                  forceScreenshotSourceSize
                   className="h-full w-full object-cover"
                   onUserMedia={() => {
                     setHasPermission(true);
@@ -194,7 +235,7 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
 
             {/* Top controls */}
             <div className="absolute left-0 right-0 top-0 z-40 px-4 pt-2 safe-area-inset-top">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-start">
                 <button
                   type="button"
                   onClick={onClose}
@@ -202,18 +243,6 @@ export function CameraCapture({ isOpen, onClose, onCapture }: CameraCaptureProps
                   aria-label="Close camera"
                 >
                   <X className="h-5 w-5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsFlashOn((prev) => !prev)}
-                  className={`rounded-full p-3 backdrop-blur focus:outline-none focus:ring-2 focus:ring-secondary ${
-                    isFlashOn ? 'bg-secondary text-white' : 'bg-white/10 text-white'
-                  }`}
-                  aria-pressed={isFlashOn}
-                  aria-label="Toggle flash"
-                >
-                  <Zap className="h-5 w-5" />
                 </button>
               </div>
             </div>

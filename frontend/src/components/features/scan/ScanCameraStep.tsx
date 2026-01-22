@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Camera, Image as ImageIcon } from 'lucide-react';
@@ -17,11 +17,33 @@ export function ScanCameraStep({
 }: ScanCameraStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Ensure DOM is ready before rendering portal (SSR safety)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        alert(
+          `File too large. Maximum size is 5MB. You selected ${(file.size / 1024 / 1024).toFixed(2)}MB`
+        );
+        return;
+      }
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file");
+        return;
+      }
       const reader = new FileReader();
+      reader.onerror = () => {
+        alert("Failed to read file");
+      };
       reader.onload = (event) => {
         const result = event.target?.result as string;
         onImageCaptured(result);
@@ -125,7 +147,7 @@ export function ScanCameraStep({
       </div>
 
       {/* Camera Capture Component - rendered as portal to escape modal z-index */}
-      {typeof window !== 'undefined' && createPortal(
+      {isMounted && typeof window !== 'undefined' && createPortal(
         <CameraCapture
           isOpen={isCameraOpen}
           onClose={() => setIsCameraOpen(false)}
