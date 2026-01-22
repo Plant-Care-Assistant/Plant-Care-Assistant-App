@@ -1,23 +1,52 @@
 'use client';
 
+import { useState } from 'react';
 import { ScanHeader } from '@/components/features/scan/ScanHeader';
 import { ScanFrame } from '@/components/features/scan/ScanFrame';
 import { ScanActions } from '@/components/features/scan/ScanActions';
+import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
 import { Upload } from 'lucide-react';
+import type { Plant } from '@/lib/utils/plantFilters';
 
 export interface ScanScreenProps {
   darkMode: boolean;
+  plants: Plant[];
+  onPlantsChange: (plants: Plant[]) => void;
 }
 
-export function ScanScreen({ darkMode }: ScanScreenProps) {
+export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const handleUpload = () => {
-    console.log('Upload image');
-    // TODO: Implement image upload
+    setIsModalOpen(true);
   };
 
   const handleCamera = () => {
-    console.log('Open camera');
-    // TODO: Implement camera functionality
+    setIsModalOpen(true);
+  };
+
+  const handleAddToCollection = (plant: ScanPlantData) => {
+    // Convert ScanPlantData to Plant format
+    const newPlant: Plant = {
+      id: `plant-${Date.now()}`,
+      name: plant.name,
+      species: plant.species || '',
+      health: 'healthy', // New plants start healthy
+      lightLevel: plant.lightLevel,
+      imageUrl: plant.imageUrl,
+      lastWatered: 'today',
+      // Store additional scan data if needed
+      location: plant.location,
+      wateringFrequency: plant.wateringFrequency,
+      aiIdentified: plant.aiIdentified,
+      confidence: plant.confidence,
+    };
+
+    // Add plant to collection
+    const updatedPlants = [...plants, newPlant];
+    onPlantsChange(updatedPlants);
+
+    console.log('✅ Plant added to collection:', newPlant);
   };
 
   return (
@@ -103,6 +132,14 @@ export function ScanScreen({ darkMode }: ScanScreenProps) {
           </div>
         </div>
       </div>
+
+      {/* Scan Camera Modal */}
+      <ScanCameraModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddToCollection={handleAddToCollection}
+        darkMode={darkMode}
+      />
     </div>
   );
 }

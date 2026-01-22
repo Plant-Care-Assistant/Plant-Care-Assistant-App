@@ -9,6 +9,10 @@ export interface Plant {
   lightLevel?: 'low' | 'medium' | 'high';
   health: 'healthy' | 'needs-attention' | 'critical';
   imageUrl?: string;
+  location?: string;
+  wateringFrequency?: number;
+  aiIdentified?: boolean;
+  confidence?: number;
 }
 
 /**
