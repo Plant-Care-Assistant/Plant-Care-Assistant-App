@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS user_plants (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     age DATE
 );
-CREATE INDEX idx_user_plants_user_id ON user_plants(user_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_user_plants_user_id ON user_plants(user_id);
 CREATE INDEX idx_user_plants_catalog_id ON user_plants(plant_catalog_id);
 
 
