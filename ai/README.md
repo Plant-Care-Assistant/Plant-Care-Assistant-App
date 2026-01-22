@@ -209,6 +209,64 @@ API wymaga checkpointu wygenerowanego przez `PlantTrainer`. Checkpoint zawiera:
 cp /sciezka/do/checkpoints/best.pth ai/models/best.pth
 ```
 
+### Przykładowy trening ResNet-50 (pretrained)
+
+```python
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+from plant_care_ai.training import PlantTrainer
+
+config = {
+    "data_dir": "/path/to/plantnet",
+    "checkpoint_dir": "/path/to/checkpoints",
+    "subset_classes": ["1355936", "1355932", "1355868"],
+    "train_samples_per_class": 500,
+    "val_samples_per_class": 100,
+    "model": "resnet50",
+    "pretrained": True,
+    "img_size": 224,
+    "batch_size": 32,
+    "epochs": 5,
+    "lr": 1e-3,
+    "weight_decay": 0.01,
+    "augm_strength": 0.5,
+    "experiment_name": "resnet50_pretrained_stage1",
+}
+
+trainer = PlantTrainer(config, verbose=True)
+trainer.prepare_data()
+trainer.build_model()
+
+# Etap 1: trenuj tylko warstwę FC
+trainer.model.freeze_backbone()
+trainer.optimizer = AdamW(
+    filter(lambda p: p.requires_grad, trainer.model.parameters()),
+    lr=config["lr"],
+    weight_decay=config["weight_decay"],
+)
+trainer.scheduler = CosineAnnealingLR(
+    trainer.optimizer, T_max=trainer.config["epochs"], eta_min=1e-6
+)
+trainer.setup_training()
+trainer.train()
+
+# Etap 2: pełny fine-tuning
+trainer.model.unfreeze_backbone()
+trainer.config["epochs"] = 20
+trainer.optimizer = AdamW(
+    trainer.model.parameters(),
+    lr=1e-4,
+    weight_decay=config["weight_decay"],
+)
+trainer.scheduler = CosineAnnealingLR(
+    trainer.optimizer, T_max=trainer.config["epochs"], eta_min=1e-6
+)
+trainer.train()
+```
+
+Uwaga: `pretrained=True` pobiera wagi ImageNet przy pierwszym uruchomieniu. W środowisku bez sieci ustaw `pretrained=False` albo przygotuj cache (`TORCH_HOME`).
+
 ### Mapowanie nazw (opcjonalne)
 
 Plik `class_id_to_name.json` mapuje plant_id na czytelne nazwy:

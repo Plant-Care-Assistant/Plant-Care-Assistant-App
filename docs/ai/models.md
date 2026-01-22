@@ -8,6 +8,7 @@ Moduł `models` zawiera implementacje architektur sieci neuronowych do klasyfika
 - [Wspierane architektury](#wspierane-architektury)
 - [Klasy modeli](#klasy-modeli)
   - [Resnet18](#resnet18)
+  - [Resnet50](#resnet50)
   - [EfficientNetV2](#efficientnetv2)
 - [Funkcje pomocnicze](#funkcje-pomocnicze)
 - [Przykłady użycia](#przykłady-użycia)
@@ -17,11 +18,12 @@ Moduł `models` zawiera implementacje architektur sieci neuronowych do klasyfika
 
 ## Przegląd
 
-Moduł oferuje dwie architektury sieci konwolucyjnych zoptymalizowane pod klasyfikację roślin:
+Moduł oferuje trzy architektury sieci konwolucyjnych zoptymalizowane pod klasyfikację roślin:
 
 | Model | Plik | Parametry | Zalety |
 |-------|------|-----------|--------|
 | ResNet-18 | `resnet18.py` | ~11M | Szybki, lekki, dobry baseline |
+| ResNet-50 | `resnet50.py` | ~25M | Lepsza dokładność, dobry transfer learning |
 | EfficientNetV2 | `efficientnetv2.py` | ~21M (B3) | Wysokia dokładność, efektywny |
 
 ---
@@ -35,6 +37,15 @@ Implementacja bazująca na publikacji [Deep Residual Learning for Image Recognit
 **Architektura:**
 - 4 warstwy rezydualne (layer1-layer4)
 - BasicBlock z połączeniami skip
+- Global Average Pooling
+- Warstwa fully-connected
+
+### ResNet-50
+
+Wrapper na `torchvision.models.resnet50` z opcją użycia wag ImageNet.
+
+**Architektura:**
+- Bottleneck blocks
 - Global Average Pooling
 - Warstwa fully-connected
 
@@ -124,6 +135,41 @@ class BasicBlock(nn.Module):
         stride: int = 1
     )
 ```
+
+---
+
+### Resnet50
+
+Wrapper na ResNet-50 z `torchvision`.
+
+#### Importowanie
+
+```python
+from plant_care_ai.models.resnet50 import Resnet50
+```
+
+#### Konstruktor
+
+```python
+Resnet50(num_classes: int = 1081, *, pretrained: bool = True)
+```
+
+**Parametry:**
+
+| Parametr | Typ | Domyślnie | Opis |
+|----------|-----|-----------|------|
+| `num_classes` | `int` | `1081` | Liczba klas wyjściowych |
+| `pretrained` | `bool` | `True` | Czy użyć wag ImageNet |
+
+#### Metody
+
+| Metoda | Opis |
+|--------|------|
+| `forward(x: Tensor) -> Tensor` | Przepuszczenie tensora przez sieć |
+| `freeze_backbone()` | Zamrożenie warstw oprócz FC |
+| `unfreeze_backbone()` | Odmrożenie wszystkich warstw |
+
+Uwaga: `pretrained=True` pobiera wagi ImageNet przy pierwszym użyciu. W środowisku bez sieci ustaw `pretrained=False` lub przygotuj cache (`TORCH_HOME`).
 
 ---
 
@@ -255,17 +301,20 @@ model = get_model(
 
 | Parametr | Typ | Domyślnie | Opis |
 |----------|-----|-----------|------|
-| `model_name` | `str` | - | `"resnet18"` lub `"efficientnetv2"` |
+| `model_name` | `str` | - | `"resnet18"`, `"resnet50"` lub `"efficientnetv2"` |
 | `num_classes` | `int` | `1081` | Liczba klas wyjściowych |
 | `weights_path` | `str \| None` | `None` | Ścieżka do pliku `.pth` z wagami |
 | `device` | `str` | `"cpu"` | Urządzenie: `"cpu"` lub `"cuda"` |
-| `**kwargs` | - | - | Dodatkowe argumenty (np. `variant="b2"`) |
+| `**kwargs` | - | - | Dodatkowe argumenty (np. `variant="b2"`, `pretrained=True`) |
 
 **Przykład:**
 
 ```python
 # ResNet-18
 model = get_model("resnet18", num_classes=100)
+
+# ResNet-50 (ImageNet)
+model = get_model("resnet50", num_classes=100, pretrained=True)
 
 # EfficientNetV2-B2
 model = get_model("efficientnetv2", variant="b2", device="cuda")
@@ -303,6 +352,9 @@ from plant_care_ai.models import get_model
 
 # Prosty model ResNet-18
 model = get_model("resnet18", num_classes=1081)
+
+# ResNet-50 z wagami ImageNet
+model = get_model("resnet50", num_classes=1081, pretrained=True)
 
 # EfficientNetV2-B3 na GPU
 model = get_model(
@@ -403,6 +455,23 @@ model.unfreeze_backbone()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 ```
 
+### Fine-tuning ResNet-50 (pretrained)
+
+```python
+from plant_care_ai.models import get_model
+
+# Załadowanie modelu z wagami ImageNet
+model = get_model("resnet50", num_classes=1081, pretrained=True)
+
+# Zamrożenie backbone'u
+model.freeze_backbone()
+optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
+
+# Po kilku epokach - odmrożenie
+model.unfreeze_backbone()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+```
+
 ### Stopniowe odmrażanie EfficientNetV2
 
 ```python
@@ -427,13 +496,17 @@ model.unfreeze_all()
 
 ## Inicjalizacja wag
 
-Oba modele używają przemyślanej inicjalizacji:
+Resnet18 i EfficientNetV2 używają przemyślanej inicjalizacji:
 
 | Warstwa | Metoda |
 |---------|--------|
 | `Conv2d` | Kaiming Normal (fan_out, ReLU) |
 | `BatchNorm2d` | weight=1, bias=0 |
 | `Linear` | Normal(0, 0.01), bias=0 |
+
+Resnet50 korzysta z inicjalizacji i wag z `torchvision`:
+- `pretrained=True` ładuje wagi ImageNet
+- `pretrained=False` używa domyślnej inicjalizacji torchvision
 
 ---
 
@@ -460,5 +533,6 @@ Funkcja `get_model` obsługuje dwa formaty:
 ## Zależności
 
 - `torch`
+- `torchvision`
 - `math` (stdlib)
 - `pathlib` (stdlib)

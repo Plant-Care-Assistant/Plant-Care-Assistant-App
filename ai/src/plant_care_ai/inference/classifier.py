@@ -14,6 +14,7 @@ from torch import nn
 from plant_care_ai.data.preprocessing import get_inference_pipeline
 from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 
 class PlantClassifier:
@@ -82,6 +83,8 @@ class PlantClassifier:
 
         if model_type == "resnet18":
             model = Resnet18(num_classes=num_classes)
+        elif model_type == "resnet50":
+            model = Resnet50(num_classes=num_classes, pretrained=False)
         elif model_type == "efficientnetv2":
             model = create_efficientnetv2(
                 variant=config["variant"],

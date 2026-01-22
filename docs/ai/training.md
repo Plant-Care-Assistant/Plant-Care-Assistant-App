@@ -48,7 +48,7 @@ history = trainer.train()
 | `subset_classes` | list[str] | Lista ID klas do trenowania |
 | `train_samples_per_class` | int | Liczba próbek treningowych na klasę |
 | `val_samples_per_class` | int | Liczba próbek walidacyjnych na klasę |
-| `model` | str | Typ modelu: `"resnet18"` lub `"efficientnetv2"` |
+| `model` | str | Typ modelu: `"resnet18"`, `"resnet50"` lub `"efficientnetv2"` |
 | `img_size` | int | Rozmiar obrazu wejściowego |
 | `batch_size` | int | Rozmiar batcha |
 | `epochs` | int | Liczba epok |
@@ -62,6 +62,7 @@ history = trainer.train()
 |-------|-----|-----------|------|
 | `device` | str | auto | Urządzenie: `"cuda"` lub `"cpu"` |
 | `variant` | str | - | Wariant EfficientNetV2 (`"b0"`, `"b1"`, `"b2"`, `"s"`, `"m"`, `"l"`) |
+| `pretrained` | bool | True | Czy użyć wag ImageNet dla `resnet50` |
 | `num_workers` | int | 2 | Liczba workerów dla DataLoader |
 | `label_smoothing` | float | 0.1 | Label smoothing dla CrossEntropyLoss |
 | `min_lr` | float | 1e-6 | Minimalne LR dla CosineAnnealing |
@@ -121,6 +122,7 @@ trainer.build_model()
 
 Obsługiwane modele:
 - **ResNet18** - lekki model, szybki trening
+- **ResNet50** - lepsza dokładność, opcjonalne wagi ImageNet
 - **EfficientNetV2** - state-of-the-art, różne warianty (b0-l)
 
 ### 3. Konfiguracja treningu

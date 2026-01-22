@@ -21,6 +21,7 @@ from plant_care_ai.data.dataset import PlantNetDataset
 from plant_care_ai.data.preprocessing import get_inference_pipeline, get_training_pipeline
 from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 
 class PlantTrainer:
@@ -200,15 +201,21 @@ class PlantTrainer:
             return
 
         model_type = self.config["model"]
+        pretrained = self.config.get("pretrained", True)
         if model_type == "resnet18":
             self.model = Resnet18(num_classes=self.num_classes)
+        elif model_type == "resnet50":
+            self.model = Resnet50(num_classes=self.num_classes, pretrained=pretrained)
         elif model_type == "efficientnetv2":
             self.model = create_efficientnetv2(
                 variant=self.config["variant"],
                 num_classes=self.num_classes,
             )
         else:
-            msg = f"Unknown model type: {model_type}. Supported: 'resnet18', 'efficientnetv2'"
+            msg = (
+                f"Unknown model type: {model_type}. "
+                "Supported: 'resnet18', 'resnet50', 'efficientnetv2'"
+            )
             raise ValueError(msg)
 
         self.model = self.model.to(self.device)
