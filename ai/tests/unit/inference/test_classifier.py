@@ -12,6 +12,7 @@ from PIL import Image
 from plant_care_ai.inference.classifier import PlantClassifier
 from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 # Test constants
 DEFAULT_NUM_CLASSES = 10
@@ -122,6 +123,29 @@ class TestPlantClassifierFromCheckpoint:
         return checkpoint_path
 
     @staticmethod
+    @pytest.fixture
+    def resnet50_checkpoint(tmp_path: Path) -> Path:
+        """Create a resnet50 checkpoint file.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+
+        Returns:
+            Path to checkpoint file
+
+        """
+        model = Resnet50(num_classes=DEFAULT_NUM_CLASSES, pretrained=False)
+        checkpoint = {
+            "config": {"model": "resnet50", "img_size": DEFAULT_IMG_SIZE},
+            "num_classes": DEFAULT_NUM_CLASSES,
+            "model_state_dict": model.state_dict(),
+            "idx_to_class": {i: str(1000 + i) for i in range(DEFAULT_NUM_CLASSES)},
+        }
+        checkpoint_path = tmp_path / "resnet50_checkpoint.pth"
+        torch.save(checkpoint, checkpoint_path)
+        return checkpoint_path
+
+    @staticmethod
     def test_from_checkpoint_resnet(resnet_checkpoint: Path) -> None:
         """Test loading classifier from resnet18 checkpoint.
 
@@ -138,6 +162,24 @@ class TestPlantClassifierFromCheckpoint:
         assert classifier.num_classes == DEFAULT_NUM_CLASSES
         assert classifier.img_size == DEFAULT_IMG_SIZE
         assert isinstance(classifier.model, Resnet18)
+
+    @staticmethod
+    def test_from_checkpoint_resnet50(resnet50_checkpoint: Path) -> None:
+        """Test loading classifier from resnet50 checkpoint.
+
+        Args:
+            resnet50_checkpoint: Path to resnet50 checkpoint
+
+        """
+        classifier = PlantClassifier.from_checkpoint(
+            checkpoint_path=resnet50_checkpoint,
+            device="cpu",
+            verbose=False,
+        )
+
+        assert classifier.num_classes == DEFAULT_NUM_CLASSES
+        assert classifier.img_size == DEFAULT_IMG_SIZE
+        assert isinstance(classifier.model, Resnet50)
 
     @staticmethod
     def test_from_checkpoint_efficientnet(efficientnet_checkpoint: Path) -> None:

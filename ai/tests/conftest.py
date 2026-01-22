@@ -12,6 +12,7 @@ import torch
 
 from plant_care_ai.models.efficientnetv2 import EfficientNetV2
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -100,6 +101,17 @@ def resnet18_model() -> Resnet18:
 
     """
     return Resnet18(num_classes=10)
+
+
+@pytest.fixture
+def resnet50_model() -> Resnet50:
+    """Create a Resnet50 instance with 10 classes.
+
+    Returns:
+        Resnet50 model instance
+
+    """
+    return Resnet50(num_classes=10, pretrained=False)
 
 
 @pytest.fixture

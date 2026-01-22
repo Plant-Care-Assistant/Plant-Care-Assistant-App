@@ -11,6 +11,7 @@ import torch
 from plant_care_ai.models.efficientnetv2 import EfficientNetV2
 from plant_care_ai.models.load_models import get_model
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 
 class TestGetModel:
@@ -33,6 +34,15 @@ class TestGetModel:
         x = torch.randn(1, 3, 224, 224)
         out = model(x)
         assert out.shape == (1, 100)
+
+    @staticmethod
+    def test_get_resnet50_pretrained_disabled() -> None:
+        """Test loading ResNet50 with pretrained disabled."""
+        model = get_model("resnet50", num_classes=10, pretrained=False)
+        assert isinstance(model, Resnet50)
+        x = torch.randn(1, 3, 64, 64)
+        out = model(x)
+        assert out.shape == (1, 10)
 
     @staticmethod
     def test_get_efficientnetv2_default() -> None:
