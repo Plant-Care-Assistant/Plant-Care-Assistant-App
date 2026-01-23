@@ -107,7 +107,7 @@ Po zrealizowaniu podstawowej wersji aplikacji planowane jest stopniowe rozszerze
 | Filary aplikacji | Zakres działań | Osoby | Typ pracy |
 | ----- | ----- | ----- | ----- |
 | Interfejs użytkownika | Projekt graficzny, formularze, prezentacja danych | Polina Nesterova | Frontend |
-| Logika aplikacji | Obsługa danych, przepływ informacji, integracja | Jakub Żebrowski Julian Stefan Jakub Wilczek | Backend |
-| Baza danych | Struktura danych, treści o roślinach | Jakub Żebrowski Julian Stefan | Backend / Data |
+| Logika aplikacji | Obsługa danych, przepływ informacji, integracja | Julian Stefan, Jakub Żebrowski | Backend |
+| Baza danych | Struktura danych, treści o roślinach | Jakub Wilczek, Jakub Żebrowski | Backend / Data |
 | Rozpoznawanie roślin | Analiza zdjęć, przygotowanie wyników | Oliwia Pawelec Mateusz Gołębiewski | AI / Data Processing |
 | Koordynacja i planowanie pracy | — | Mateusz Gołębiewski | — |
