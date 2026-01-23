@@ -35,16 +35,29 @@ classifier: PlantClassifier | None = None
 def load_name_mapping() -> dict[str, str]:
     """Load plant ID to name mapping from JSON file.
 
+    Supports two formats:
+    1. Simple: {"class_id": "name", ...}
+    2. Extended (from kaggle training): {"idx": {"class_id": "...", "name": "..."}, ...}
+
     Returns:
         Dictionary mapping plant_id (str) to plant_name (str)
 
     """
-    if Path(CLASS_MAPPING_PATH).exists():
-        with Path(CLASS_MAPPING_PATH).open(encoding="utf-8") as f:
-            raw_mapping = json.load(f)
-            return {str(k): v for k, v in raw_mapping.items()}
-    print(f"Warning: Class mapping file not found at {CLASS_MAPPING_PATH}")
-    return {}
+    if not Path(CLASS_MAPPING_PATH).exists():
+        print(f"Warning: Class mapping file not found at {CLASS_MAPPING_PATH}")
+        return {}
+
+    with Path(CLASS_MAPPING_PATH).open(encoding="utf-8") as f:
+        raw_mapping = json.load(f)
+
+    # Detect format
+    first_value = next(iter(raw_mapping.values()), None)
+    if isinstance(first_value, dict) and "class_id" in first_value:
+        # Extended format from training: {"0": {"class_id": "123", "name": "..."}}
+        return {v["class_id"]: v["name"] for v in raw_mapping.values()}
+
+    # Simple format: {"class_id": "name"}
+    return {str(k): v for k, v in raw_mapping.items()}
 
 
 def load_classifier() -> PlantClassifier:

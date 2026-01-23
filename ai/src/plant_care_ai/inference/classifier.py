@@ -104,6 +104,12 @@ class PlantClassifier:
             device=device,
         )
 
+        # Load name mapping from checkpoint if available
+        if checkpoint.get("id_to_name"):
+            classifier.set_name_mapping(checkpoint["id_to_name"])
+            if verbose:
+                print(f"Loaded {len(checkpoint['id_to_name'])} class name mappings from checkpoint")
+
         if verbose:
             print(f"Loaded checkpoint from {checkpoint_path}")
             print(f"Model: {model_type}")
