@@ -18,9 +18,15 @@ from pydantic import BaseModel, Field
 from plant_care_ai.inference import PlantClassifier
 
 # ===== CONFIGURATION =====
-CHECKPOINT_PATH = os.getenv("MODEL_CHECKPOINT_PATH", "/app/models/best.pth")
+CHECKPOINT_PATH = os.getenv(
+    "MODEL_CHECKPOINT_PATH",
+    str(Path(__file__).parent.parent.parent.parent / "models/best.pth"),
+)
 DEVICE = os.getenv("DEVICE", "cpu")
-CLASS_MAPPING_PATH = os.getenv("CLASS_MAPPING_PATH", "/app/models/class_id_to_name.json")
+CLASS_MAPPING_PATH = os.getenv(
+    "CLASS_MAPPING_PATH",
+    str(Path(__file__).parent.parent.parent.parent / "models/class_id_to_name.json"),
+)
 
 # Constants
 MAX_TOP_K = 20
