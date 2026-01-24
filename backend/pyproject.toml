@@ -56,5 +56,5 @@ extend-ignore = [
 "app/services/security.py" = [ "S106" ]
 "app/models/base.py" = [ "PGH003", "S106" ]
 "__main__.py" = [ "S104" ]
-"app/services/user_plants.py" = [ "N815" ]
+"app/services/user_plants.py" = [ "N815", "PLR6301" ]
 "app/services/plants.py" = [ "PLR6301", "ARG002" ]

@@ -64,6 +64,7 @@ async def remove_user_plant_image(
     service: UserPlantServiceDep,
 ):
     service.delete_image(user, plant_id)
+    return Response(status_code=204)
 
 
 @router.patch("/{plant_id}", response_model=UserPlantPublic)
