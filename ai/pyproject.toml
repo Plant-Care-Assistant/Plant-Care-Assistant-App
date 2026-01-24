@@ -23,9 +23,10 @@ maintainers = [
     {name = "Oliwia Pawelec", email = "oliwia.paw27@gmail.com"},
 ]
 
+# NOTE: torch and torchvision must be installed separately before other dependencies.
+# CPU:  pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cpu
+# CUDA: pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cu124
 dependencies = [
-    "torch==2.9.1",
-    "torchvision==0.24.1",
     "pandas==2.3.3",
     "scikit-learn==1.7.2",
     "numpy==2.3.4",
@@ -73,6 +74,8 @@ extend-ignore = [
     "T201", # allow use of print statements
     "EXE002", # shebang not required for python files
     "COM812", # conflict with black formatting
+    "ANN003", # allow missing type hints for kwargs
+    "ANN002", # allow missing type hints for args
 ]
 
 [tool.ruff.lint.pylint]

@@ -16,6 +16,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "argon2-cffi>=25.1.0",
     "email-validator>=2.3.0",
+    "httpx>=0.28.1",
 ]
 
 [project.urls]
@@ -46,7 +47,8 @@ extend-ignore = [
     "D102",
     "D103",
     "D104",
-    "D107"
+    "D107",
+    "S101"
 ]
 
 
@@ -54,3 +56,5 @@ extend-ignore = [
 "app/services/security.py" = [ "S106" ]
 "app/models/base.py" = [ "PGH003", "S106" ]
 "__main__.py" = [ "S104" ]
+"app/services/user_plants.py" = [ "N815", "PLR6301" ]
+"app/services/plants.py" = [ "PLR6301", "ARG002" ]

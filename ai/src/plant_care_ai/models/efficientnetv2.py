@@ -241,42 +241,68 @@ class EfficientNetV2(nn.Module):
 
     ARCH_CONFIGS: ClassVar[dict[str, list[list]]] = {
         "b0": [
-            ["fused", 1, 32, 1, 1, 3, 0],
-            ["fused", 4, 64, 2, 2, 3, 0],
-            ["fused", 4, 96, 2, 2, 3, 0],
-            ["mbconv", 4, 192, 3, 2, 3, 0.25],
-            ["mbconv", 6, 256, 5, 1, 3, 0.25],
-            ["mbconv", 6, 512, 8, 2, 3, 0.25],
+            ["fused", 1, 16, 1, 1, 3, 0],
+            ["fused", 4, 32, 2, 2, 3, 0],
+            ["fused", 4, 48, 2, 2, 3, 0],
+            ["mbconv", 4, 96, 3, 2, 3, 0.25],
+            ["mbconv", 6, 112, 5, 1, 3, 0.25],
+            ["mbconv", 6, 192, 8, 2, 3, 0.25],
         ],
         "b1": [
-            ["fused", 1, 32, 2, 1, 3, 0],
-            ["fused", 4, 64, 3, 2, 3, 0],
-            ["fused", 4, 96, 3, 2, 3, 0],
-            ["mbconv", 4, 192, 4, 2, 3, 0.25],
-            ["mbconv", 6, 256, 6, 1, 3, 0.25],
-            ["mbconv", 6, 512, 9, 2, 3, 0.25],
+            ["fused", 1, 16, 2, 1, 3, 0],
+            ["fused", 4, 32, 3, 2, 3, 0],
+            ["fused", 4, 48, 3, 2, 3, 0],
+            ["mbconv", 4, 96, 4, 2, 3, 0.25],
+            ["mbconv", 6, 112, 6, 1, 3, 0.25],
+            ["mbconv", 6, 192, 9, 2, 3, 0.25],
         ],
         "b2": [
-            ["fused", 1, 32, 2, 1, 3, 0],
-            ["fused", 4, 64, 3, 2, 3, 0],
-            ["fused", 4, 96, 3, 2, 3, 0],
-            ["mbconv", 4, 208, 4, 2, 3, 0.25],
-            ["mbconv", 6, 352, 6, 1, 3, 0.25],
-            ["mbconv", 6, 640, 10, 2, 3, 0.25],
+            ["fused", 1, 16, 2, 1, 3, 0],
+            ["fused", 4, 32, 3, 2, 3, 0],
+            ["fused", 4, 48, 3, 2, 3, 0],
+            ["mbconv", 4, 96, 4, 2, 3, 0.25],
+            ["mbconv", 6, 120, 6, 1, 3, 0.25],
+            ["mbconv", 6, 208, 10, 2, 3, 0.25],
         ],
         "b3": [
             ["fused", 1, 32, 2, 1, 3, 0],
             ["fused", 4, 64, 4, 2, 3, 0],
             ["fused", 4, 96, 4, 2, 3, 0],
-            ["mbconv", 4, 232, 6, 2, 3, 0.25],
-            ["mbconv", 6, 384, 9, 1, 3, 0.25],
-            ["mbconv", 6, 640, 15, 2, 3, 0.25],
+            ["mbconv", 4, 160, 6, 2, 3, 0.25],
+            ["mbconv", 6, 272, 9, 1, 3, 0.25],
+            ["mbconv", 6, 448, 15, 2, 3, 0.25],
         ],
+        "s": [
+            ["fused", 1, 24, 2, 1, 3, 0],
+            ["fused", 4, 48, 4, 2, 3, 0],
+            ["fused", 4, 64, 4, 2, 3, 0],
+            ["mbconv", 4, 128, 6, 2, 3, 0.25],
+            ["mbconv", 6, 160, 9, 1, 3, 0.25],
+            ["mbconv", 6, 256, 15, 2, 3, 0.25],
+        ],
+        "m": [
+            ["fused", 1, 24, 3, 1, 3, 0],
+            ["fused", 4, 48, 5, 2, 3, 0],
+            ["fused", 4, 80, 5, 2, 3, 0],
+            ["mbconv", 4, 160, 7, 2, 3, 0.25],
+            ["mbconv", 6, 176, 14, 1, 3, 0.25],
+            ["mbconv", 6, 304, 18, 2, 3, 0.25],
+            ["mbconv", 6, 512, 5, 1, 3, 0.25],
+        ],
+        "l": [
+            ["fused", 1, 32, 4, 1, 3, 0],
+            ["fused", 4, 64, 7, 2, 3, 0],
+            ["fused", 4, 96, 7, 2, 3, 0],
+            ["mbconv", 4, 192, 10, 2, 3, 0.25],
+            ["mbconv", 6, 224, 19, 1, 3, 0.25],
+            ["mbconv", 6, 384, 25, 2, 3, 0.25],
+            ["mbconv", 6, 640, 7, 1, 3, 0.25],
+        ]
     }
 
     def __init__(
         self,
-        variant: str = "b3",
+        variant: str = "b0",
         num_classes: int = 1081,
         *,
         dropout_rate: float = 0.3,
@@ -306,7 +332,9 @@ class EfficientNetV2(nn.Module):
 
         config = self.ARCH_CONFIGS[variant]
 
-        stem_channels = self._round_channels(24, width_mult)
+        # For b0-b3, stem is 32 channels; for s,m,l it's 24,24,32 respectively
+        stem_channel_map = {"b0": 32, "b1": 32, "b2": 32, "b3": 32, "s": 24, "m": 24, "l": 32}
+        stem_channels = self._round_channels(stem_channel_map.get(variant, 32), width_mult)
         self.stem = nn.Sequential(
             nn.Conv2d(3, stem_channels, 3, 2, 1, bias=False),
             nn.BatchNorm2d(stem_channels, eps=1e-3, momentum=0.01),
@@ -454,6 +482,22 @@ class EfficientNetV2(nn.Module):
     def unfreeze_all(self) -> None:
         """Unfreeze all parameters in the model."""
         for param in self.parameters():
+            param.requires_grad = True
+
+    def freeze_backbone(self) -> None:
+        """Freeze all layers except the classifier."""
+        for param in self.stem.parameters():
+            param.requires_grad = False
+
+        for stage in self.stages:
+            for param in stage.parameters():
+                param.requires_grad = False
+
+        for param in self.head.parameters():
+            param.requires_grad = False
+
+        # classifier is safe
+        for param in self.classifier.parameters():
             param.requires_grad = True
 
 

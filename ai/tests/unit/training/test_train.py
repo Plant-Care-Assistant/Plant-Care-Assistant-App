@@ -15,6 +15,7 @@ from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
 
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 from plant_care_ai.training.train import PlantTrainer
 
 # Test constants
@@ -279,6 +280,25 @@ class TestBuildModel:
         trainer.build_model()
 
         assert trainer.model is not None
+
+    @staticmethod
+    def test_build_model_resnet50(tmp_path: Path, sample_data_dir: Path) -> None:
+        """Test that build_model creates resnet50 model.
+
+        Args:
+            tmp_path: Pytest temporary directory fixture
+            sample_data_dir: Path to sample data directory
+
+        """
+        config = get_valid_config(tmp_path, sample_data_dir)
+        config["model"] = "resnet50"
+        config["pretrained"] = False
+        trainer = PlantTrainer(config, verbose=False)
+        trainer.prepare_data()
+        trainer.build_model()
+
+        assert trainer.model is not None
+        assert isinstance(trainer.model, Resnet50)
 
     @staticmethod
     def test_build_model_uses_provided_model(tmp_path: Path, sample_data_dir: Path) -> None:

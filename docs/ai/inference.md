@@ -52,6 +52,7 @@ classifier = PlantClassifier.from_checkpoint(
 #### Obsługiwane modele
 
 - `resnet18` - ResNet18 z custom head
+- `resnet50` - ResNet50 z `torchvision`
 - `efficientnetv2` - EfficientNetV2 (warianty b0, b1, b2, s, m, l)
 
 ### Inicjalizacja ręczna

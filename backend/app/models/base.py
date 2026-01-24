@@ -59,6 +59,7 @@ class Plant(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     common_name: str = Field(max_length=150)
     scientific_name: str | None = Field(default=None, max_length=150)
+    fid: str | None = Field(default=None)
 
     preferred_sunlight: LightLevel
     preferred_temp_min: int | None = None
@@ -66,7 +67,7 @@ class Plant(SQLModel, table=True):
     air_humidity_req: HumidityLevel | None = None
     soil_humidity_req: HumidityLevel | None = None
 
-    prefered_watering_interval_days: int | None = None
+    preferred_watering_interval_days: int | None = None
 
 
 # 3. ROŚLINY UŻYTKOWNIKA
@@ -79,10 +80,10 @@ class UserPlant(SQLModel, table=True):
 
     custom_name: str | None = Field(default=None, max_length=100)
     note: str | None = None
-    photo_url: str | None = None
+    fid: str | None = None
 
     created_at: datetime | None = Field(default_factory=utc_now)
-    age: datetime | None = None
+    sprouted_at: datetime | None = None
 
 
 # 4. HISTORIA PODLEWANIA

@@ -14,6 +14,7 @@ from torch import nn
 from plant_care_ai.data.preprocessing import get_inference_pipeline
 from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
 from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 
 class PlantClassifier:
@@ -82,6 +83,8 @@ class PlantClassifier:
 
         if model_type == "resnet18":
             model = Resnet18(num_classes=num_classes)
+        elif model_type == "resnet50":
+            model = Resnet50(num_classes=num_classes, pretrained=False)
         elif model_type == "efficientnetv2":
             model = create_efficientnetv2(
                 variant=config["variant"],
@@ -100,6 +103,12 @@ class PlantClassifier:
             img_size=img_size,
             device=device,
         )
+
+        # Load name mapping from checkpoint if available
+        if checkpoint.get("id_to_name"):
+            classifier.set_name_mapping(checkpoint["id_to_name"])
+            if verbose:
+                print(f"Loaded {len(checkpoint['id_to_name'])} class name mappings from checkpoint")
 
         if verbose:
             print(f"Loaded checkpoint from {checkpoint_path}")

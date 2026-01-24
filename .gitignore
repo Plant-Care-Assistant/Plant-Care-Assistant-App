@@ -221,6 +221,8 @@ __marimo__/
 
 # ai/
 ai/data/plantnet_300K/
+ai/checkpoints/
+ai/scripts/kaggle*
 
 env
 .env

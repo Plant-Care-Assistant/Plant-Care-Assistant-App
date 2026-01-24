@@ -9,6 +9,7 @@ import torch
 
 from .efficientnetv2 import EfficientNetV2
 from .resnet18 import Resnet18
+from .resnet50 import Resnet50
 
 
 def get_model(
@@ -21,11 +22,11 @@ def get_model(
     """Initialize models and (optionally) load weights.
 
     Args:
-        model_name: 'resnet18' or 'efficientnetv2' (case insensitive)
+        model_name: 'resnet18', 'resnet50', or 'efficientnetv2' (case insensitive)
         num_classes: number of output classes (default 1081)
         weights_path: path to .pth file to load state_dict
         device: 'cpu' or 'cuda' to move the model to
-        **kwargs: additional arguments for specific models (e.g., variant='b3')
+        **kwargs: additional arguments for specific models (e.g., variant='b3', pretrained=True)
 
     Returns:
         The initialized and configured torch.nn.Module
@@ -36,15 +37,23 @@ def get_model(
     """
     model_name = model_name.lower().strip()
 
+    pretrained = kwargs.pop("pretrained", True)
+
     if model_name == "resnet18":
         model = Resnet18(num_classes=num_classes)
+
+    elif model_name == "resnet50":
+        model = Resnet50(num_classes=num_classes, pretrained=pretrained)
 
     elif "efficientnet" in model_name:
         variant = kwargs.pop("variant", "b3")
         model = EfficientNetV2(variant=variant, num_classes=num_classes, **kwargs)
 
     else:
-        msg = f"Model '{model_name}' is not supported. Choose 'resnet18' or 'efficientnetv2'."
+        msg = (
+            f"Model '{model_name}' not supported. "
+            "Choose 'resnet18', 'resnet50', or 'efficientnetv2'."
+        )
         raise ValueError(msg)
 
     if weights_path:
