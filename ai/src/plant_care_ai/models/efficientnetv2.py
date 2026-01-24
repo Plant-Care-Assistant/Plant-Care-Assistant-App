@@ -488,14 +488,14 @@ class EfficientNetV2(nn.Module):
         """Freeze all layers except the classifier."""
         for param in self.stem.parameters():
             param.requires_grad = False
-        
+
         for stage in self.stages:
             for param in stage.parameters():
                 param.requires_grad = False
-        
+
         for param in self.head.parameters():
             param.requires_grad = False
-        
+
         # classifier is safe
         for param in self.classifier.parameters():
             param.requires_grad = True
