@@ -177,7 +177,7 @@ INSERT INTO users (email, password_hash, username, xp, day_streak, location_city
 -- PRZYPISYWANIE ROŚLIN DO UŻYTKOWNIKÓW
 -- =========================================
 -- Użytkownik 1 (Janusz) ma Pelargonię Pachnącą i Nerecznicę Samczą (paproć)
-INSERT INTO user_plants (user_id, plant_catalog_id, custom_name, note, created_at, age)
+INSERT INTO user_plants (user_id, plant_catalog_id, custom_name, note, created_at, sprouted_at)
 VALUES
 (
     1,
@@ -197,7 +197,7 @@ VALUES
 );
 
 -- Użytkownik 2 (Ania) ma Lawendę Wąskolistną i Zamiokulkasa (dużo XP, zadbane rośliny)
-INSERT INTO user_plants (user_id, plant_catalog_id, custom_name, note, created_at, age)
+INSERT INTO user_plants (user_id, plant_catalog_id, custom_name, note, created_at, sprouted_at)
 VALUES
 (
     2,
@@ -217,7 +217,7 @@ VALUES
 );
 
 -- Użytkownik 3 (Tester) ma Rozchodnik Ostry (sukulent z listy)
-INSERT INTO user_plants (user_id, plant_catalog_id, custom_name, note, created_at, age)
+INSERT INTO user_plants (user_id, plant_catalog_id, custom_name, note, created_at, sprouted_at)
 VALUES
 (
     3,
