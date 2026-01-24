@@ -65,7 +65,8 @@ CREATE TABLE IF NOT EXISTS user_plants (
     note TEXT,
     photo_url TEXT,
     --
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    sprouted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- Kiedy roślina wykiełkowała / urodziła
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- Kiedy została dodana do bazy
     age DATE
 );
 CREATE INDEX idx_user_plants_user_id ON user_plants(user_id);
