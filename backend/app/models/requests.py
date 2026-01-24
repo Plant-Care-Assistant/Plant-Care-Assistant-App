@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.models.base import HumidityLevel, LightLevel
+
 
 class UserCreate(BaseModel):
     email: EmailStr = Field(..., max_length=64, examples=["ogrodnik@example.com"])
@@ -31,3 +33,41 @@ class UserPreferences(BaseModel):
     dark_mode: bool = False
     care_reminders: bool = True
     weather_tips: bool = True
+
+
+class UserPlantCreate(BaseModel):
+    plant_catalog_id: int | None = None
+    custom_name: str | None = None
+    note: str | None = None
+    age: datetime | None = None
+
+
+class UserPlantUpdate(BaseModel):
+    plant_catalog_id: int | None = None
+    custom_name: str | None = None
+    note: str | None = None
+    age: datetime | None = None
+
+
+class UserPlantPublic(BaseModel):
+    id: int
+    plant_catalog_id: int
+
+    custom_name: str | None = None
+    note: str | None = None
+
+    created_at: datetime
+    age: datetime | None = None
+
+
+class PlantPublic(BaseModel):
+    id: int
+    common_name: str
+    scientific_name: str | None
+    preferred_sunlight: LightLevel
+    preferred_temp_min: int | None
+    preferred_temp_max: int | None
+    air_humidity_req: HumidityLevel | None
+    soil_humidity_req: HumidityLevel | None
+
+    preferred_watering_interval_days: int | None = None

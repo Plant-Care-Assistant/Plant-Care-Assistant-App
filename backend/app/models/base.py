@@ -67,7 +67,7 @@ class Plant(SQLModel, table=True):
     air_humidity_req: HumidityLevel | None = None
     soil_humidity_req: HumidityLevel | None = None
 
-    prefered_watering_interval_days: int | None = None
+    preferred_watering_interval_days: int | None = None
 
 
 # 3. ROŚLINY UŻYTKOWNIKA
@@ -83,7 +83,7 @@ class UserPlant(SQLModel, table=True):
     fid: str | None = None
 
     created_at: datetime | None = Field(default_factory=utc_now)
-    age: datetime | None = None
+    sprouted_at: datetime | None = None
 
 
 # 4. HISTORIA PODLEWANIA
