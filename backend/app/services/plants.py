@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from rapidfuzz import process
 from sqlmodel import select
 
 from app.db import SessionDep
@@ -25,7 +26,20 @@ class PlantService:
         return plant
 
     def read_plant_name(self, name: str) -> list[Plant]:
-        return []
+        plants = list(self.s.exec(select(Plant)).all())
+        mapping = {}
+        for plant in plants:
+            mapping[plant.common_name.lower()] = plant
+            if plant.scientific_name is not None:
+                mapping[plant.scientific_name.lower()] = plant
+
+        choices = mapping.keys()
+        result = process.extract(name.lower(), choices, limit=5)
+        top_plants = []
+        for r in result:
+            if mapping[r[0]] not in top_plants:
+                top_plants.append(mapping[r[0]])
+        return top_plants
 
     def read_plant_image(self, plant_id: int) -> str:
         plant = self.s.get(Plant, plant_id)
