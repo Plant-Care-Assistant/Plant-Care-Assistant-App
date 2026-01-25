@@ -105,14 +105,9 @@ class UserPlantPublic(BaseModel):
     id: int
     plant_catalog_id: int | None = None
 
-<<<<<<< HEAD
-    custom_name: str | None
-    note: str | None
-=======
     custom_name: str | None = None
     note: str | None = None
     fid: str | None = None
->>>>>>> FEAT: front-back integration
 
     created_at: datetime
     sprouted_at: datetime | None
