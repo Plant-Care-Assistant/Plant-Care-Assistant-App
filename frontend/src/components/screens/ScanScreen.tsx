@@ -1,12 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ScanHeader } from '@/components/features/scan/ScanHeader';
-import { ScanFrame } from '@/components/features/scan/ScanFrame';
-import { ScanActions } from '@/components/features/scan/ScanActions';
-import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
-import { Upload } from 'lucide-react';
-import type { Plant } from '@/lib/utils/plantFilters';
+import { useState } from "react";
+import { ScanHeader } from "@/components/features/scan/ScanHeader";
+import { ScanFrame } from "@/components/features/scan/ScanFrame";
+import { ScanActions } from "@/components/features/scan/ScanActions";
+import {
+  ScanCameraModal,
+  type ScanPlantData,
+} from "@/components/features/scan";
+import { Upload } from "lucide-react";
+import type { Plant } from "@/lib/utils/plantFilters";
 
 export interface ScanScreenProps {
   darkMode: boolean;
@@ -14,7 +17,11 @@ export interface ScanScreenProps {
   onPlantsChange: (plants: Plant[]) => void;
 }
 
-export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps) {
+export function ScanScreen({
+  darkMode,
+  plants,
+  onPlantsChange,
+}: ScanScreenProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleUpload = () => {
@@ -29,12 +36,13 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
     // Convert ScanPlantData to Plant format (match Plant interface exactly)
     const newPlant: Plant = {
       id: Date.now(),
-      name: plant.name || 'Unknown Plant',
-      species: plant.species || '',
-      health: 'healthy', // Default for new plants
-      lightLevel: plant.lightLevel || 'medium',
-      imageUrl: plant.imageUrl || '',
-      lastWatered: 'today', // Keep as string for UI compatibility
+      catalogId: plant.catalogId,
+      name: plant.name || "Unknown Plant",
+      species: plant.species || "",
+      health: "healthy", // Default for new plants
+      lightLevel: plant.lightLevel || "medium",
+      imageUrl: plant.imageUrl || "",
+      lastWatered: "today", // Keep as string for UI compatibility
       location: plant.location,
       wateringFrequency: plant.wateringFrequency,
       aiIdentified: plant.aiIdentified,
@@ -45,11 +53,15 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
     const updatedPlants = [...plants, newPlant];
     onPlantsChange(updatedPlants);
 
-    console.log('✅ Plant added to collection:', newPlant);
+    console.log("✅ Plant added to collection:", newPlant);
   };
 
   return (
-    <div className={`min-h-screen pb-24 lg:pb-8 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+    <div
+      className={`min-h-screen pb-24 lg:pb-8 ${
+        darkMode ? "text-white" : "text-gray-900"
+      }`}
+    >
       {/* Mobile layout - optimized for touch */}
       <div className="lg:hidden">
         <div className="px-4 pt-4 pb-6">
@@ -59,7 +71,7 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
           {/* Main scan area */}
           <div className="flex flex-col">
             <ScanFrame darkMode={darkMode} />
-            <ScanActions 
+            <ScanActions
               onUpload={handleUpload}
               onCamera={handleCamera}
               darkMode={darkMode}
@@ -82,8 +94,8 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
               <div
                 className={`w-full rounded-2xl border-2 border-dashed ${
                   darkMode
-                    ? 'border-neutral-700 bg-neutral-800/30 hover:border-secondary/50 hover:bg-neutral-800/50'
-                    : 'border-neutral-300 bg-neutral-50/50 hover:border-secondary/50 hover:bg-secondary/5'
+                    ? "border-neutral-700 bg-neutral-800/30 hover:border-secondary/50 hover:bg-neutral-800/50"
+                    : "border-neutral-300 bg-neutral-50/50 hover:border-secondary/50 hover:bg-secondary/5"
                 } p-12 text-center cursor-pointer transition-all duration-300`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -93,20 +105,39 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
                 onClick={handleUpload}
               >
                 <div className="flex flex-col items-center gap-4">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                    darkMode ? 'bg-neutral-700/50' : 'bg-neutral-200/50'
-                  }`}>
-                    <Upload size={28} className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} />
+                  <div
+                    className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                      darkMode ? "bg-neutral-700/50" : "bg-neutral-200/50"
+                    }`}
+                  >
+                    <Upload
+                      size={28}
+                      className={
+                        darkMode ? "text-neutral-400" : "text-neutral-600"
+                      }
+                    />
                   </div>
                   <div>
-                    <p className={`text-lg font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <p
+                      className={`text-lg font-semibold mb-1 ${
+                        darkMode ? "text-white" : "text-gray-900"
+                      }`}
+                    >
                       Drag and drop an image here
                     </p>
-                    <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                    <p
+                      className={`text-sm ${
+                        darkMode ? "text-neutral-400" : "text-neutral-600"
+                      }`}
+                    >
                       or click to select from your files
                     </p>
                   </div>
-                  <div className={`mt-2 text-xs ${darkMode ? 'text-neutral-500' : 'text-neutral-500'}`}>
+                  <div
+                    className={`mt-2 text-xs ${
+                      darkMode ? "text-neutral-500" : "text-neutral-500"
+                    }`}
+                  >
                     <p>Supported formats: JPG, PNG, HEIC</p>
                     <p className="mt-1">Maximum size: 10MB</p>
                   </div>
@@ -114,13 +145,23 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
               </div>
 
               {/* Additional tips */}
-              <div className={`mt-6 p-4 rounded-xl ${
-                darkMode ? 'bg-neutral-800/50' : 'bg-neutral-100/50'
-              }`}>
-                <p className={`text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
+              <div
+                className={`mt-6 p-4 rounded-xl ${
+                  darkMode ? "bg-neutral-800/50" : "bg-neutral-100/50"
+                }`}
+              >
+                <p
+                  className={`text-sm font-medium mb-2 ${
+                    darkMode ? "text-neutral-300" : "text-neutral-700"
+                  }`}
+                >
                   Tips for best results:
                 </p>
-                <ul className={`text-xs space-y-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                <ul
+                  className={`text-xs space-y-1 ${
+                    darkMode ? "text-neutral-400" : "text-neutral-600"
+                  }`}
+                >
                   <li>• Ensure good lighting on the plant</li>
                   <li>• Center the plant in the frame</li>
                   <li>• Include leaves and distinctive features</li>

@@ -8,11 +8,14 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 // ...existing imports...
 
 export default function ProfilePage() {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   return (
-    <Layout>
+    <Layout darkMode={theme === "dark"} onToggleDarkMode={toggleTheme}>
       <ProtectedRoute>
-        <ProfileScreen darkMode={theme === 'dark'} />
+        <ProfileScreen
+          darkMode={theme === "dark"}
+          onDarkModeToggle={toggleTheme}
+        />
       </ProtectedRoute>
     </Layout>
   );

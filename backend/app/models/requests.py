@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.base import HumidityLevel, LightLevel
 
@@ -29,6 +29,42 @@ class UserPublic(BaseModel):
     created_at: datetime | None = None
 
 
+class WeeklyChallenge(BaseModel):
+    completed: int
+    total: int
+    description: str
+
+
+class AchievementPublic(BaseModel):
+    id: str
+    name: str
+    description: str
+    unlocked: bool
+    icon: str
+
+
+class UserStats(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str
+    level: int
+    xp: int
+    xp_to_next_level: int = Field(
+        serialization_alias="xpToNextLevel",
+        validation_alias="xpToNextLevel",
+    )
+    streak: int
+    health_score: int = Field(
+        serialization_alias="healthScore",
+        validation_alias="healthScore",
+    )
+    weekly_challenge: WeeklyChallenge = Field(
+        serialization_alias="weeklyChallenge",
+        validation_alias="weeklyChallenge",
+    )
+    achievements: list[AchievementPublic]
+
+
 class UserPreferences(BaseModel):
     dark_mode: bool = False
     care_reminders: bool = True
@@ -51,10 +87,11 @@ class UserPlantUpdate(BaseModel):
 
 class UserPlantPublic(BaseModel):
     id: int
-    plant_catalog_id: int
+    plant_catalog_id: int | None = None
 
     custom_name: str | None = None
     note: str | None = None
+    fid: str | None = None
 
     created_at: datetime
     age: datetime | None = None

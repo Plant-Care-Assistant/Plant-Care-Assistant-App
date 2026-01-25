@@ -1,9 +1,16 @@
-
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
+import { AxiosError } from "axios";
 import { User, LoginCredentials, RegisterData } from "@/types";
-import { AuthAPI, UsersAPI, setAccessToken, getStoredToken, setRefreshToken, getStoredRefreshToken } from "@/lib/apiClient";
+import { authApi } from "@/lib/api/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -18,152 +25,107 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_KEY = "auth_token";
+const COOKIE_KEY = "auth_token";
+
+function setAuthCookie(token: string | null) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  if (token) {
+    document.cookie = `${COOKIE_KEY}=${token}; Path=/; SameSite=Lax`;
+  } else {
+    document.cookie = `${COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [refreshToken, setRefreshTokenState] = useState<string | null>(null);
 
-  const fetchUser = useCallback(async () => {
+  useEffect(() => {
+    const initAuth = async () => {
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      if (storedToken) {
+        setToken(storedToken);
+        setAuthCookie(storedToken);
+        try {
+          const currentUser = await authApi.getCurrentUser();
+          setUser({
+            id: String(currentUser.id),
+            username: currentUser.username,
+            email: currentUser.email,
+            created_at: currentUser.created_at ?? new Date().toISOString(),
+          });
+        } catch {
+          localStorage.removeItem(TOKEN_KEY);
+          setToken(null);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
+  }, []);
+
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    setError(null);
+    setIsLoading(true);
     try {
-      const userData = await UsersAPI.me();
+      const tokenResponse = await authApi.login(credentials);
+      const accessToken = tokenResponse.access_token;
+      localStorage.setItem(TOKEN_KEY, accessToken);
+      setToken(accessToken);
+      setAuthCookie(accessToken);
+
+      const currentUser = await authApi.getCurrentUser();
       setUser({
-        id: String(userData.id),
-        username: userData.username,
-        email: userData.email,
-        created_at: new Date().toISOString(),
+        id: String(currentUser.id),
+        username: currentUser.username,
+        email: currentUser.email,
+        created_at: currentUser.created_at ?? new Date().toISOString(),
       });
-    } catch {
-      setUser(null);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ detail?: string }>;
+      const message =
+        axiosError.response?.data?.detail || "Login failed. Please try again.";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await AuthAPI.logout();
-    } catch {}
-    setUser(null);
+  const register = useCallback(
+    async (data: RegisterData) => {
+      setError(null);
+      setIsLoading(true);
+      try {
+        await authApi.register(data);
+        await login({ username: data.email, password: data.password });
+      } catch (err) {
+        const axiosError = err as AxiosError<{ detail?: string }>;
+        const message =
+          axiosError.response?.data?.detail ||
+          "Registration failed. Please try again.";
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [login],
+  );
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
     setToken(null);
-    setAccessToken(null);
-    setRefreshToken(null);
-    setRefreshTokenState(null);
-    if (refreshTimeout) clearTimeout(refreshTimeout);
-    setIsLoading(false);
-  }, [refreshTimeout]);
-
-  const refreshTokenFunc = useCallback(async () => {
-    const storedRefresh = getStoredRefreshToken();
-    if (!storedRefresh) {
-      await logout();
-      return;
-    }
-    try {
-      const { RefreshAPI } = await import("@/lib/apiClient");
-      const tokens = await RefreshAPI.refresh(storedRefresh);
-      setAccessToken(tokens.access_token);
-      setRefreshToken(tokens.refresh_token);
-      setToken(tokens.access_token);
-      setRefreshTokenState(tokens.refresh_token);
-      await fetchUser();
-    } catch {
-      await logout();
-    }
-  }, [fetchUser, logout]);
-
-  const scheduleRefresh = useCallback((expiresIn: number) => {
-    if (refreshTimeout) clearTimeout(refreshTimeout);
-    const timeout = setTimeout(refreshTokenFunc, Math.max(0, (expiresIn - 60) * 1000));
-    setRefreshTimeout(timeout);
-  }, [refreshTimeout, refreshTokenFunc]);
-
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    setIsLoading(true);
+    setUser(null);
     setError(null);
-    try {
-      const tokens = await AuthAPI.login(credentials);
-      setAccessToken(tokens.access_token);
-      setRefreshToken(tokens.refresh_token);
-      setToken(tokens.access_token);
-      setRefreshTokenState(tokens.refresh_token);
-      await fetchUser();
-    } catch (err: any) {
-      let detail = err?.response?.data?.detail;
-      let errorString = "Login failed";
-      if (Array.isArray(detail)) {
-        errorString = detail.map((e: any) => typeof e === 'object' ? JSON.stringify(e) : String(e)).join(' | ');
-      } else if (typeof detail === 'object' && detail !== null) {
-        errorString = JSON.stringify(detail);
-      } else if (detail) {
-        errorString = String(detail);
-      } else if (err.message) {
-        errorString = String(err.message);
-      }
-      setError(errorString);
-      setUser(null);
-      setToken(null);
-      setAccessToken(null);
-      setRefreshToken(null);
-      setRefreshTokenState(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchUser]);
-
-  const register = useCallback(async (data: RegisterData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const tokens = await AuthAPI.register(data);
-      setAccessToken(tokens.access_token);
-      setRefreshToken(tokens.refresh_token);
-      setToken(tokens.access_token);
-      setRefreshTokenState(tokens.refresh_token);
-      await fetchUser();
-    } catch (err: any) {
-      let detail = err?.response?.data?.detail;
-      let errorString = "Registration failed";
-      if (Array.isArray(detail)) {
-        errorString = detail.map((e: any) => typeof e === 'object' ? JSON.stringify(e) : String(e)).join(' | ');
-      } else if (typeof detail === 'object' && detail !== null) {
-        errorString = JSON.stringify(detail);
-      } else if (detail) {
-        errorString = String(detail);
-      } else if (err.message) {
-        errorString = String(err.message);
-      }
-      setError(errorString);
-      setUser(null);
-      setToken(null);
-      setAccessToken(null);
-      setRefreshToken(null);
-      setRefreshTokenState(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchUser]);
-
-  useEffect(() => {
-    const stored = getStoredToken();
-    const storedRefresh = getStoredRefreshToken();
-    if (stored) {
-      setAccessToken(stored);
-      setToken(stored);
-      if (storedRefresh) {
-        setRefreshToken(storedRefresh);
-        setRefreshTokenState(storedRefresh);
-      }
-      fetchUser().finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
-    return () => {
-      if (refreshTimeout) clearTimeout(refreshTimeout);
-    };
-  }, [fetchUser, refreshTimeout]);
+    setAuthCookie(null);
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -174,12 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         isLoading,
-        isAuthenticated: !!token,
+        isAuthenticated: !!token && !!user,
         error,
       }}
     >
       {children}
-
     </AuthContext.Provider>
   );
 }

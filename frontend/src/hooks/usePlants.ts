@@ -2,13 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plantApi } from "@/lib/api";
-import { Plant, PlantIdentification } from "@/types";
+import type { Plant } from "@/lib/utils/plantFilters";
+import type { PlantIdentification } from "@/types";
 
 const PLANTS_KEY = ["plants"];
 
 /** Fetch all plants in the user's collection. */
 export function usePlantsQuery(enabled = true) {
-  return useQuery({
+  return useQuery<Plant[], Error>({
     queryKey: PLANTS_KEY,
     queryFn: () => plantApi.getPlants(),
     enabled,
@@ -17,7 +18,7 @@ export function usePlantsQuery(enabled = true) {
 
 /** Fetch a single plant by id. */
 export function usePlantQuery(id?: string) {
-  return useQuery({
+  return useQuery<Plant, Error>({
     queryKey: [...PLANTS_KEY, id],
     queryFn: () => plantApi.getPlant(id as string),
     enabled: !!id,
@@ -40,15 +41,29 @@ export function useAddPlantMutation() {
   });
 }
 
-/** Water a plant and refresh cache. */
-export function useWaterPlantMutation() {
+/** Update plant details. */
+export function useUpdatePlantMutation() {
   const qc = useQueryClient();
-  return useMutation<Plant, unknown, string>({
-    mutationFn: (id) => plantApi.waterPlant(id),
-    onSuccess: (updated) => {
-      qc.setQueryData<Plant[]>(PLANTS_KEY, (prev) =>
-        prev?.map((p) => (p.id === updated.id ? updated : p)) || prev,
-      );
-    },
+  return useMutation<Plant, unknown, { id: string; updates: Partial<Plant> }>({
+    mutationFn: ({ id, updates }) => plantApi.updatePlant(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PLANTS_KEY }),
+  });
+}
+
+/** Delete plant from collection. */
+export function useDeletePlantMutation() {
+  const qc = useQueryClient();
+  return useMutation<void, unknown, string>({
+    mutationFn: (id) => plantApi.deletePlant(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PLANTS_KEY }),
+  });
+}
+
+/** Upload plant image. */
+export function useUploadPlantImageMutation() {
+  const qc = useQueryClient();
+  return useMutation<void, unknown, { id: string; file: File }>({
+    mutationFn: ({ id, file }) => plantApi.uploadPlantImage(id, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PLANTS_KEY }),
   });
 }

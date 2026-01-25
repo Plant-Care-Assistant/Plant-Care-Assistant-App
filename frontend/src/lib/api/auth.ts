@@ -2,6 +2,19 @@ import { apiClient } from "./client";
 import { LoginCredentials, RegisterData, Token } from "@/types";
 
 /**
+ * Backend user response
+ */
+interface UserResponse {
+  id: number;
+  username: string;
+  email: string;
+  xp: number;
+  day_streak: number;
+  location_city: string | null;
+  created_at: string | null;
+}
+
+/**
  * Authentication API endpoints
  */
 export const authApi = {
@@ -28,7 +41,7 @@ export const authApi = {
    * @param data - User registration data
    */
   async register(data: RegisterData): Promise<void> {
-    await apiClient.post("/users", {
+    await apiClient.post("/auth/register", {
       username: data.username,
       email: data.email,
       password: data.password,
@@ -39,8 +52,8 @@ export const authApi = {
    * Get current user info
    * Requires authentication
    */
-  async getCurrentUser(): Promise<any> {
-    const response = await apiClient.get("/users/me");
+  async getCurrentUser(): Promise<UserResponse> {
+    const response = await apiClient.get<UserResponse>("/users/me");
     return response.data;
   },
 };

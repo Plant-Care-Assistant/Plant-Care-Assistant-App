@@ -6,11 +6,11 @@ import { usePlantsQuery } from "@/hooks/usePlants";
 import { HomeScreen } from "@/components/screens/HomeScreen";
 
 export default function DashboardPage() {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { data: plants = [] } = usePlantsQuery();
   return (
-    <Layout>
-      <HomeScreen darkMode={theme === 'dark'} plants={plants} />
+    <Layout darkMode={theme === "dark"} onToggleDarkMode={toggleTheme}>
+      <HomeScreen darkMode={theme === "dark"} plants={plants} />
     </Layout>
   );
 }
