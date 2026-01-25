@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from rapidfuzz import process
 from sqlmodel import select
-from rapidfuzz import process, fuzz
 
 from app.db import SessionDep
 from app.models.base import PageParams, Plant
@@ -24,6 +24,7 @@ class PlantService:
         if plant is None:
             raise HTTPException(404, "Plant not found")
         return plant
+
     def read_plant_name(self, name: str) -> list[Plant]:
         plants = list(self.s.exec(select(Plant)).all())
         mapping = {}
