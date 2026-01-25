@@ -28,7 +28,7 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
   const handleAddToCollection = (plant: ScanPlantData) => {
     // Convert ScanPlantData to Plant format (match Plant interface exactly)
     const newPlant: Plant = {
-      id: `plant-${Date.now()}`,
+      id: Date.now(),
       name: plant.name || 'Unknown Plant',
       species: plant.species || '',
       health: 'healthy', // Default for new plants

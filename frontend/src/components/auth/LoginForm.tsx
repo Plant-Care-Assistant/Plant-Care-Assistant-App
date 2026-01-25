@@ -1,6 +1,36 @@
 "use client";
 
 import { useState } from "react";
+
+
+// Extract FastAPI error messages for fields and non-fields
+function parseFastApiErrors(detail: any) {
+  const fieldErrors: Record<string, string[]> = {};
+  let nonFieldErrors: string[] = [];
+  if (typeof detail === 'string') {
+    nonFieldErrors.push(detail);
+  } else if (Array.isArray(detail)) {
+    for (const err of detail) {
+      if (err && typeof err === 'object' && err.loc && Array.isArray(err.loc) && err.msg) {
+        // loc: ["body", "email"] or ["body", "password"]
+        const field = err.loc[1] || err.loc[0];
+        if (field === 'email' || field === 'password') {
+          if (!fieldErrors[field]) fieldErrors[field] = [];
+          fieldErrors[field].push(err.msg);
+        } else {
+          nonFieldErrors.push(err.msg);
+        }
+      } else if (err && err.msg) {
+        nonFieldErrors.push(err.msg);
+      } else if (typeof err === 'string') {
+        nonFieldErrors.push(err);
+      }
+    }
+  } else if (detail && typeof detail === 'object' && detail.msg) {
+    nonFieldErrors.push(detail.msg);
+  }
+  return { fieldErrors, nonFieldErrors };
+}
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -23,24 +53,47 @@ interface LoginFormData {
   password: string;
 }
 
+
+
 export function LoginForm() {
   const router = useRouter();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, error } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const form = useForm<LoginFormData>({
     defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
+    setFieldErrors({});
+    // Enforce frontend validation for empty fields
+    if (!data.email || !data.email.trim()) {
+      form.setError('email', { type: 'manual', message: 'Email is required' });
+      return;
+    }
+    if (!data.password || !data.password.trim()) {
+      form.setError('password', { type: 'manual', message: 'Password is required' });
+      return;
+    }
     try {
-      // Convert email to username (backend expects username for login)
-      await login({ username: data.email, password: data.password });
-      router.push("/");
-    } catch (error) {
-      setServerError(
-        error instanceof Error ? error.message : "Login failed. Please try again.",
-      );
+      // Debug: log what is being sent to backend
+      const loginPayload = { username: data.email, password: data.password };
+      console.log('Login payload:', loginPayload);
+      await login(loginPayload);
+      router.push("/dashboard");
+    } catch (err: any) {
+      // error is handled in AuthProvider, but we show it here too
+      let detail = err?.response?.data?.detail;
+      const { fieldErrors, nonFieldErrors } = parseFastApiErrors(detail);
+      setFieldErrors(fieldErrors);
+      setServerError(nonFieldErrors.length ? nonFieldErrors.join(' | ') : "Login failed. Please try again.");
+      // Optionally, set react-hook-form field errors for UI feedback
+      Object.entries(fieldErrors).forEach(([field, messages]) => {
+        // Defensive: always pass a string, never an object
+        const msg = messages.map(m => typeof m === 'string' ? m : (m && m.msg ? m.msg : JSON.stringify(m))).join(' | ');
+        form.setError(field as keyof LoginFormData, { type: 'server', message: msg });
+      });
     }
   };
 
@@ -55,6 +108,7 @@ export function LoginForm() {
                 src="/logo.png"
                 alt="Plant Care Assistant"
                 fill
+                sizes="64px"
                 className="object-contain drop-shadow-lg"
                 priority
               />
@@ -84,7 +138,7 @@ export function LoginForm() {
               }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-neutral-700 dark:text-neutral-200">Email address</FormLabel>
+                  <FormLabel className="text-neutral-700 dark:text-neutral-200">Email address (used as username)</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
@@ -94,11 +148,18 @@ export function LoginForm() {
                         placeholder="your@email.com"
                         className="h-12 pl-12 text-base"
                         disabled={isLoading}
-                        aria-label="Email address"
+                        aria-label="Email address (used as username)"
                       />
                     </div>
                   </FormControl>
-                  <FormMessage />
+                  {/* Show FastAPI field error if present */}
+                  {fieldErrors.email && fieldErrors.email.length > 0 && (
+                    <div className="text-red-500 text-xs mt-1">{fieldErrors.email.join(' | ')}</div>
+                  )}
+                  {/* Only pass string to FormMessage, never object */}
+                  {typeof form.formState.errors.email?.message === 'string' ? (
+                    <FormMessage />
+                  ) : null}
                 </FormItem>
               )}
             />
@@ -138,16 +199,24 @@ export function LoginForm() {
                       />
                     </div>
                   </FormControl>
-                  <FormMessage />
+                  {/* Show FastAPI field error if present */}
+                  {fieldErrors.password && fieldErrors.password.length > 0 && (
+                    <div className="text-red-500 text-xs mt-1">{fieldErrors.password.join(' | ')}</div>
+                  )}
+                  {/* Only pass string to FormMessage, never object */}
+                  {typeof form.formState.errors.password?.message === 'string' ? (
+                    <FormMessage />
+                  ) : null}
                 </FormItem>
               )}
             />
 
-            {/* Server Error */}
-            {serverError && (
-              <p className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                {serverError}
-              </p>
+
+            {/* Non-field (general) errors */}
+            {(serverError || error) && (
+              <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400 mb-2">
+                {serverError || error}
+              </div>
             )}
 
             {/* Sign In Button */}

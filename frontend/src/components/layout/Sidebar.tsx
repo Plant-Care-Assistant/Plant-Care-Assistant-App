@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, LogOut } from "lucide-react";
 import { navItems, type NavScreen } from "./navItems";
+import { useAuth } from "@/providers";
 
 /**
  * Props for the Sidebar component.
@@ -26,6 +27,7 @@ export function Sidebar({
   onToggleDarkMode,
   showThemeToggle = true
 }: SidebarProps) {
+  const { logout } = useAuth();
   return (
     <nav className={`hidden lg:block fixed left-0 top-0 h-screen w-72 border-r transition-colors ${
       darkMode 
@@ -105,6 +107,16 @@ export function Sidebar({
           </button>
         </div>
       )}
+      {/* Log out Button */}
+      <div className="border-t p-4">
+        <button
+          onClick={logout}
+          className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-red-600 hover:bg-red-100 dark:hover:bg-neutral-800`}
+        >
+          <LogOut size={18} />
+          Log out
+        </button>
+      </div>
     </nav>
   );
 }

@@ -36,7 +36,7 @@ export default function App() {
       case 'scan':
         return <ScanScreen darkMode={darkMode} plants={plants} onPlantsChange={setPlants} />;
       case 'collection':
-        return <CollectionScreen darkMode={darkMode} plants={plants} onPlantsChange={setPlants} />;
+        return <CollectionScreen darkMode={darkMode} />;
       case 'profile':
         return <ProfileScreen darkMode={darkMode} onDarkModeToggle={toggleDarkMode} />;
       default:

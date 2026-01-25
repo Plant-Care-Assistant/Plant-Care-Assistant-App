@@ -41,7 +41,7 @@ export function Layout({
   const pathname = usePathname();
 
   const getCurrentScreen = () => {
-    if (pathname === '/') return 'home';
+    if (pathname === '/dashboard') return 'home';
     if (pathname?.startsWith('/scan')) return 'scan';
     if (pathname?.startsWith('/plant')) return 'collection';
     if (pathname?.startsWith('/collection')) return 'collection';
@@ -53,12 +53,12 @@ export function Layout({
 
   const handleNavigate = (screen: string) => {
     const routes = {
-      home: '/',
+      home: '/dashboard',
       scan: '/scan',
       collection: '/collection',
       profile: '/profile'
     };
-    router.push(routes[screen as keyof typeof routes] || '/');
+    router.push(routes[screen as keyof typeof routes] || '/dashboard');
   };
 
   return (
@@ -89,12 +89,12 @@ export function Layout({
           currentScreen={currentScreen as any}
           onNavigate={(screen) => {
             const routes = {
-              home: '/',
+              home: '/dashboard',
               scan: '/scan',
               collection: '/collection',
               profile: '/profile'
             };
-            router.push(routes[screen] || '/');
+            router.push(routes[screen] || '/dashboard');
           }}
           darkMode={darkMode}
         />
