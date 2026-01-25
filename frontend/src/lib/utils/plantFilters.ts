@@ -14,6 +14,11 @@ export interface Plant {
   wateringFrequency?: number;
   aiIdentified?: boolean;
   confidence?: number;
+  // Custom plant parameters
+  temperatureMin?: number;
+  temperatureMax?: number;
+  airHumidity?: "low" | "medium" | "high";
+  soilHumidity?: "low" | "medium" | "high";
 }
 
 /**

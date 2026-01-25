@@ -13,6 +13,14 @@ interface UserPlantResponse {
   created_at: string;
   age: string | null;
   fid: string | null;
+  // Custom plant parameters
+  scientific_name?: string | null;
+  preferred_sunlight?: string | null;
+  preferred_temp_min?: number | null;
+  preferred_temp_max?: number | null;
+  air_humidity_req?: string | null;
+  soil_humidity_req?: string | null;
+  preferred_watering_interval_days?: number | null;
 }
 
 interface PlantCatalogResponse {
@@ -55,8 +63,9 @@ function buildApiUrl(path: string) {
  * Map backend light level to frontend format
  */
 function mapLightLevel(
-  sunlight: string,
+  sunlight: string | null | undefined,
 ): "low" | "medium" | "high" | undefined {
+  if (!sunlight) return undefined;
   const map: Record<string, "low" | "medium" | "high"> = {
     low: "low",
     medium: "medium",
@@ -69,27 +78,56 @@ function mapLightLevel(
 }
 
 /**
+ * Map backend humidity level to frontend format
+ */
+function mapHumidityLevel(
+  humidity: string | null | undefined,
+): "low" | "medium" | "high" | undefined {
+  if (!humidity) return undefined;
+  const map: Record<string, "low" | "medium" | "high"> = {
+    low: "low",
+    medium: "medium",
+    high: "high",
+  };
+  return map[humidity.toLowerCase()];
+}
+
+/**
  * Convert backend UserPlant to frontend Plant format
  */
 function adaptUserPlantToPlant(
   userPlant: UserPlantResponse,
   catalog?: PlantCatalogResponse,
 ): Plant {
+  // Prefer user-defined parameters, fall back to catalog
+  const preferredSunlight = userPlant.preferred_sunlight ?? catalog?.preferred_sunlight;
+  const tempMin = userPlant.preferred_temp_min ?? catalog?.preferred_temp_min;
+  const tempMax = userPlant.preferred_temp_max ?? catalog?.preferred_temp_max;
+  const airHumidity = userPlant.air_humidity_req ?? catalog?.air_humidity_req;
+  const soilHumidity = userPlant.soil_humidity_req ?? catalog?.soil_humidity_req;
+  const wateringInterval = userPlant.preferred_watering_interval_days ?? catalog?.preferred_watering_interval_days;
+  const species = userPlant.scientific_name ?? catalog?.scientific_name;
+
   return {
     id: String(userPlant.id),
     catalogId: userPlant.plant_catalog_id ?? catalog?.id,
     name: userPlant.custom_name || catalog?.common_name || "Unknown Plant",
-    species: catalog?.scientific_name || undefined,
+    species: species || undefined,
     lastWatered: undefined,
     nextWatering: undefined,
     health: "healthy",
-    lightLevel: catalog ? mapLightLevel(catalog.preferred_sunlight) : undefined,
+    lightLevel: preferredSunlight ? mapLightLevel(preferredSunlight) : undefined,
     imageUrl: userPlant.fid
       ? buildApiUrl(`/my-plants/${userPlant.id}/image`)
       : userPlant.plant_catalog_id
         ? buildApiUrl(`/plants/${userPlant.plant_catalog_id}/image`)
         : undefined,
-    wateringFrequency: catalog?.preferred_watering_interval_days || undefined,
+    wateringFrequency: wateringInterval || undefined,
+    // Custom parameters
+    temperatureMin: tempMin || undefined,
+    temperatureMax: tempMax || undefined,
+    airHumidity: mapHumidityLevel(airHumidity),
+    soilHumidity: mapHumidityLevel(soilHumidity),
   };
 }
 
@@ -215,6 +253,13 @@ export const plantApi = {
     const payload = {
       custom_name: plant.name,
       plant_catalog_id: catalogId,
+      scientific_name: plant.species || undefined,
+      preferred_sunlight: plant.lightLevel || undefined,
+      preferred_temp_min: plant.temperatureMin || undefined,
+      preferred_temp_max: plant.temperatureMax || undefined,
+      air_humidity_req: plant.airHumidity || undefined,
+      soil_humidity_req: plant.soilHumidity || undefined,
+      preferred_watering_interval_days: plant.wateringFrequency || undefined,
     };
 
     const response = await apiClient.post<UserPlantResponse>(

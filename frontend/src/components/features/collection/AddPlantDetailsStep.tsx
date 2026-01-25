@@ -24,6 +24,10 @@ export function AddPlantDetailsStep({
     lightLevel: plantData.lightLevel || 'medium',
     wateringFrequency: plantData.wateringFrequency || 3,
     location: plantData.location || '',
+    temperatureMin: plantData.temperatureMin || undefined,
+    temperatureMax: plantData.temperatureMax || undefined,
+    airHumidity: plantData.airHumidity || undefined,
+    soilHumidity: plantData.soilHumidity || undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -158,6 +162,93 @@ export function AddPlantDetailsStep({
           onChange={(e) => handleChange('wateringFrequency', parseInt(e.target.value))}
           className={inputClasses(false)}
         />
+      </div>
+
+      {/* Custom Parameters Section */}
+      <div className={`rounded-lg border p-4 ${darkMode ? 'border-neutral-700 bg-neutral-800/50' : 'border-neutral-200 bg-neutral-50'}`}>
+        <h3 className={`mb-3 text-sm font-semibold ${darkMode ? 'text-neutral-200' : 'text-neutral-800'}`}>
+          Custom Care Parameters (Optional)
+        </h3>
+
+        {/* Temperature Range */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label htmlFor="tempMin" className={labelClasses}>
+              Min Temp (°C)
+            </label>
+            <input
+              id="tempMin"
+              type="number"
+              min="-10"
+              max="50"
+              value={formData.temperatureMin || ''}
+              onChange={(e) => handleChange('temperatureMin', e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="e.g., 15"
+              className={inputClasses(false)}
+            />
+          </div>
+          <div>
+            <label htmlFor="tempMax" className={labelClasses}>
+              Max Temp (°C)
+            </label>
+            <input
+              id="tempMax"
+              type="number"
+              min="-10"
+              max="50"
+              value={formData.temperatureMax || ''}
+              onChange={(e) => handleChange('temperatureMax', e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="e.g., 26"
+              className={inputClasses(false)}
+            />
+          </div>
+        </div>
+
+        {/* Humidity Levels */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="airHumidity" className={labelClasses}>
+              Air Humidity
+            </label>
+            <select
+              id="airHumidity"
+              value={formData.airHumidity || ''}
+              onChange={(e) =>
+                handleChange(
+                  'airHumidity',
+                  e.target.value ? (e.target.value as 'low' | 'medium' | 'high') : undefined
+                )
+              }
+              className={inputClasses(false)}
+            >
+              <option value="">Not specified</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="soilHumidity" className={labelClasses}>
+              Soil Humidity
+            </label>
+            <select
+              id="soilHumidity"
+              value={formData.soilHumidity || ''}
+              onChange={(e) =>
+                handleChange(
+                  'soilHumidity',
+                  e.target.value ? (e.target.value as 'low' | 'medium' | 'high') : undefined
+                )
+              }
+              className={inputClasses(false)}
+            >
+              <option value="">Not specified</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Buttons */}

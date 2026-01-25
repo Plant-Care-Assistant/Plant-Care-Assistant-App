@@ -14,6 +14,11 @@ export interface PlantFormData {
   lightLevel: 'low' | 'medium' | 'high';
   wateringFrequency: number; // days
   location: string;
+  // Custom plant parameters
+  temperatureMin?: number;
+  temperatureMax?: number;
+  airHumidity?: 'low' | 'medium' | 'high';
+  soilHumidity?: 'low' | 'medium' | 'high';
 }
 
 interface AddPlantModalProps {

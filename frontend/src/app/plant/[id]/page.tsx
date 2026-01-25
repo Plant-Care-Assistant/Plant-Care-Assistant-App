@@ -72,16 +72,32 @@ export default function PlantDetailPage() {
             <div className="lg:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6 lg:sticky lg:top-24">
               {/* Environment info */}
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
-                <EnvInfoCard
-                  type="temperature"
-                  value="18-26°C"
-                  darkMode={theme === "dark"}
-                />
-                <EnvInfoCard
-                  type="light"
-                  value="Low to medium"
-                  darkMode={theme === "dark"}
-                />
+                {(plant?.temperatureMin || plant?.temperatureMax) && (
+                  <EnvInfoCard
+                    type="temperature"
+                    value={
+                      plant.temperatureMin && plant.temperatureMax
+                        ? `${plant.temperatureMin}-${plant.temperatureMax}°C`
+                        : plant.temperatureMin
+                          ? `${plant.temperatureMin}°C min`
+                          : `${plant.temperatureMax}°C max`
+                    }
+                    darkMode={theme === "dark"}
+                  />
+                )}
+                {plant?.lightLevel && (
+                  <EnvInfoCard
+                    type="light"
+                    value={
+                      plant.lightLevel === "low"
+                        ? "Low light"
+                        : plant.lightLevel === "high"
+                          ? "Bright light"
+                          : "Medium light"
+                    }
+                    darkMode={theme === "dark"}
+                  />
+                )}
               </div>
 
               {/* Care instructions */}
