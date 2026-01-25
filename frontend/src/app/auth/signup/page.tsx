@@ -3,10 +3,15 @@
 import { AuthLayout } from "@/components/auth";
 import { SignupForm } from "@/components/auth";
 
+import { AuthRedirect } from "@/components/auth/AuthRedirect";
+// ...existing imports...
+
 export default function SignupPage() {
   return (
-    <AuthLayout>
-      <SignupForm />
-    </AuthLayout>
+    <AuthRedirect>
+      <AuthLayout>
+        <SignupForm />
+      </AuthLayout>
+    </AuthRedirect>
   );
 }

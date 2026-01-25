@@ -1,6 +1,20 @@
 "use client";
 
 import { useState } from "react";
+
+// Utility to render any error as readable text
+function renderError(err: any): React.ReactNode {
+  if (!err) return null;
+  if (Array.isArray(err)) {
+    return err.map((e, i) => <div key={i}>{e.msg || JSON.stringify(e)}</div>);
+  }
+  if (typeof err === 'object') {
+    if (err.msg) return err.msg;
+    if (err.detail) return renderError(err.detail);
+    return JSON.stringify(err);
+  }
+  return String(err);
+}
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -25,9 +39,10 @@ interface SignupFormData {
   confirmPassword: string;
 }
 
+
 export function SignupForm() {
   const router = useRouter();
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, error } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<SignupFormData>({
     defaultValues: { username: "", email: "", password: "", confirmPassword: "" },
@@ -48,10 +63,25 @@ export function SignupForm() {
         password: data.password,
       });
       router.push("/");
-    } catch (error) {
-      setServerError(
-        error instanceof Error ? error.message : "Signup failed. Please try again.",
-      );
+    } catch (err: any) {
+      let detail = err?.response?.data?.detail;
+      let errorString = "Signup failed. Please try again.";
+      if (Array.isArray(detail)) {
+        errorString = detail.map((e: any) => e.msg || JSON.stringify(e)).join(' | ');
+      } else if (typeof detail === 'object' && detail !== null) {
+        errorString = detail.msg || JSON.stringify(detail);
+      } else if (detail) {
+        errorString = String(detail);
+      } else if (err.message) {
+        errorString = String(err.message);
+      }
+      setServerError(errorString);
+      // Optionally, set field errors:
+      // if (err?.response?.data?.errors) {
+      //   Object.entries(err.response.data.errors).forEach(([field, msg]) => {
+      //     form.setError(field as keyof SignupFormData, { type: 'server', message: msg as string });
+      //   });
+      // }
     }
   };
 
@@ -66,6 +96,7 @@ export function SignupForm() {
                 src="/logo.png"
                 alt="Plant Care Assistant"
                 fill
+                sizes="64px"
                 className="object-contain drop-shadow-lg"
                 priority
               />
@@ -199,11 +230,12 @@ export function SignupForm() {
               )}
             />
 
+
             {/* Server Error */}
-            {serverError && (
-              <p className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                {serverError}
-              </p>
+            {(serverError || error) && (
+              <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                {renderError(serverError || error)}
+              </div>
             )}
 
             {/* Sign Up Button */}

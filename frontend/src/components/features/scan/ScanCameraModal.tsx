@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AIAPI, PlantPrediction } from '../../../lib/apiClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { ScanCameraStep } from './ScanCameraStep';
@@ -38,25 +39,44 @@ export function ScanCameraModal({
     lightLevel: 'medium',
     wateringFrequency: 3,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleImageCaptured = (imageUrl: string) => {
+  // Accepts both imageUrl (data URL) and imageFile (File)
+  const handleImageCaptured = async (imageUrl: string, imageFile?: File | Blob) => {
     setPlantData((prev) => ({ ...prev, imageUrl }));
-    
-    // Simulate AI identification
-    setTimeout(() => {
-      // Mock AI result - in production, this would call your AI API
-      const mockResult = {
-        name: 'Monstera',
-        species: 'Monstera Deliciosa',
-        confidence: 87,
-        aiIdentified: true,
-        lightLevel: 'medium' as const,
-        wateringFrequency: 7,
-      };
-      
-      setPlantData((prev) => ({ ...prev, ...mockResult }));
+    setError(null);
+    setLoading(true);
+    try {
+      if (imageFile) {
+        let fileToSend: File;
+        if (imageFile instanceof File) {
+          fileToSend = imageFile;
+        } else {
+          // Convert Blob to File (default name 'capture.jpg')
+          fileToSend = new File([imageFile], 'capture.jpg', { type: imageFile.type || 'image/jpeg' });
+        }
+        const prediction: PlantPrediction = await AIAPI.identifyPlant(fileToSend);
+        // Pick top 5 predictions, use the top one for prefill
+        const top = prediction.predictions[0];
+        setPlantData((prev) => ({
+          ...prev,
+          name: top?.class_name || '',
+          species: top?.class_name || '',
+          confidence: top?.confidence,
+          aiIdentified: !!top,
+          // Keep imageUrl, lightLevel, wateringFrequency
+        }));
+      } else {
+        // No file, fallback to manual entry
+        setPlantData((prev) => ({ ...prev, aiIdentified: false }));
+      }
       setCurrentStep('results');
-    }, 1500); // Simulate processing time
+    } catch (err: any) {
+      setError(err?.message || 'Failed to identify plant. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResultsSubmit = (details: Partial<ScanPlantData>) => {
@@ -157,54 +177,73 @@ export function ScanCameraModal({
 
             {/* Content */}
             <div className="overflow-y-auto overflow-x-hidden p-6 flex-1">
-              <AnimatePresence mode="wait">
-                {currentStep === 'camera' && (
-                  <motion.div
-                    key="camera"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <ScanCameraStep
-                      onImageCaptured={handleImageCaptured}
-                      darkMode={darkMode}
-                    />
-                  </motion.div>
-                )}
-
-                {currentStep === 'results' && (
-                  <motion.div
-                    key="results"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <ScanResultsStep
-                      plantData={plantData}
-                      onSubmit={handleResultsSubmit}
-                      onBack={handleBack}
-                      darkMode={darkMode}
-                    />
-                  </motion.div>
-                )}
-
-                {currentStep === 'confirm' && (
-                  <motion.div
-                    key="confirm"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <ScanConfirmStep
-                      plantData={plantData as ScanPlantData}
-                      onConfirm={handleConfirm}
-                      onViewOnly={handleViewOnly}
-                      onBack={handleBack}
-                      darkMode={darkMode}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Loading/Progress/Error UI */}
+              {loading && (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin" />
+                  <div className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>Identifying plant...</div>
+                </div>
+              )}
+              {error && (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <div className="text-red-500 font-semibold">{error}</div>
+                  <button
+                    className="rounded-xl bg-secondary text-white px-4 py-2 mt-2"
+                    onClick={() => {
+                      setError(null);
+                      setCurrentStep('camera');
+                    }}
+                  >Try Again</button>
+                </div>
+              )}
+              {!loading && !error && (
+                <AnimatePresence mode="wait">
+                  {currentStep === 'camera' && (
+                    <motion.div
+                      key="camera"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                    >
+                      <ScanCameraStep
+                        onImageCaptured={handleImageCaptured}
+                        darkMode={darkMode}
+                      />
+                    </motion.div>
+                  )}
+                  {currentStep === 'results' && (
+                    <motion.div
+                      key="results"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                    >
+                      <ScanResultsStep
+                        plantData={plantData}
+                        onSubmit={handleResultsSubmit}
+                        onBack={handleBack}
+                        darkMode={darkMode}
+                      />
+                    </motion.div>
+                  )}
+                  {currentStep === 'confirm' && (
+                    <motion.div
+                      key="confirm"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                    >
+                      <ScanConfirmStep
+                        plantData={plantData as ScanPlantData}
+                        onConfirm={handleConfirm}
+                        onViewOnly={handleViewOnly}
+                        onBack={handleBack}
+                        darkMode={darkMode}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
             </div>
           </motion.div>
         </>
