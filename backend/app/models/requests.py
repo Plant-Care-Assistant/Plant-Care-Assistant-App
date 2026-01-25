@@ -56,7 +56,7 @@ class UserPlantUpdate(BaseModel):
     note: str | None = None
     sprouted_at: datetime | None = None
 
-    scientific_name: str | None
+    scientific_name: str | None = None
     preferred_sunlight: LightLevel | None = None
     preferred_temp_min: int | None = None
     preferred_temp_max: int | None = None
