@@ -7,7 +7,7 @@ import { Camera, Image as ImageIcon } from 'lucide-react';
 import { CameraCapture } from './CameraCapture';
 
 interface ScanCameraStepProps {
-  onImageCaptured: (imageUrl: string) => void;
+  onImageCaptured: (imageUrl: string, imageFile?: File | Blob) => void;
   darkMode: boolean;
 }
 
@@ -46,7 +46,7 @@ export function ScanCameraStep({
       };
       reader.onload = (event) => {
         const result = event.target?.result as string;
-        onImageCaptured(result);
+        onImageCaptured(result, file);
       };
       reader.readAsDataURL(file);
     }
@@ -62,7 +62,7 @@ export function ScanCameraStep({
     const reader = new FileReader();
     reader.onload = (event) => {
       const result = event.target?.result as string;
-      onImageCaptured(result);
+      onImageCaptured(result, imageBlob);
     };
     reader.readAsDataURL(imageBlob);
     setIsCameraOpen(false);

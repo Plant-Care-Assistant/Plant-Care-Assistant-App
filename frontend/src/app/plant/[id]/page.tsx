@@ -16,7 +16,7 @@ import { useTheme } from "@/providers";
 export default function PlantDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const plantId = useMemo(() => params?.id as string, [params]);
+  const plantId = useMemo(() => Number(params?.id), [params]);
   const plant = useMemo(() => MOCK_PLANTS.find(p => p.id === plantId), [plantId]);
   const { theme, toggleTheme } = useTheme();
 

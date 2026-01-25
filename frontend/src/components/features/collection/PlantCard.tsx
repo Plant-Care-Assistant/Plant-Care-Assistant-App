@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Droplets, Sun, Calendar } from 'lucide-react';
 
 interface PlantCardProps {
-  id: string;
+  id: number;
   name: string;
   species?: string;
   imageUrl?: string;

@@ -6,7 +6,7 @@
  * Represents a plant in the user's collection
  */
 export interface Plant {
-  id: string;
+  id: number;
   name: string;
   scientificName: string;
   image: string;
