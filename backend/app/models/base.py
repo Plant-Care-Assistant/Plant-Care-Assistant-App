@@ -58,15 +58,14 @@ class Plant(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     common_name: str = Field(max_length=150)
-    scientific_name: str | None = Field(default=None, max_length=150)
     fid: str | None = Field(default=None)
 
+    scientific_name: str | None = Field(default=None, max_length=150)
     preferred_sunlight: LightLevel
     preferred_temp_min: int | None = None
     preferred_temp_max: int | None = None
     air_humidity_req: HumidityLevel | None = None
     soil_humidity_req: HumidityLevel | None = None
-
     preferred_watering_interval_days: int | None = None
 
 
@@ -84,6 +83,14 @@ class UserPlant(SQLModel, table=True):
 
     created_at: datetime | None = Field(default_factory=utc_now)
     sprouted_at: datetime | None = None
+
+    scientific_name: str | None = None
+    preferred_sunlight: LightLevel | None = None
+    preferred_temp_min: int | None = None
+    preferred_temp_max: int | None = None
+    air_humidity_req: HumidityLevel | None = None
+    soil_humidity_req: HumidityLevel | None = None
+    preferred_watering_interval_days: int | None = None
 
 
 # 4. HISTORIA PODLEWANIA
