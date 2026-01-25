@@ -1,27 +1,39 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ProfileHeader } from '@/components/features/profile/ProfileHeader';
-import { StatsGrid } from '@/components/features/profile/StatsGrid';
-import { AchievementsSection } from '@/components/features/profile/AchievementsSection';
-import { AchievementProgress } from '@/components/features/profile/AchievementProgress';
-import { SettingsSection } from '@/components/features/profile/SettingsSection';
+import { useState } from "react";
+import { ProfileHeader } from "@/components/features/profile/ProfileHeader";
+import { StatsGrid } from "@/components/features/profile/StatsGrid";
+import { AchievementsSection } from "@/components/features/profile/AchievementsSection";
+import { AchievementProgress } from "@/components/features/profile/AchievementProgress";
+import { SettingsSection } from "@/components/features/profile/SettingsSection";
+import { useUserDataQuery } from "@/hooks/useUserData";
+import { useAuth } from "@/providers/auth-provider";
 
 export interface ProfileScreenProps {
   darkMode?: boolean;
   onDarkModeToggle?: (enabled: boolean) => void;
 }
 
-export function ProfileScreen({ darkMode = false, onDarkModeToggle }: ProfileScreenProps) {
+export function ProfileScreen({
+  darkMode = false,
+  onDarkModeToggle,
+}: ProfileScreenProps) {
   const [careRemindersEnabled, setCareRemindersEnabled] = useState(true);
   const [weatherTipsEnabled, setWeatherTipsEnabled] = useState(true);
 
+  const { user } = useAuth();
+  const { data: stats } = useUserDataQuery(!!user);
+
+  const achievementsUnlocked =
+    stats?.achievements?.filter((a) => a.unlocked).length ?? 0;
+  const achievementsTotal = stats?.achievements?.length ?? 0;
+
   const userData = {
-    name: 'Sarah',
-    level: 12,
-    totalXP: 2450,
-    dayStreak: 7,
-    achievements: '3/6',
+    name: stats?.name || user?.username || "User",
+    level: stats?.level ?? 1,
+    totalXP: stats?.xp ?? 0,
+    dayStreak: stats?.streak ?? 0,
+    achievements: `${achievementsUnlocked}/${achievementsTotal}`,
   };
 
   return (
@@ -50,11 +62,7 @@ export function ProfileScreen({ darkMode = false, onDarkModeToggle }: ProfileScr
           <AchievementsSection darkMode={darkMode} />
 
           {/* Achievement Progress Section */}
-          <AchievementProgress
-            unlocked={3}
-            total={6}
-            darkMode={darkMode}
-          />
+          <AchievementProgress unlocked={3} total={6} darkMode={darkMode} />
 
           {/* Settings Section */}
           <SettingsSection

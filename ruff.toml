@@ -19,6 +19,7 @@ extend-ignore = [
     "COM812", # conflict with black formatting
     "ANN003", # allow missing type hints for kwargs
     "ANN002", # allow missing type hints for args
+    "N815",
 ]
 
 

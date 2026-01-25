@@ -4,7 +4,7 @@ from typing import Annotated
 import argon2
 import jwt
 from argon2 import PasswordHasher
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from app.db import SessionDep
@@ -12,7 +12,7 @@ from app.models.base import Token, User
 from app.services.users import UserServiceDep
 from app.settings import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 SECRET_KEY = settings.jwt_secret
 ALGORITHM = "HS256"
 
@@ -71,10 +71,14 @@ AuthServiceDep = Annotated[AuthService, Depends()]
 
 
 def get_logged_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: Request,
+    token: Annotated[str | None, Depends(oauth2_scheme)],
     service: AuthServiceDep,
 ) -> User:
-    return service.authenticate(token)
+    auth_token = token or request.cookies.get("auth_token")
+    if not auth_token:
+        raise credentials_exception
+    return service.authenticate(auth_token)
 
 
 LoggedUserDep = Annotated[User, Depends(get_logged_user)]

@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from sqlalchemy import or_
 from sqlmodel import select
 
 from app.db import SessionDep
@@ -25,7 +26,17 @@ class PlantService:
         return plant
 
     def read_plant_name(self, name: str) -> list[Plant]:
-        return []
+        search = name.strip()
+        if not search:
+            return []
+        search = search.replace("_", " ")
+        statement = select(Plant).where(
+            or_(
+                Plant.common_name.ilike(f"%{search}%"),
+                Plant.scientific_name.ilike(f"%{search}%"),
+            ),
+        )
+        return list(self.s.exec(statement).all())
 
     def read_plant_image(self, plant_id: int) -> str:
         plant = self.s.get(Plant, plant_id)

@@ -1,42 +1,41 @@
 "use client";
 
 import { Layout } from "@/components/layout";
-import { Button, Input } from "@/components/ui";
-import { Upload } from "lucide-react";
 import { useState } from "react";
-import { useIdentifyPlantMutation } from "@/hooks/usePlants";
-
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-// ...existing imports...
-
-import { ScanScreen } from '@/components/screens/ScanScreen';
-import { useTheme } from '@/providers';
-import { usePlantsQuery } from '@/hooks/usePlants';
-import { Plant as ScanPlant } from '@/lib/utils/plantFilters';
-
-
+import { ScanScreen } from "@/components/screens/ScanScreen";
+import { useTheme } from "@/providers";
+import { useAddPlantMutation, usePlantsQuery } from "@/hooks/usePlants";
+import type { Plant } from "@/lib/utils/plantFilters";
 export default function ScanPage() {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { data: apiPlants = [] } = usePlantsQuery();
-  // Map API plants to ScanScreen's expected type
-  const plants: ScanPlant[] = apiPlants.map((p) => ({
-    id: p.id, // id is now number everywhere
-    name: p.name,
-    species: p.scientificName,
-    lastWatered: p.lastWatered,
-    health:
-      p.health >= 80 ? 'healthy'
-      : p.health >= 50 ? 'needs-attention'
-      : 'critical',
-    imageUrl: p.image,
-    wateringFrequency: p.wateringFrequency,
-    // Add more mappings as needed
-  }));
-  // No-op handler for onPlantsChange (scan does not mutate collection directly)
+  const addPlantMutation = useAddPlantMutation();
+  const [localAdditions, setLocalAdditions] = useState<Plant[]>([]);
+
+  const plants = [...apiPlants, ...localAdditions];
+
+  const handlePlantsChange = (newPlants: Plant[]) => {
+    const existingIds = new Set([
+      ...apiPlants.map((p) => p.id),
+      ...localAdditions.map((p) => p.id),
+    ]);
+    const addedPlants = newPlants.filter((np) => !existingIds.has(np.id));
+
+    if (addedPlants.length > 0) {
+      setLocalAdditions((prev) => [...prev, ...addedPlants]);
+      addedPlants.forEach((plant) => addPlantMutation.mutate(plant));
+    }
+  };
+
   return (
-    <Layout>
+    <Layout darkMode={theme === "dark"} onToggleDarkMode={toggleTheme}>
       <ProtectedRoute>
-        <ScanScreen darkMode={theme === 'dark'} plants={plants} onPlantsChange={() => {}} />
+        <ScanScreen
+          darkMode={theme === "dark"}
+          plants={plants}
+          onPlantsChange={handlePlantsChange}
+        />
       </ProtectedRoute>
     </Layout>
   );
