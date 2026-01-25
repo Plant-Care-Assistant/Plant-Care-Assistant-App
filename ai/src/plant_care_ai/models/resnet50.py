@@ -63,5 +63,25 @@ class Resnet50(nn.Module):
         return self.backbone.state_dict(*args, **kwargs)
 
     def load_state_dict(self, state_dict: dict, *args, **kwargs) -> None:
-        """Load state dict into backbone."""
+        """Load state dict into backbone.
+
+        Handles both formats:
+        - Standard: fc.weight, fc.bias
+        - Sequential: fc.1.weight, fc.1.bias (from some training scripts)
+        """
+        # Check if state_dict uses Sequential FC format (fc.1.*)
+        if "fc.1.weight" in state_dict and "fc.weight" not in state_dict:
+            # Remap fc.1.* -> fc.*
+            new_state_dict = {}
+            for key, value in state_dict.items():
+                if key.startswith("fc.1."):
+                    new_key = key.replace("fc.1.", "fc.")
+                    new_state_dict[new_key] = value
+                elif key.startswith("fc.0."):
+                    # Skip BatchNorm or other layers in Sequential FC
+                    continue
+                else:
+                    new_state_dict[key] = value
+            state_dict = new_state_dict
+
         self.backbone.load_state_dict(state_dict, *args, **kwargs)
