@@ -94,7 +94,7 @@ export function HomeScreen({ darkMode, plants }: HomeScreenProps) {
               key={plant.id}
               plantName={plant.name} 
               hoursOverdue={(index + 1) * 2}
-              onWaterClick={() => console.log(`Water ${plant.name}`)}
+              onWaterClick={() => {}}
               darkMode={darkMode}
             />
           ))}

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.base import HumidityLevel, LightLevel
 
@@ -20,6 +20,8 @@ class UserUpdate(BaseModel):
 
 
 class UserPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     email: EmailStr
@@ -39,28 +41,32 @@ class UserPlantCreate(BaseModel):
     plant_catalog_id: int | None = None
     custom_name: str | None = None
     note: str | None = None
-    age: datetime | None = None
+    sprouted_at: datetime | None = None
 
 
 class UserPlantUpdate(BaseModel):
     plant_catalog_id: int | None = None
     custom_name: str | None = None
     note: str | None = None
-    age: datetime | None = None
+    sprouted_at: datetime | None = None
 
 
 class UserPlantPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
-    plant_catalog_id: int
+    plant_catalog_id: int | None = None
 
     custom_name: str | None = None
     note: str | None = None
 
     created_at: datetime
-    age: datetime | None = None
+    sprouted_at: datetime | None = None
 
 
 class PlantPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     common_name: str
     scientific_name: str | None

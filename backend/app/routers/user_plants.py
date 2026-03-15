@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, Response, UploadFile
+from fastapi import APIRouter, File, HTTPException, Response, UploadFile
 
 from app.models.requests import UserPlantCreate, UserPlantPublic, UserPlantUpdate
 from app.services.security import LoggedUserDep
@@ -85,9 +85,9 @@ def delete_user_plant(plant_id: int, user: LoggedUserDep, service: UserPlantServ
 
 @router.get("/{plant_id}/tasks")
 def read_user_plant_tasks(plant_id: int):
-    pass
+    raise HTTPException(status_code=501, detail="Not implemented")
 
 
 @router.post("/{plant_id}/tasks")
 def create_user_plant_tasks(plant_id: int):
-    pass
+    raise HTTPException(status_code=501, detail="Not implemented")

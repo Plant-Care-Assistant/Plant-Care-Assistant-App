@@ -4,14 +4,14 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /workroot
 
-RUN apk add --no-cache uv
-
-COPY backend/pyproject.toml .
-
-RUN uv sync
-
-RUN adduser -D runner
+RUN apk add --no-cache uv && \
+    adduser -D runner && \
+    chown runner:runner /workroot
 
 USER runner
+
+COPY --chown=runner backend/pyproject.toml .
+
+RUN uv sync
 
 CMD ["uv", "run", "."]

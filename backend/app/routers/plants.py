@@ -9,7 +9,7 @@ from app.services.plants import PlantServiceDep
 router = APIRouter(prefix="/plants", tags=["plants"])
 
 PageParamsDep = Annotated[PageParams, Query()]
-SearchParamsDep = Annotated[str, Query()]
+SearchParamsDep = Annotated[str, Query(min_length=1, max_length=100)]
 
 
 @router.get("/", response_model=list[PlantPublic])

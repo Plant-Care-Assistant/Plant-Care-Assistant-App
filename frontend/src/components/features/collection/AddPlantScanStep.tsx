@@ -30,7 +30,6 @@ export function AddPlantScanStep({
   const mockCameraCapture = () => {
     // In a real app, this would open the camera
     // For now, we'll use a placeholder or trigger file input
-    console.log('Open camera');
     // Could implement actual camera API here
     // For demo, open file picker
     fileInputRef.current?.click();

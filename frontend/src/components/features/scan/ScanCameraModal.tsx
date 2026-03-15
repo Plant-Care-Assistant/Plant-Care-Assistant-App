@@ -6,6 +6,14 @@ import { X } from 'lucide-react';
 import { ScanCameraStep } from './ScanCameraStep';
 import { ScanResultsStep } from './ScanResultsStep';
 import { ScanConfirmStep } from './ScanConfirmStep';
+import { plantApi } from '@/lib/api/plants';
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, data] = dataUrl.split(',');
+  const mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+  return new File([bytes], filename, { type: mimeType });
+}
 
 export interface ScanPlantData {
   imageUrl: string;
@@ -34,29 +42,35 @@ export function ScanCameraModal({
   darkMode,
 }: ScanCameraModalProps) {
   const [currentStep, setCurrentStep] = useState<Step>('camera');
+  const [isIdentifying, setIsIdentifying] = useState(false);
   const [plantData, setPlantData] = useState<Partial<ScanPlantData>>({
     lightLevel: 'medium',
     wateringFrequency: 3,
   });
 
-  const handleImageCaptured = (imageUrl: string) => {
+  const handleImageCaptured = async (imageUrl: string) => {
     setPlantData((prev) => ({ ...prev, imageUrl }));
-    
-    // Simulate AI identification
-    setTimeout(() => {
-      // Mock AI result - in production, this would call your AI API
-      const mockResult = {
-        name: 'Monstera',
-        species: 'Monstera Deliciosa',
-        confidence: 87,
+    setIsIdentifying(true);
+
+    try {
+      const file = dataUrlToFile(imageUrl, 'plant.jpg');
+      const result = await plantApi.identifyPlant(file);
+
+      setPlantData((prev) => ({
+        ...prev,
+        name: result.name,
+        species: result.scientificName,
+        confidence: result.confidence,
         aiIdentified: true,
-        lightLevel: 'medium' as const,
-        wateringFrequency: 7,
-      };
-      
-      setPlantData((prev) => ({ ...prev, ...mockResult }));
-      setCurrentStep('results');
-    }, 1500); // Simulate processing time
+        wateringFrequency: result.wateringFrequency,
+      }));
+    } catch {
+      // AI service unavailable — let user fill in manually
+      setPlantData((prev) => ({ ...prev, aiIdentified: false }));
+    }
+
+    setIsIdentifying(false);
+    setCurrentStep('results');
   };
 
   const handleResultsSubmit = (details: Partial<ScanPlantData>) => {
@@ -165,10 +179,19 @@ export function ScanCameraModal({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                   >
-                    <ScanCameraStep
-                      onImageCaptured={handleImageCaptured}
-                      darkMode={darkMode}
-                    />
+                    {isIdentifying ? (
+                      <div className="flex flex-col items-center justify-center gap-4 py-16">
+                        <div className="h-10 w-10 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
+                        <p className={`text-sm font-medium ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                          Identifying plant...
+                        </p>
+                      </div>
+                    ) : (
+                      <ScanCameraStep
+                        onImageCaptured={handleImageCaptured}
+                        darkMode={darkMode}
+                      />
+                    )}
                   </motion.div>
                 )}
 

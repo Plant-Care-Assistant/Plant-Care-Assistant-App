@@ -77,8 +77,8 @@ export default function PlantDetailPage() {
 
               {/* Actions */}
               <PlantActions
-                onWaterNow={() => console.log('Water now', plantId)}
-                onGainXP={() => console.log('Gain XP', plantId)}
+                onWaterNow={() => {}}
+                onGainXP={() => {}}
                 darkMode={theme === "dark"}
               />
             </div>
