@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plantApi } from "@/lib/api";
-import { Plant } from "@/types";
+import { UserPlant, UserPlantCreate } from "@/types";
 
 const PLANTS_KEY = ["plants"];
 
@@ -16,10 +16,10 @@ export function usePlantsQuery(enabled = true) {
 }
 
 /** Fetch a single plant by id. */
-export function usePlantQuery(id?: string) {
+export function usePlantQuery(id?: number) {
   return useQuery({
     queryKey: [...PLANTS_KEY, id],
-    queryFn: () => plantApi.getPlant(id as string),
+    queryFn: () => plantApi.getPlant(id as number),
     enabled: !!id,
   });
 }
@@ -34,7 +34,7 @@ export function useIdentifyPlantMutation() {
 /** Add a new plant then refetch list. */
 export function useAddPlantMutation() {
   const qc = useQueryClient();
-  return useMutation<Plant, unknown, Partial<Plant>>({
+  return useMutation<UserPlant, unknown, UserPlantCreate>({
     mutationFn: (plant) => plantApi.addPlant(plant),
     onSuccess: () => qc.invalidateQueries({ queryKey: PLANTS_KEY }),
   });

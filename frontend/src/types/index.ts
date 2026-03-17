@@ -98,6 +98,38 @@ export interface PlantIdentification {
 }
 
 /**
+ * User plant as returned by the backend (GET /my-plants)
+ */
+export interface UserPlant {
+  id: number;
+  plant_catalog_id: number | null;
+  custom_name: string | null;
+  note: string | null;
+  created_at: string;
+  sprouted_at: string | null;
+}
+
+/**
+ * Payload for creating a new user plant (POST /my-plants)
+ */
+export interface UserPlantCreate {
+  plant_catalog_id?: number | null;
+  custom_name?: string | null;
+  note?: string | null;
+  sprouted_at?: string | null;
+}
+
+/**
+ * Payload for updating a user plant (PATCH /my-plants/:id)
+ */
+export interface UserPlantUpdate {
+  plant_catalog_id?: number | null;
+  custom_name?: string | null;
+  note?: string | null;
+  sprouted_at?: string | null;
+}
+
+/**
  * API error response
  */
 export interface ApiError {
