@@ -84,10 +84,10 @@ def delete_user_plant(plant_id: int, user: LoggedUserDep, service: UserPlantServ
 
 
 @router.get("/{plant_id}/tasks")
-def read_user_plant_tasks(plant_id: int):
+def read_user_plant_tasks(plant_id: int):  # noqa: ARG001
     raise HTTPException(status_code=501, detail="Not implemented")
 
 
 @router.post("/{plant_id}/tasks")
-def create_user_plant_tasks(plant_id: int):
+def create_user_plant_tasks(plant_id: int):  # noqa: ARG001
     raise HTTPException(status_code=501, detail="Not implemented")
