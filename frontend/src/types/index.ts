@@ -3,23 +3,6 @@
  */
 
 /**
- * Represents a plant in the user's collection
- */
-export interface Plant {
-  id: string;
-  name: string;
-  scientificName: string;
-  image: string;
-  health: number;
-  streak: number;
-  lastWatered: string;
-  wateringFrequency: number;
-  temperature: string;
-  light: string;
-  careInstructions: string[];
-}
-
-/**
  * User profile and gamification data
  */
 export interface UserData {

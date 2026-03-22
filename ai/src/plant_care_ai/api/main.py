@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pydantic import BaseModel, Field
 
@@ -143,13 +142,6 @@ app = FastAPI(
     description="Plant identification inference API using PyTorch models",
     version="2.0.0",
     lifespan=lifespan,
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8080"],
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 
