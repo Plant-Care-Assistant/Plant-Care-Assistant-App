@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/providers';
 import { ProfileHeader } from '@/components/features/profile/ProfileHeader';
 import { StatsGrid } from '@/components/features/profile/StatsGrid';
 import { AchievementsSection } from '@/components/features/profile/AchievementsSection';
@@ -13,11 +14,12 @@ export interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ darkMode = false, onDarkModeToggle }: ProfileScreenProps) {
+  const { user } = useAuth();
   const [careRemindersEnabled, setCareRemindersEnabled] = useState(true);
   const [weatherTipsEnabled, setWeatherTipsEnabled] = useState(true);
 
   const userData = {
-    name: 'Sarah',
+    name: user?.username || 'User',
     level: 12,
     totalXP: 2450,
     dayStreak: 7,
