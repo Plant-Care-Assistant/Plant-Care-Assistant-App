@@ -1,14 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/providers";
 import { cn } from "@/lib/utils/cn";
 
-/**
- * Props for the AuthLayout wrapper.
- * @property children Page content.
- */
 export interface AuthLayoutProps {
   children: React.ReactNode;
   className?: string;
@@ -16,18 +9,9 @@ export interface AuthLayoutProps {
 
 /**
  * Layout for auth pages (login/signup).
- * Redirects to home if already authenticated.
+ * Route protection is handled by middleware.
  */
 export function AuthLayout({ children, className }: AuthLayoutProps) {
-  const router = useRouter();
-  const { isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/");
-    }
-  }, [isAuthenticated, router]);
-
   return (
     <div
       className={cn(

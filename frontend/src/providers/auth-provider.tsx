@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { User, LoginCredentials, RegisterData } from "@/types";
+import { authApi } from "@/lib/api/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +16,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function setTokenCookie(token: string) {
+  document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 28}; SameSite=Lax`;
+}
+
+function removeTokenCookie() {
+  document.cookie = "auth_token=; path=/; max-age=0";
+}
+
 /**
  * Authentication provider component
  * Manages user authentication state and token storage
@@ -24,37 +33,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mocked always-authenticated state for UI/UX work
+  // On mount, check for existing token and fetch user
   useEffect(() => {
-    const mockUser: User = {
-      id: "1",
-      username: "dev-user",
-      email: "dev@example.com",
-      created_at: new Date().toISOString(),
-    };
-
-    setUser(mockUser);
-    setToken("dev-token");
-    setIsLoading(false);
+    const savedToken = localStorage.getItem("auth_token");
+    if (savedToken) {
+      setToken(savedToken);
+      setTokenCookie(savedToken);
+      authApi
+        .getCurrentUser()
+        .then((userData) => setUser(userData))
+        .catch(() => {
+          // Token is invalid or expired — clear it
+          localStorage.removeItem("auth_token");
+          removeTokenCookie();
+          setToken(null);
+        })
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
-  const login = async (_credentials: LoginCredentials) => {
-    // No-op login: keep mocked session
-    setUser((prev) =>
-      prev ?? { id: "1", username: "dev-user", email: "dev@example.com", created_at: new Date().toISOString() }
-    );
-    setToken("dev-token");
-  };
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    const tokenData = await authApi.login(credentials);
+    const accessToken = tokenData.access_token;
 
-  const register = async (_data: RegisterData) => {
-    // No-op register: immediately "logged in"
-    setUser({ id: "1", username: "dev-user", email: "dev@example.com", created_at: new Date().toISOString() });
-    setToken("dev-token");
-  };
+    localStorage.setItem("auth_token", accessToken);
+    setTokenCookie(accessToken);
+    setToken(accessToken);
 
-  const logout = () => {
-    // Keep user logged in during UI work; no state change
-  };
+    const userData = await authApi.getCurrentUser();
+    setUser(userData);
+  }, []);
+
+  const register = useCallback(async (data: RegisterData) => {
+    await authApi.register(data);
+    // Auto-login after registration
+    await login({ username: data.email, password: data.password });
+  }, [login]);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("auth_token");
+    removeTokenCookie();
+    setToken(null);
+    setUser(null);
+    window.location.href = "/auth/login";
+  }, []);
 
   return (
     <AuthContext.Provider
