@@ -9,12 +9,12 @@ import { ScanScreen } from '@/components/screens/ScanScreen';
 import { CollectionScreen } from '@/components/screens/CollectionScreen';
 import { ProfileScreen } from '@/components/screens/ProfileScreen';
 import type { NavScreen } from '@/components/layout/navItems';
-import { MOCK_PLANTS, type Plant } from '@/lib/utils/plantFilters';
+import { usePlantsQuery } from '@/hooks/usePlants';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<NavScreen>('home');
   const [darkMode, setDarkMode] = useState(false);
-  const [plants, setPlants] = useState<Plant[]>(MOCK_PLANTS);
+  const { data: plants = [] } = usePlantsQuery();
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -34,9 +34,9 @@ export default function App() {
       case 'home':
         return <HomeScreen darkMode={darkMode} plants={plants} />;
       case 'scan':
-        return <ScanScreen darkMode={darkMode} plants={plants} onPlantsChange={setPlants} />;
+        return <ScanScreen darkMode={darkMode} />;
       case 'collection':
-        return <CollectionScreen darkMode={darkMode} plants={plants} onPlantsChange={setPlants} />;
+        return <CollectionScreen darkMode={darkMode} plants={plants} />;
       case 'profile':
         return <ProfileScreen darkMode={darkMode} onDarkModeToggle={toggleDarkMode} />;
       default:

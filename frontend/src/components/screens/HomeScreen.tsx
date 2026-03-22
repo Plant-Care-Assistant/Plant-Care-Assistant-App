@@ -13,29 +13,18 @@ import { WeeklyChallenge } from '@/components/features/home/WeeklyChallenge';
 import { WeatherTip } from '@/components/features/home/WeatherTip';
 import { PlantAttentionCard } from '@/components/features/home/PlantAttentionCard';
 import { AttentionSummaryCards } from '@/components/features/home/AttentionSummaryCards';
-import { MOCK_PLANTS, filterPlantsByHealth, type Plant } from '@/lib/utils/plantFilters';
+import { UserPlant } from '@/types';
 
 export interface HomeScreenProps {
   darkMode: boolean;
-  plants: Plant[];
+  plants: UserPlant[];
 }
 
 export function HomeScreen({ darkMode, plants }: HomeScreenProps) {
-  // Get plants that need attention (needs-attention or critical)
-  const plantsNeedingAttention = useMemo(() => {
-    return plants.filter(p => p.health === 'needs-attention' || p.health === 'critical');
-  }, [plants]);
-
-  // Get healthy plants count
-  const healthyPlantsCount = useMemo(() => {
-    const healthy = filterPlantsByHealth(plants, 'healthy');
-    return Math.round((healthy.length / plants.length) * 100);
-  }, [plants]);
-
-  // Get attention stats
-  const plantsNeedWater = useMemo(() => {
-    return plantsNeedingAttention.length;
-  }, [plantsNeedingAttention.length]);
+  // With real data we don't have health status yet - show plant count based stats
+  const totalPlants = plants.length;
+  const healthyPlantsCount = totalPlants > 0 ? 100 : 0;
+  const plantsNeedWater = 0;
 
   return (
     <div className={`p-4 lg:p-6 pb-24 lg:pb-4 max-w-7xl mx-auto ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -87,17 +76,13 @@ export function HomeScreen({ darkMode, plants }: HomeScreenProps) {
           Need Attention
         </h2>
         
-        {/* Plant cards from mock data */}
+        {/* Plant cards needing attention */}
         <div className="mb-4">
-          {plantsNeedingAttention.slice(0, 3).map((plant, index) => (
-            <PlantAttentionCard 
-              key={plant.id}
-              plantName={plant.name} 
-              hoursOverdue={(index + 1) * 2}
-              onWaterClick={() => {}}
-              darkMode={darkMode}
-            />
-          ))}
+          {totalPlants === 0 && (
+            <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+              No plants yet. Add some to your collection!
+            </p>
+          )}
         </div>
 
         {/* Attention Summary Cards */}
