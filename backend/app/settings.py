@@ -1,10 +1,12 @@
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_IMAGE = "1,01e49b6671"
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
     db_url: str = Field(validation_alias="DATABASE_URL")
     blob_url: str = Field(validation_alias="BLOBSTORAGE_URL")
     blob_backend_url: str = Field(

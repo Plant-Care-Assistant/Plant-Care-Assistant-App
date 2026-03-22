@@ -1,0 +1,62 @@
+name: pcaa-dev
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: pcaa-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pca_devuser
+      POSTGRES_PASSWORD: pca_devpass
+      POSTGRES_DB: pca_localdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../data/postgres_data:/var/lib/postgresql/data
+      - ../data/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pca_devuser -d pca_localdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    container_name: pcaa-dev-api
+    build:
+      context: ..
+      dockerfile: infra/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://pca_devuser:pca_devpass@db:5432/pca_localdb
+      JWT_SECRET: dev-secret-key-change-in-production
+      BLOBSTORAGE_URL: "localhost:9333"
+      BLOBSTORAGE_BACKEND_URL: "localhost:8333"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/workroot
+      - /workroot/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai:
+    container_name: pcaa-dev-ai
+    build:
+      context: ../ai
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DEVICE: cpu
+      MODEL_CHECKPOINT_PATH: /app/models/best.pth
+      CLASS_MAPPING_PATH: /app/models/class_id_to_name.json
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../ai/models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped

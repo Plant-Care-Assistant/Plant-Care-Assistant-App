@@ -3,23 +3,6 @@
  */
 
 /**
- * Represents a plant in the user's collection
- */
-export interface Plant {
-  id: string;
-  name: string;
-  scientificName: string;
-  image: string;
-  health: number;
-  streak: number;
-  lastWatered: string;
-  wateringFrequency: number;
-  temperature: string;
-  light: string;
-  careInstructions: string[];
-}
-
-/**
  * User profile and gamification data
  */
 export interface UserData {
@@ -95,6 +78,38 @@ export interface PlantIdentification {
   temperature: string;
   light: string;
   wateringFrequency: number;
+}
+
+/**
+ * User plant as returned by the backend (GET /my-plants)
+ */
+export interface UserPlant {
+  id: number;
+  plant_catalog_id: number | null;
+  custom_name: string | null;
+  note: string | null;
+  created_at: string;
+  sprouted_at: string | null;
+}
+
+/**
+ * Payload for creating a new user plant (POST /my-plants)
+ */
+export interface UserPlantCreate {
+  plant_catalog_id?: number | null;
+  custom_name?: string | null;
+  note?: string | null;
+  sprouted_at?: string | null;
+}
+
+/**
+ * Payload for updating a user plant (PATCH /my-plants/:id)
+ */
+export interface UserPlantUpdate {
+  plant_catalog_id?: number | null;
+  custom_name?: string | null;
+  note?: string | null;
+  sprouted_at?: string | null;
 }
 
 /**

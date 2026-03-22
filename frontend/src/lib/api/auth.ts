@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { LoginCredentials, RegisterData, Token } from "@/types";
+import { LoginCredentials, RegisterData, Token, User } from "@/types";
 
 /**
  * Authentication API endpoints
@@ -28,7 +28,7 @@ export const authApi = {
    * @param data - User registration data
    */
   async register(data: RegisterData): Promise<void> {
-    await apiClient.post("/users", {
+    await apiClient.post("/auth/register", {
       username: data.username,
       email: data.email,
       password: data.password,
@@ -39,8 +39,8 @@ export const authApi = {
    * Get current user info
    * Requires authentication
    */
-  async getCurrentUser(): Promise<any> {
-    const response = await apiClient.get("/users/me");
+  async getCurrentUser(): Promise<User> {
+    const response = await apiClient.get<User>("/users/me");
     return response.data;
   },
 };

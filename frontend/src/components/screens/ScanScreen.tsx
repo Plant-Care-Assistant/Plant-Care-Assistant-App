@@ -45,7 +45,6 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
     const updatedPlants = [...plants, newPlant];
     onPlantsChange(updatedPlants);
 
-    console.log('✅ Plant added to collection:', newPlant);
   };
 
   return (

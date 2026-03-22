@@ -54,8 +54,6 @@ export function CollectionScreen({ darkMode, plants, onPlantsChange }: Collectio
     onPlantsChange(updatedPlants);
     setIsAddPlantModalOpen(false);
 
-    // Optional: Show success toast notification here
-    console.log('✅ Plant added to collection:', newPlant);
   };
 
   return (
