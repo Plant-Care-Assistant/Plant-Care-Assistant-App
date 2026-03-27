@@ -89,3 +89,37 @@ class PlantNetDataset(Dataset):
 
         """
         return len(self.paths)
+
+class PlantDiseaseDataset(Dataset):
+    """Dataset for binary health classification (plant is healthy vs diseased).
+    
+    Loads images from:
+        data_dir/{healthy|diseased}/*.jpg
+    """
+
+    def __init__(self, data_dir: str, transform: transforms.Compose | None = None) -> None:
+        self.data_dir = Path(data_dir)
+        self.transform = transform
+        
+        self.classes = ['healthy', 'diseased']
+        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
+        
+        self.samples = []
+        for cls in self.classes:
+            cls_dir = self.data_dir / cls
+            if cls_dir.is_dir():
+                for img_path in cls_dir.glob("*"):
+                    if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+                        self.samples.append((img_path, self.class_to_idx[cls]))
+
+        print(f"Disease Dataset: Loaded {len(self.samples)} (from 2 classes)")
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
+        img_path, label = self.samples[idx]
+        image = Image.open(img_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+    def __len__(self) -> int:
+        return len(self.samples)

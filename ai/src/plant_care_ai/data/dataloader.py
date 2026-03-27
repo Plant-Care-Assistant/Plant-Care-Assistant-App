@@ -3,10 +3,10 @@
 Copyright 2025 Plant Care Assistant
 """
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
-from .dataset import PlantNetDataset
+from .dataset import PlantDiseaseDataset, PlantNetDataset
 
 
 class PlantNetDataLoader:
@@ -65,3 +65,23 @@ class PlantNetDataLoader:
 
         """
         return DataLoader(self.test_dataset, batch_size=self.batch_size)
+
+class DiseaseDataLoader:
+    """Loader specifically for the plant (binary) disease data"""
+    
+    def __init__(self, data_dir: str, batch_size: int = 32, transform=None):
+        full_dataset = PlantDiseaseDataset(data_dir, transform)
+        
+        train_size = int(0.8 * len(full_dataset)) # 80%, and for 20^% for val and test
+        val_size = int(0.1 * len(full_dataset))
+        test_size = len(full_dataset) - train_size - val_size
+        
+        self.train_ds, self.val_ds, self.test_ds = random_split(
+            full_dataset, [train_size, val_size, test_size]
+        )
+        self.batch_size = batch_size
+
+    def get_loaders(self):
+        train = DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True)
+        val = DataLoader(self.val_ds, batch_size=self.batch_size)
+        return train, val

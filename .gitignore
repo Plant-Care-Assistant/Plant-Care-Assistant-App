@@ -222,6 +222,8 @@ __marimo__/
 # ai/
 ai/data/plantnet_300K/
 ai/data/leaf_disease/
+ai/data/plant_disease_binary/
+ai/data/plant_village_data/
 ai/checkpoints/
 ai/scripts/kaggle*
 

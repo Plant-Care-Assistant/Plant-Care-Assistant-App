@@ -4,10 +4,12 @@ Copyright 2025 Plant Care Assistant
 """
 
 import time
+import json
 from pathlib import Path
 from typing import Any
 
 import torch
+import timm
 from PIL import Image
 from torch import nn
 
@@ -18,8 +20,6 @@ from plant_care_ai.models.resnet50 import Resnet50
 
 
 class PlantClassifier:
-    """Inference class for plant classification models."""
-
     def __init__(
         self,
         model: nn.Module,
@@ -27,15 +27,6 @@ class PlantClassifier:
         img_size: int = 224,
         device: str | None = None,
     ) -> None:
-        """Initialize classifier.
-
-        Args:
-            model: Trained PyTorch model.
-            idx_to_class: Mapping from model output index to plant_id.
-            img_size: Input image size for preprocessing.
-            device: Device to run inference on. If None, uses CUDA if available.
-
-        """
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
         self.model.eval()
@@ -55,47 +46,42 @@ class PlantClassifier:
         *,
         verbose: bool = True,
     ) -> "PlantClassifier":
-        """Load classifier from training checkpoint.
-
-        Args:
-            checkpoint_path: Path to checkpoint file (.pth).
-            device: Device to load model on. If None, uses CUDA if available.
-            verbose: Whether to print loading information.
-
-        Returns:
-            PlantClassifier instance ready for inference.
-
-        Raises:
-            ValueError: If model type is unknown or num_classes cannot be determined.
-
-        Example:
-            >>> classifier = PlantClassifier.from_checkpoint("checkpoints/best.pth")
-            >>> result = classifier.predict("image.jpg")
-
-        """
         checkpoint_path = Path(checkpoint_path)
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
-        config = checkpoint["config"]
-        model_type = config["model"]
-        num_classes = checkpoint["num_classes"]
+        config = checkpoint.get("config", {})
+        model_type = config.get("model", checkpoint.get("model_type", "efficientnetv2"))
+        variant = config.get("variant", "tf_efficientnetv2_b0")
+        num_classes = checkpoint.get("num_classes", 1081)
         img_size = config.get("img_size", 224)
 
         if model_type == "resnet18":
             model = Resnet18(num_classes=num_classes)
         elif model_type == "resnet50":
             model = Resnet50(num_classes=num_classes, pretrained=False)
-        elif model_type == "efficientnetv2":
-            model = create_efficientnetv2(
-                variant=config["variant"],
+        elif model_type == "timm" or "efficientnet" in str(model_type) or model_type == "efficientnetv2":
+            model = timm.create_model(
+                variant,
                 num_classes=num_classes,
+                pretrained=False
             )
         else:
             msg = f"Unknown model type: {model_type}"
             raise ValueError(msg)
 
-        model.load_state_dict(checkpoint["model_state_dict"])
-        idx_to_class = checkpoint["idx_to_class"]
+        state_dict = checkpoint.get("model_state_dict", checkpoint)
+        model.load_state_dict(state_dict)
+        
+        if "idx_to_class" in checkpoint:
+            idx_to_class = {int(k): v for k, v in checkpoint["idx_to_class"].items()}
+        else:
+            mapping_path = checkpoint_path.parent / "class_id_to_name.json"
+            if verbose:
+                print(f"Loading mapping from {mapping_path}")
+            
+            with open(mapping_path, 'r') as f:
+                loaded_mapping = json.load(f)
+                idx_to_class = {int(k): v['class_id'] for k, v in loaded_mapping.items()}
 
         classifier = cls(
             model=model,
@@ -104,33 +90,16 @@ class PlantClassifier:
             device=device,
         )
 
-        # Load name mapping from checkpoint if available
         if checkpoint.get("id_to_name"):
             classifier.set_name_mapping(checkpoint["id_to_name"])
-            if verbose:
-                print(f"Loaded {len(checkpoint['id_to_name'])} class name mappings from checkpoint")
 
         if verbose:
-            print(f"Loaded checkpoint from {checkpoint_path}")
-            print(f"Model: {model_type}")
-            print(f"Classes: {num_classes}")
-            if "best_acc" in checkpoint:
-                print(f"Best validation accuracy: {checkpoint['best_acc']:.2f}%")
+            print(f"Loaded checkpoint: {checkpoint_path.name}")
+            print(f"Model: {model_type} | Classes: {len(idx_to_class)}")
 
         return classifier
 
     def set_name_mapping(self, id_to_name: dict[str, str]) -> None:
-        """Set plant ID to name mapping for prettier output.
-
-        Args:
-            id_to_name: Dictionary mapping plant_id to plant_name.
-                       Example: {"2419045": "Rosa canina (Dzika róża)", ...}
-
-        Example:
-            >>> name_mapping = load_plant_names()
-            >>> classifier.set_name_mapping(name_mapping)
-
-        """
         self.id_to_name = id_to_name
 
     def predict(
@@ -138,35 +107,6 @@ class PlantClassifier:
         image: str | Path | Image.Image,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Perform inference on a single image.
-
-        Args:
-            image: Path to image file or PIL Image object.
-            top_k: Number of top predictions to return.
-
-        Returns:
-            Dictionary with predictions and metadata:
-            {
-                "predictions": [
-                    {
-                        "class_id": "2419045",
-                        "class_name": "Rosa canina",
-                        "confidence": 0.87
-                    },
-                    ...
-                ],
-                "processing_time_ms": 52.3
-            }
-
-        Raises:
-            KeyError: If model output index is not found in idx_to_class mapping.
-
-        Example:
-            >>> result = classifier.predict("rose.jpg", top_k=3)
-            >>> print(result["predictions"][0]["class_name"])
-            Rosa canina
-
-        """
         start_time = time.time()
 
         if isinstance(image, (str, Path)):
@@ -186,13 +126,8 @@ class PlantClassifier:
         for prob, idx in zip(
             top_probs[0].cpu().numpy(),
             top_indices[0].cpu().numpy(),
-            strict=False,
         ):
             idx_int = int(idx)
-            if idx_int not in self.idx_to_class:
-                msg = f"Model output index {idx_int} not found in idx_to_class mapping"
-                raise KeyError(msg)
-
             plant_id = self.idx_to_class[idx_int]
 
             prediction = {
@@ -200,15 +135,12 @@ class PlantClassifier:
                 "confidence": float(prob),
             }
 
-            # add plant name, if mapping available
             if self.id_to_name and plant_id in self.id_to_name:
                 prediction["class_name"] = self.id_to_name[plant_id]
 
             predictions.append(prediction)
 
-        processing_time = (time.time() - start_time) * 1000  # ms
-
         return {
             "predictions": predictions,
-            "processing_time_ms": round(processing_time, 1),
+            "processing_time_ms": round((time.time() - start_time) * 1000, 1),
         }

@@ -241,12 +241,13 @@ class EfficientNetV2(nn.Module):
 
     ARCH_CONFIGS: ClassVar[dict[str, list[list]]] = {
         "b0": [
+            # [typ, expand_ratio, kanały, liczba_bloków, stride, kernel, se_ratio]
             ["fused", 1, 16, 1, 1, 3, 0],
-            ["fused", 4, 32, 2, 2, 3, 0],
-            ["fused", 4, 48, 2, 2, 3, 0],
-            ["mbconv", 4, 96, 3, 2, 3, 0.25],
-            ["mbconv", 6, 112, 5, 1, 3, 0.25],
-            ["mbconv", 6, 192, 8, 2, 3, 0.25],
+            ["fused", 4, 32, 2, 2, 3, 0],      # expand=4, nie 2!
+            ["fused", 4, 48, 2, 2, 3, 0],      # expand=4, nie 2!
+            ["mbconv", 4, 96, 3, 2, 3, 0.25],  # expand=4, nie 3!
+            ["mbconv", 6, 112, 5, 1, 3, 0.25], # expand=6, nie 5!
+            ["mbconv", 6, 192, 3, 2, 3, 0.25], # expand=6, nie 3!
         ],
         "b1": [
             ["fused", 1, 16, 2, 1, 3, 0],
@@ -266,11 +267,11 @@ class EfficientNetV2(nn.Module):
         ],
         "b3": [
             ["fused", 1, 32, 2, 1, 3, 0],
+            ["fused", 4, 48, 4, 2, 3, 0],
             ["fused", 4, 64, 4, 2, 3, 0],
-            ["fused", 4, 96, 4, 2, 3, 0],
-            ["mbconv", 4, 160, 6, 2, 3, 0.25],
-            ["mbconv", 6, 272, 9, 1, 3, 0.25],
-            ["mbconv", 6, 448, 15, 2, 3, 0.25],
+            ["mbconv", 4, 128, 6, 2, 3, 0.25],
+            ["mbconv", 6, 176, 9, 1, 3, 0.25],
+            ["mbconv", 6, 304, 15, 2, 3, 0.25]
         ],
         "s": [
             ["fused", 1, 24, 2, 1, 3, 0],
