@@ -228,3 +228,7 @@ env
 .env
 venv
 .venv
+
+# Dev scripts
+scripts/dev.sh
+scripts/dev.ps1
