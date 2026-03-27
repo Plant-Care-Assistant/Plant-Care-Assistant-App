@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Layout } from "@/components/layout";
 import { PlantHero } from "@/components/features/plant/PlantHero";
@@ -10,33 +10,64 @@ import { WeeklyCare } from "@/components/features/plant/WeeklyCare";
 import { EnvInfoCard } from "@/components/features/plant/EnvInfoCard";
 import { CareInstructions } from "@/components/features/plant/CareInstructions";
 import { PlantActions } from "@/components/features/plant/PlantActions";
-import { MOCK_PLANTS } from "@/lib/utils/plantFilters";
 import { useTheme } from "@/providers";
+import { usePlantQuery } from "@/hooks/usePlants";
+import { getPlantImage } from "@/lib/utils/plantImages";
+import { removePlantImage } from "@/lib/utils/plantImages";
+import { plantApi } from "@/lib/api/plants";
+import { Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function PlantDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const plantId = useMemo(() => params?.id as string, [params]);
-  const plant = useMemo(() => MOCK_PLANTS.find(p => p.id === plantId), [plantId]);
+  const plantId = useMemo(() => Number(params?.id), [params]);
+  const { data: plant, isLoading } = usePlantQuery(plantId || undefined);
   const { theme, toggleTheme } = useTheme();
+  const darkMode = theme === "dark";
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const imageUrl = useMemo(() => plantId ? getPlantImage(plantId) : undefined, [plantId]);
+
+  const handleDelete = async () => {
+    if (!plant) return;
+    setIsDeleting(true);
+    try {
+      await plantApi.deletePlant(plant.id);
+      removePlantImage(plant.id);
+      router.push("/collection");
+    } catch {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Layout showBottomNav showSidebar darkMode={darkMode} onToggleDarkMode={toggleTheme}>
+        <div className="p-6 text-center">Loading...</div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout
       showBottomNav
       showSidebar
-      darkMode={theme === "dark"}
+      darkMode={darkMode}
       onToggleDarkMode={toggleTheme}
     >
       <div className="p-3 sm:p-4 lg:p-6 pb-28 sm:pb-24 lg:pb-4 max-w-7xl mx-auto">
         <div className="space-y-4 lg:space-y-6">
           {/* Hero spans full width */}
           <PlantHero
-            name={plant?.name || "Unknown Plant"}
-            species={plant?.species}
-            imageUrl={plant?.imageUrl}
+            name={plant?.custom_name || "Unknown Plant"}
+            species={plant?.note || undefined}
+            imageUrl={imageUrl}
             healthPercent={85}
             onBack={() => router.push('/collection')}
-            darkMode={theme === "dark"}
+            darkMode={darkMode}
           />
 
           {/* Two-column layout on laptop */}
@@ -47,21 +78,21 @@ export default function PlantDetailPage() {
 
               {/* Stats row */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <StatCard type="watered" value={plant?.lastWatered || '2 days ago'} darkMode={theme === "dark"} />
-                <StatCard type="cycle" value={5} darkMode={theme === "dark"} />
-                <StatCard type="health" value={85} darkMode={theme === "dark"} />
+                <StatCard type="watered" value="—" darkMode={darkMode} />
+                <StatCard type="cycle" value={5} darkMode={darkMode} />
+                <StatCard type="health" value={85} darkMode={darkMode} />
               </div>
 
               {/* Weekly care */}
-              <WeeklyCare totalDays={7} activeDays={3} darkMode={theme === "dark"} />
+              <WeeklyCare totalDays={7} activeDays={3} darkMode={darkMode} />
             </div>
 
             {/* Sidebar */}
             <div className="lg:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6 lg:sticky lg:top-24">
               {/* Environment info */}
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
-                <EnvInfoCard type="temperature" value="18-26°C" darkMode={theme === "dark"} />
-                <EnvInfoCard type="light" value="Low to medium" darkMode={theme === "dark"} />
+                <EnvInfoCard type="temperature" value="18-26°C" darkMode={darkMode} />
+                <EnvInfoCard type="light" value="Low to medium" darkMode={darkMode} />
               </div>
 
               {/* Care instructions */}
@@ -72,17 +103,42 @@ export default function PlantDetailPage() {
                   'Mist leaves regularly',
                   'Remove brown leaf tips',
                 ]}
-                darkMode={theme === "dark"}
+                darkMode={darkMode}
               />
 
               {/* Actions */}
               <PlantActions
                 onWaterNow={() => {}}
                 onGainXP={() => {}}
-                darkMode={theme === "dark"}
+                darkMode={darkMode}
               />
             </div>
           </div>
+
+          {/* Delete Button */}
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className={`w-full py-4 rounded-2xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+              darkMode
+                ? 'text-accent2 hover:bg-neutral-800'
+                : 'text-accent2 hover:bg-pink-50'
+            }`}
+          >
+            <Trash2 size={18} />
+            Remove from Collection
+          </button>
+
+          {/* Delete Confirmation Dialog */}
+          <ConfirmDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            title="Remove Plant"
+            description={`Are you sure you want to remove "${plant?.custom_name || 'this plant'}" from your collection? This action cannot be undone.`}
+            confirmLabel="Remove"
+            cancelLabel="Keep"
+            onConfirm={handleDelete}
+            isLoading={isDeleting}
+          />
         </div>
       </div>
     </Layout>

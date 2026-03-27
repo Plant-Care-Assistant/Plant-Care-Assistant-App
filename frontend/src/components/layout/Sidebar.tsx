@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, LogOut } from "lucide-react";
+import { useAuth } from "@/providers";
 import { navItems, type NavScreen } from "./navItems";
 
 /**
@@ -19,13 +20,14 @@ export interface SidebarProps {
  * Desktop sidebar navigation component used across different layouts.
  * Contains branding, navigation items, and optional theme toggle.
  */
-export function Sidebar({ 
+export function Sidebar({
   darkMode = false,
   currentScreen = 'home',
   onNavigate,
   onToggleDarkMode,
   showThemeToggle = true
 }: SidebarProps) {
+  const { logout } = useAuth();
   return (
     <nav className={`hidden lg:block fixed left-0 top-0 h-screen w-72 border-r transition-colors ${
       darkMode 
@@ -78,11 +80,11 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* Theme Toggle */}
-      {showThemeToggle && onToggleDarkMode && (
-        <div className="border-t p-4" style={{
-          borderColor: darkMode ? '#374151' : '#e5e7eb',
-        }}>
+      {/* Theme Toggle & Logout */}
+      <div className="border-t p-4 space-y-2" style={{
+        borderColor: darkMode ? '#374151' : '#e5e7eb',
+      }}>
+        {showThemeToggle && onToggleDarkMode && (
           <button
             onClick={onToggleDarkMode}
             className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium ${
@@ -103,8 +105,19 @@ export function Sidebar({
               </>
             )}
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={logout}
+          className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium ${
+            darkMode
+              ? 'text-accent2 hover:bg-neutral-700'
+              : 'text-accent2 hover:bg-pink-50'
+          }`}
+        >
+          <LogOut size={18} />
+          Log out
+        </button>
+      </div>
     </nav>
   );
 }

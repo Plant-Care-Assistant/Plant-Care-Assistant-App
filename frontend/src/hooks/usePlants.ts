@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plantApi } from "@/lib/api";
 import { UserPlant, UserPlantCreate } from "@/types";
+import { savePlantImage } from "@/lib/utils/plantImages";
 
 const PLANTS_KEY = ["plants"];
 
@@ -31,11 +32,16 @@ export function useIdentifyPlantMutation() {
   });
 }
 
-/** Add a new plant then refetch list. */
+/** Add a new plant with optional image, then refetch list. */
 export function useAddPlantMutation() {
   const qc = useQueryClient();
-  return useMutation<UserPlant, unknown, UserPlantCreate>({
-    mutationFn: (plant) => plantApi.addPlant(plant),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PLANTS_KEY }),
+  return useMutation<UserPlant, unknown, UserPlantCreate & { imageUrl?: string }>({
+    mutationFn: ({ imageUrl: _, ...plant }) => plantApi.addPlant(plant),
+    onSuccess: (createdPlant, variables) => {
+      if (variables.imageUrl && createdPlant.id) {
+        savePlantImage(createdPlant.id, variables.imageUrl);
+      }
+      qc.invalidateQueries({ queryKey: PLANTS_KEY });
+    },
   });
 }

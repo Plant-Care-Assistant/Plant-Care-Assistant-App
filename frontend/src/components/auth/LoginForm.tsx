@@ -45,7 +45,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="rounded-3xl bg-white p-8 shadow-lg dark:bg-neutral-900 dark:shadow-2xl">
+    <div className="relative z-10 rounded-3xl bg-white p-8 shadow-lg dark:bg-neutral-900 dark:shadow-2xl">
       <div className="space-y-8">
         {/* Logo & Header */}
         <div className="flex flex-col items-center gap-6">

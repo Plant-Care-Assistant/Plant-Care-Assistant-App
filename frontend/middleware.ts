@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
   const publicRoutes = ["/auth/login", "/auth/signup", "/auth/forgot-password"];
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Root path should be guarded
-  const isProtected = !isPublic && pathname !== "/";
+  // All non-public routes are protected (including root)
+  const isProtected = !isPublic;
 
   // If no token and trying to access protected route, redirect to login
   if (!token && isProtected) {

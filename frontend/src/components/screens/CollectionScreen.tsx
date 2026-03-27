@@ -7,28 +7,48 @@ import { CollectionHeader } from '@/components/features/collection/CollectionHea
 import { CollectionSearch } from '@/components/features/collection/CollectionSearch';
 import { CollectionFilters, FilterOption } from '@/components/features/collection/CollectionFilters';
 import { PlantCard } from '@/components/features/collection/PlantCard';
-import { AddPlantModal, type PlantFormData } from '@/components/features/collection/AddPlantModal';
+import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
 import { Plus } from 'lucide-react';
-import { filterAndSearchPlants, MOCK_PLANTS, type Plant } from '@/lib/utils/plantFilters';
+import { useAddPlantMutation } from '@/hooks/usePlants';
+import { getPlantImage } from '@/lib/utils/plantImages';
+import { UserPlant } from '@/types';
 
 export interface CollectionScreenProps {
   darkMode: boolean;
-  plants: Plant[];
-  onPlantsChange: (plants: Plant[]) => void;
+  plants: UserPlant[];
 }
 
-export function CollectionScreen({ darkMode, plants, onPlantsChange }: CollectionScreenProps) {
+export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('all');
   const [isAddPlantModalOpen, setIsAddPlantModalOpen] = useState(false);
+  const addPlantMutation = useAddPlantMutation();
 
-  // Filter and search plants using utility function
   const filteredPlants = useMemo(() => {
-    return filterAndSearchPlants(plants, activeFilter, searchQuery);
+    let filtered = [...plants];
+
+    // Search by custom_name or note
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.custom_name?.toLowerCase().includes(query) ||
+        p.note?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filters - with real data we don't have health status yet,
+    // so "recent" sorts by created_at, others show all for now
+    if (activeFilter === 'recent') {
+      filtered = filtered.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    return filtered;
   }, [plants, searchQuery, activeFilter]);
 
-  const handlePlantClick = (plantId: string) => {
+  const handlePlantClick = (plantId: number) => {
     router.push(`/plant/${plantId}`);
   };
 
@@ -36,32 +56,22 @@ export function CollectionScreen({ darkMode, plants, onPlantsChange }: Collectio
     setIsAddPlantModalOpen(true);
   };
 
-  const handleSavePlant = (plantData: PlantFormData) => {
-    // Generate a unique ID for the new plant
-    const newPlant: Plant = {
-      id: `plant-${Date.now()}`,
-      name: plantData.name,
-      species: plantData.species,
-      health: 'healthy', // New plants start healthy
-      lightLevel: plantData.lightLevel,
-      imageUrl: plantData.imageUrl,
-      // TODO: Set lastWatered and nextWatering from watering frequency
-      lastWatered: 'today',
-    };
-
-    // Add plant to collection and notify parent
-    const updatedPlants = [...plants, newPlant];
-    onPlantsChange(updatedPlants);
+  const handleAddToCollection = (plant: ScanPlantData) => {
+    addPlantMutation.mutate({
+      custom_name: plant.name || 'Unknown Plant',
+      note: plant.species || null,
+      plant_catalog_id: null,
+      imageUrl: plant.imageUrl,
+    });
     setIsAddPlantModalOpen(false);
-
   };
 
   return (
     <>
-      <AddPlantModal
+      <ScanCameraModal
         isOpen={isAddPlantModalOpen}
         onClose={() => setIsAddPlantModalOpen(false)}
-        onSave={handleSavePlant}
+        onAddToCollection={handleAddToCollection}
         darkMode={darkMode}
       />
 
@@ -71,7 +81,7 @@ export function CollectionScreen({ darkMode, plants, onPlantsChange }: Collectio
           <CollectionHeader plantCount={plants.length} darkMode={darkMode} />
 
           {/* Search */}
-          <CollectionSearch 
+          <CollectionSearch
             value={searchQuery}
             onChange={setSearchQuery}
             darkMode={darkMode}
@@ -94,37 +104,39 @@ export function CollectionScreen({ darkMode, plants, onPlantsChange }: Collectio
                 transition={{ delay: index * 0.05 }}
               >
                 <PlantCard
-                  {...plant}
+                  id={String(plant.id)}
+                  name={plant.custom_name || 'Unnamed Plant'}
+                  species={plant.note || undefined}
+                  imageUrl={getPlantImage(plant.id)}
+                  health="healthy"
                   darkMode={darkMode}
                   onClick={() => handlePlantClick(plant.id)}
                 />
               </motion.div>
             ))}
 
-            {/* Add Plant Card - only show if there are plants */}
-            {filteredPlants.length > 0 && (
-              <motion.button
-                onClick={handleAddPlant}
-                className={`rounded-2xl border-2 border-dashed min-h-[280px] lg:min-h-[320px] flex flex-col items-center justify-center gap-3 transition-all ${
-                  darkMode
-                    ? 'border-neutral-700 hover:border-secondary hover:bg-neutral-800/30'
-                    : 'border-neutral-300 hover:border-secondary hover:bg-neutral-50'
-                }`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  darkMode ? 'bg-neutral-800' : 'bg-neutral-100'
-                }`}>
-                  <Plus size={32} className="text-secondary" />
-                </div>
-                <p className={`font-semibold ${
-                  darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
-                  Add New Plant
-                </p>
-              </motion.button>
-            )}
+            {/* Add Plant Card */}
+            <motion.button
+              onClick={handleAddPlant}
+              className={`rounded-2xl border-2 border-dashed min-h-[280px] lg:min-h-[320px] flex flex-col items-center justify-center gap-3 transition-all ${
+                darkMode
+                  ? 'border-neutral-700 hover:border-secondary hover:bg-neutral-800/30'
+                  : 'border-neutral-300 hover:border-secondary hover:bg-neutral-50'
+              }`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                darkMode ? 'bg-neutral-800' : 'bg-neutral-100'
+              }`}>
+                <Plus size={32} className="text-secondary" />
+              </div>
+              <p className={`font-semibold ${
+                darkMode ? 'text-neutral-300' : 'text-neutral-700'
+              }`}>
+                Add New Plant
+              </p>
+            </motion.button>
           </div>
 
           {/* No Results State */}
@@ -142,36 +154,6 @@ export function CollectionScreen({ darkMode, plants, onPlantsChange }: Collectio
             </motion.div>
           )}
 
-          {/* Empty State (if no plants) */}
-          {plants.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12"
-            >
-              <div className={`w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center ${
-                darkMode ? 'bg-neutral-800' : 'bg-neutral-100'
-              }`}>
-                <Plus size={48} className="text-secondary" />
-              </div>
-              <h3 className={`text-xl font-bold mb-2 ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                Start Your Collection
-              </h3>
-              <p className={`mb-6 ${
-                darkMode ? 'text-neutral-400' : 'text-neutral-600'
-              }`}>
-                Add your first plant to begin tracking their care
-              </p>
-              <button
-                onClick={handleAddPlant}
-                className="px-6 py-3 rounded-xl font-semibold transition-colors bg-secondary text-white hover:bg-secondary/90"
-              >
-                Add Your First Plant
-              </button>
-            </motion.div>
-          )}
         </div>
       </div>
     </>

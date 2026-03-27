@@ -6,16 +6,15 @@ import { ScanFrame } from '@/components/features/scan/ScanFrame';
 import { ScanActions } from '@/components/features/scan/ScanActions';
 import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
 import { Upload } from 'lucide-react';
-import type { Plant } from '@/lib/utils/plantFilters';
+import { useAddPlantMutation } from '@/hooks/usePlants';
 
 export interface ScanScreenProps {
   darkMode: boolean;
-  plants: Plant[];
-  onPlantsChange: (plants: Plant[]) => void;
 }
 
-export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps) {
+export function ScanScreen({ darkMode }: ScanScreenProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const addPlantMutation = useAddPlantMutation();
 
   const handleUpload = () => {
     setIsModalOpen(true);
@@ -26,25 +25,12 @@ export function ScanScreen({ darkMode, plants, onPlantsChange }: ScanScreenProps
   };
 
   const handleAddToCollection = (plant: ScanPlantData) => {
-    // Convert ScanPlantData to Plant format (match Plant interface exactly)
-    const newPlant: Plant = {
-      id: `plant-${Date.now()}`,
-      name: plant.name || 'Unknown Plant',
-      species: plant.species || '',
-      health: 'healthy', // Default for new plants
-      lightLevel: plant.lightLevel || 'medium',
-      imageUrl: plant.imageUrl || '',
-      lastWatered: 'today', // Keep as string for UI compatibility
-      location: plant.location,
-      wateringFrequency: plant.wateringFrequency,
-      aiIdentified: plant.aiIdentified,
-      confidence: plant.confidence,
-    };
-
-    // Add plant to collection
-    const updatedPlants = [...plants, newPlant];
-    onPlantsChange(updatedPlants);
-
+    addPlantMutation.mutate({
+      custom_name: plant.name || 'Unknown Plant',
+      note: plant.species || null,
+      plant_catalog_id: null,
+      imageUrl: plant.imageUrl,
+    });
   };
 
   return (
