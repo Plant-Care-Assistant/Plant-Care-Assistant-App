@@ -3,10 +3,12 @@
 Copyright 2025 Plant Care Assistant
 """
 
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import transforms
+import random
 
-from .dataset import PlantDiseaseDataset, PlantNetDataset
+from .dataset import PlantVillageDataset, PlantNetDataset
+from .preprocessing import PlantVillagePreprocessor
 
 
 class PlantNetDataLoader:
@@ -66,22 +68,76 @@ class PlantNetDataLoader:
         """
         return DataLoader(self.test_dataset, batch_size=self.batch_size)
 
-class DiseaseDataLoader:
-    """Loader specifically for the plant (binary) disease data"""
-    
-    def __init__(self, data_dir: str, batch_size: int = 32, transform=None):
-        full_dataset = PlantDiseaseDataset(data_dir, transform)
-        
-        train_size = int(0.8 * len(full_dataset)) # 80%, and for 20^% for val and test
-        val_size = int(0.1 * len(full_dataset))
-        test_size = len(full_dataset) - train_size - val_size
-        
-        self.train_ds, self.val_ds, self.test_ds = random_split(
-            full_dataset, [train_size, val_size, test_size]
+class PlantVillageDataLoader:
+    """Wrapper for creating train/val/test DataLoaders."""
+ 
+    def __init__(
+        self,
+        data_dir: str,
+        batch_size: int = 32,
+        num_workers: int = 4,
+        preprocessor: PlantVillagePreprocessor | None = None,
+        train_val_test_ratio: tuple[float, float, float] = (0.8, 0.1, 0.1),
+        seed: int = 42,
+    ) -> None:
+        self.batch_size  = batch_size
+        self.num_workers = num_workers
+ 
+        pre             = preprocessor or PlantVillagePreprocessor(augm_strength=0.5)
+        train_transform = pre.get_full_transform()
+        val_transform   = pre.get_inference_transform()
+ 
+        #load once (paths only, no images) to discover disease mapping
+        probe = PlantVillageDataset(data_dir, transform=None)
+ 
+        self.disease_classes = probe.disease_classes
+        self.disease_to_idx  = probe.disease_to_idx
+        self.num_classes     = len(self.disease_classes)
+ 
+        # shuffle indices reproducibly, then partition.
+        indices = list(range(len(probe)))
+        random.Random(seed).shuffle(indices)
+ 
+        n_train = int(train_val_test_ratio[0] * len(probe))
+        n_val   = int(train_val_test_ratio[1] * len(probe))
+ 
+        idx_train = indices[:n_train]
+        idx_val   = indices[n_train : n_train + n_val]
+        idx_test  = indices[n_train + n_val :]
+ 
+        self.train_dataset = PlantVillageDataset(
+            data_dir, transform=train_transform, indices=idx_train
         )
-        self.batch_size = batch_size
-
-    def get_loaders(self):
-        train = DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True)
-        val = DataLoader(self.val_ds, batch_size=self.batch_size)
-        return train, val
+        self.val_dataset = PlantVillageDataset(
+            data_dir, transform=val_transform, indices=idx_val
+        )
+        self.test_dataset = PlantVillageDataset(
+            data_dir, transform=val_transform, indices=idx_test
+        )
+ 
+    def get_train_loader(self) -> DataLoader:
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+ 
+    def get_val_loader(self) -> DataLoader:
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+ 
+    def get_test_loader(self) -> DataLoader:
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )

@@ -1,81 +1,116 @@
-"""DataLoader wrapper for unified PlantNet + PlantVillage multi-task splits.
+"""DataLoader wrapper for unified PlantNet + PlantVillage multi-task training.
 
-Copyright 2026 Plant Care Assistant. All rights reserved.
+Copyright 2026 Plant Care Assistant
 """
+import random
 
-from torch.utils.data import DataLoader
-from torchvision import transforms
+from torch.utils.data import ConcatDataset, DataLoader
 
-from .multitask_dataset import UnifiedPlantDataset
+from .multitask_dataset import MultitaskPlantDataset
+from .multitask_preprocessing import MultitaskPreprocessor
 
 
-class MultitaskDataloader:
-    """Wrapper creating train/val/test DataLoaders for multi-task learning.
-
-    Builds the species and disease mappings once from the training set and
-    reuses them for val/test so indices stay consistent across splits.
-    """
+class MultitaskDataLoader:
+    """Creates train / val / test DataLoaders for multi-task plant training"""
 
     def __init__(
         self,
         plantnet_dir: str | None = None,
         plantvillage_dir: str | None = None,
         batch_size: int = 32,
-        train_transform: transforms.Compose | None = None,
-        val_transform: transforms.Compose | None = None,
         num_workers: int = 4,
+        train_val_test_ratio: tuple[float, float, float] = (0.8, 0.1, 0.1),
+        preprocessor: MultitaskPreprocessor | None = None,
+        seed: int = 42,
     ) -> None:
-        """Initialize all splits sharing the same class mappings.
-
-        Args:
-            plantnet_dir: root PlantNet directory
-            plantvillage_dir: root PlantVillage directory
-            batch_size: batch size for all loaders
-            train_transform: augmentation pipeline for training data
-            val_transform: deterministic transforms for val/test
-            num_workers: DataLoader worker processes
-        """
-        self.batch_size = batch_size
+        self.batch_size  = batch_size
         self.num_workers = num_workers
 
-        self.train_dataset = UnifiedPlantDataset(
-            plantnet_dir=plantnet_dir,
-            plantvillage_dir=plantvillage_dir,
-            split="train",
-            transform=train_transform,
-        )
+        pre = preprocessor or MultitaskPreprocessor()
 
-        # share mappings built from train to avoid index leakage
-        shared_species = self.train_dataset.species_to_idx
-        shared_disease = self.train_dataset.disease_to_idx
+        pn_train = pn_val = pn_test = None
 
-        self.val_dataset = UnifiedPlantDataset(
-            plantnet_dir=plantnet_dir,
-            plantvillage_dir=plantvillage_dir,
-            split="val",
-            transform=val_transform,
-            species_to_idx=shared_species,
-            disease_to_idx=shared_disease,
-        )
+        if plantnet_dir is not None:
+            pn_train = MultitaskPlantDataset(
+                plantnet_dir=plantnet_dir,
+                plantvillage_dir=None,
+                split="train",
+                plantnet_transform=pre.get_plantnet_train_transform(),
+            )
+            pn_val = MultitaskPlantDataset(
+                plantnet_dir=plantnet_dir,
+                plantvillage_dir=None,
+                split="val",
+                plantnet_transform=pre.get_plantnet_val_transform(),
+                plantnet_species_to_idx=pn_train.species_to_idx,
+            )
+            pn_test = MultitaskPlantDataset(
+                plantnet_dir=plantnet_dir,
+                plantvillage_dir=None,
+                split="test",
+                plantnet_transform=pre.get_plantnet_val_transform(),
+                plantnet_species_to_idx=pn_train.species_to_idx,
+            )
 
-        self.test_dataset = UnifiedPlantDataset(
-            plantnet_dir=plantnet_dir,
-            plantvillage_dir=plantvillage_dir,
-            split="test",
-            transform=val_transform,
-            species_to_idx=shared_species,
-            disease_to_idx=shared_disease,
-        )
+            self.species_classes = pn_train.species_classes
+            self.species_to_idx  = pn_train.species_to_idx
+            self.num_species     = len(self.species_classes)
 
-        self.num_species = self.train_dataset.num_species
-        self.num_diseases = self.train_dataset.num_diseases
+        pv_train = pv_val = pv_test = None
+
+        if plantvillage_dir is not None:
+            pv_probe = MultitaskPlantDataset(
+                plantnet_dir=None,
+                plantvillage_dir=plantvillage_dir,
+                split="train", # unused for PlantVillage
+            )
+            self.disease_classes = pv_probe.disease_classes
+            self.disease_to_idx  = pv_probe.disease_to_idx
+
+            n= len(pv_probe)
+            indices = list(range(n))
+            random.Random(seed).shuffle(indices)
+
+            n_train = int(train_val_test_ratio[0] * n)
+            n_val = int(train_val_test_ratio[1] * n)
+
+            idx_train = indices[:n_train]
+            idx_val = indices[n_train : n_train + n_val]
+            idx_test = indices[n_train + n_val :]
+
+            shared = dict(
+                plantnet_dir=None,
+                plantvillage_dir=plantvillage_dir,
+                split="train",
+                disease_to_idx=pv_probe.disease_to_idx
+            )
+
+            pv_train = MultitaskPlantDataset(
+                **shared,
+                plantvillage_transform=pre.get_plantvillage_train_transform(),
+                indices=idx_train,
+            )
+            pv_val = MultitaskPlantDataset(
+                **shared,
+                plantvillage_transform=pre.get_plantvillage_val_transform(),
+                indices=idx_val,
+            )
+            pv_test = MultitaskPlantDataset(
+                **shared,
+                plantvillage_transform=pre.get_plantvillage_val_transform(),
+                indices=idx_test,
+            )
+
+        if not hasattr(self, "disease_classes"):
+            self.disease_classes = []
+            self.disease_to_idx  = {}
+        self.num_diseases = len(self.disease_classes)
+
+        self.train_dataset = _concat(pn_train, pv_train)
+        self.val_dataset   = _concat(pn_val,   pv_val)
+        self.test_dataset  = _concat(pn_test,  pv_test)
 
     def get_train_loader(self) -> DataLoader:
-        """Get DataLoader for training (shuffled).
-
-        Returns:
-            DataLoader configured for training.
-        """
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -85,27 +120,28 @@ class MultitaskDataloader:
         )
 
     def get_val_loader(self) -> DataLoader:
-        """Get DataLoader for validation (not shuffled).
-
-        Returns:
-            DataLoader configured for validation.
-        """
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
+            shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
         )
 
     def get_test_loader(self) -> DataLoader:
-        """Get DataLoader for testing (not shuffled).
-
-        Returns:
-            DataLoader configured for testing.
-        """
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
+            shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
         )
+
+
+def _concat(*datasets):
+    valid = [d for d in datasets if d is not None]
+    if not valid:
+        raise ValueError(
+            "At least one of plantnet_dir or plantvillage_dir must be provided."
+        )
+    return valid[0] if len(valid) == 1 else ConcatDataset(valid)
