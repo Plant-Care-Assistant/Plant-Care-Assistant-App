@@ -226,6 +226,7 @@ ai/data/plant_disease_binary/
 ai/data/plant_village_data/
 ai/checkpoints/
 ai/scripts/kaggle*
+ai/models/multitask/*
 
 env
 .env
