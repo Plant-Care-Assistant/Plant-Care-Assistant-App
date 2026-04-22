@@ -25,8 +25,6 @@ class UserPublic(BaseModel):
     id: int
     username: str
     email: EmailStr
-    xp: int
-    day_streak: int
     location_city: str | None = None
     created_at: datetime | None = None
 
@@ -77,3 +75,23 @@ class PlantPublic(BaseModel):
     soil_humidity_req: HumidityLevel | None
 
     preferred_watering_interval_days: int | None = None
+
+
+class UserGamificationReport(BaseModel):
+    xp: int
+    level: int
+    counters: dict[str, int]
+    flags: dict[str, bool]
+    unlocked_achievement_ids: list[str]
+    current_streak: int
+    longest_streak: int
+    last_active_date: datetime | None
+
+class GamificationActionBody(BaseModel):
+    action_id: str
+    client_tz_offset_min: int
+
+class UserActionResponse(BaseModel):
+    snapshot: UserGamificationReport
+    xp_awarded: int
+    newly_unlocked: list[str]

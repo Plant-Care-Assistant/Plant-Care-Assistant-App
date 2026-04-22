@@ -5,7 +5,7 @@ DEFAULT_IMAGE = "1,01e49b6671"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     db_url: str = Field(validation_alias="DATABASE_URL")
     blob_url: str = Field(validation_alias="BLOBSTORAGE_URL")

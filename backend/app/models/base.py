@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Column, Field, SQLModel
+from sqlmodel import Column, Field, SQLModel, table
 
 
 def utc_now() -> datetime:
@@ -22,6 +22,22 @@ class HumidityLevel(StrEnum):
     medium = "medium"
     high = "high"
 
+class GameAction(StrEnum):
+    scan_identify = "SCAN_IDENTIFY"
+    scan_and_add = "SCAN_AND_ADD"
+    add_plant = "ADD_PLANT"
+    water_plant = "WATER_PLANT"
+    complete_care_task = "COMPLETE_CARE_TASK"
+    water_before_9am = "WATER_BEFORE_9AM"
+    first_login = "FIRST_LOGIN"
+    complete_profile = "COMPLETE_PROFILE"
+    first_home_visit = "FIRST_HOME_VISIT"
+    first_collection_visit = "FIRST_COLLECTION_VISIT"
+    first_scan_visit = "FIRST_SCAN_VISIT"
+    first_profile_visit = "FIRST_SCAN_VISIT"
+    first_theme_change = "FIRST_THEME_CHANGE"
+    daily_login_bonus = "DAILY_LOGIN_BONUS"
+    achievement_unlock = "ACHIEVEMENT_UNLOCK"
 
 # 1. TABELA UŻYTKOWNIKÓW
 class User(SQLModel, table=True):
@@ -31,10 +47,6 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True, max_length=255)
     password_hash: str = Field(max_length=255)
     username: str = Field(max_length=100)
-
-    xp: int = Field(default=0)
-    day_streak: int = Field(default=0)
-    last_login_at: datetime | None = Field(default=None)
 
     location_city: str | None = Field(default=None, max_length=100)
 
@@ -46,6 +58,8 @@ class User(SQLModel, table=True):
         },
         sa_column=Column(JSONB),
     )
+
+    last_login_at: datetime | None = Field(default=None)
 
     # Metadane
     created_at: datetime | None = Field(default_factory=utc_now)
@@ -101,6 +115,42 @@ class LevelsXpRanges(SQLModel, table=True):
     __tablename__: str = "levels_xp_ranges"  # type: ignore
     level_val: int = Field(primary_key=True)
     req_xp: int
+
+class GamificationData(SQLModel, table=True):
+    __tablename__: str = "gamification_data"  # type: ignore
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+
+    # General
+    xp: int = Field(default=0)
+    current_streak: int = Field(default=0)
+    longest_streak: int = Field(default=0)
+    last_activity: datetime | None = Field(default=None)
+    last_login_at: datetime | None = Field(default=None)
+
+    # Counters
+    plants_added: int = Field(default=0)
+    plants_scanned: int = Field(default=0)
+    plants_not_added: int = Field(default=0)
+    plants_watered: int = Field(default=0)
+    care_task_completed: int = Field(default=0)
+    species_owned: int = Field(default=0)
+    species_scanned: int = Field(default=0)
+    waters_before_9am: int = Field(default=0)
+
+    flags: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB),
+    )
+
+class Achievement(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    created_at: datetime | None = Field(default_factory=utc_now)
+    achievement: str
+
+class XPEvent(SQLModel, table=True):
+    pass
 
 
 class Token(BaseModel):
