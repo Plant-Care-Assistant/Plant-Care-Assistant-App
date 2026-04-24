@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { ScanCameraStep } from './ScanCameraStep';
 import { ScanResultsStep } from './ScanResultsStep';
 import { ScanConfirmStep } from './ScanConfirmStep';
 import { plantApi } from '@/lib/api/plants';
+import { useGamification } from '@/providers';
 
 function dataUrlToFile(dataUrl: string, filename: string): File {
   const [header, data] = dataUrl.split(',');
@@ -52,6 +53,9 @@ export function ScanCameraModal({
     lightLevel: 'medium',
     wateringFrequency: 3,
   });
+  const didIdentifyRef = useRef(false);
+  const didAddRef = useRef(false);
+  const { awardXP } = useGamification();
 
   const handleImageCaptured = async (imageUrl: string) => {
     setPlantData((prev) => ({ ...prev, imageUrl }));
@@ -69,6 +73,7 @@ export function ScanCameraModal({
         aiIdentified: true,
         wateringFrequency: result.wateringFrequency,
       }));
+      didIdentifyRef.current = true;
     } catch {
       // AI service unavailable — let user fill in manually
       setPlantData((prev) => ({ ...prev, aiIdentified: false }));
@@ -83,18 +88,26 @@ export function ScanCameraModal({
     setCurrentStep('confirm');
   };
 
-  const handleConfirm = () => {
-    onAddToCollection(plantData as ScanPlantData);
-    // Reset for next use
+  const resetModal = () => {
     setCurrentStep('camera');
     setPlantData({ lightLevel: 'medium', wateringFrequency: 3 });
+    didIdentifyRef.current = false;
+    didAddRef.current = false;
+  };
+
+  const handleConfirm = () => {
+    didAddRef.current = true;
+    awardXP('SCAN_AND_ADD', { subtitle: plantData.name || 'Plant added' });
+    onAddToCollection(plantData as ScanPlantData);
+    resetModal();
     onClose();
   };
 
-  const handleViewOnly = () => {
-    // View results without adding to collection
-    setCurrentStep('camera');
-    setPlantData({ lightLevel: 'medium', wateringFrequency: 3 });
+  const handleDismiss = () => {
+    if (didIdentifyRef.current && !didAddRef.current) {
+      awardXP('SCAN_IDENTIFY', { subtitle: plantData.name || 'Plant identified' });
+    }
+    resetModal();
     onClose();
   };
 
@@ -104,12 +117,6 @@ export function ScanCameraModal({
     } else if (currentStep === 'confirm') {
       setCurrentStep('results');
     }
-  };
-
-  const handleCloseModal = () => {
-    setCurrentStep('camera');
-    setPlantData({ lightLevel: 'medium', wateringFrequency: 3 });
-    onClose();
   };
 
   const steps = ['camera', 'results', 'confirm'] as const;
@@ -124,7 +131,7 @@ export function ScanCameraModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={handleCloseModal}
+            onClick={handleDismiss}
             className="fixed inset-0 z-40 bg-black/50"
           />
 
@@ -152,7 +159,7 @@ export function ScanCameraModal({
                 </p>
               </div>
               <button
-                onClick={handleCloseModal}
+                onClick={handleDismiss}
                 className={`rounded-lg p-2 transition-colors ${
                   darkMode
                     ? 'hover:bg-neutral-800'
@@ -226,7 +233,7 @@ export function ScanCameraModal({
                     <ScanConfirmStep
                       plantData={plantData as ScanPlantData}
                       onConfirm={handleConfirm}
-                      onViewOnly={handleViewOnly}
+                      onViewOnly={handleDismiss}
                       onBack={handleBack}
                       darkMode={darkMode}
                     />
