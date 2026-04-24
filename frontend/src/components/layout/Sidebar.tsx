@@ -2,52 +2,36 @@
 
 import Image from "next/image";
 import { Moon, Sun, LogOut } from "lucide-react";
-import { useAuth } from "@/providers";
+import { useAuth, useTheme } from "@/providers";
 import { navItems, type NavScreen } from "./navItems";
 
-/**
- * Props for the Sidebar component.
- */
 export interface SidebarProps {
-  darkMode?: boolean;
   currentScreen?: NavScreen;
   onNavigate?: (screen: NavScreen) => void;
   onToggleDarkMode?: () => void;
   showThemeToggle?: boolean;
 }
 
-/**
- * Desktop sidebar navigation component used across different layouts.
- * Contains branding, navigation items, and optional theme toggle.
- */
+/** Desktop sidebar with branding, nav, theme toggle, and logout. */
 export function Sidebar({
-  darkMode = false,
   currentScreen = 'home',
   onNavigate,
   onToggleDarkMode,
-  showThemeToggle = true
+  showThemeToggle = true,
 }: SidebarProps) {
   const { logout } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
-    <nav className={`hidden lg:block fixed left-0 top-0 h-screen w-72 border-r transition-colors ${
-      darkMode 
-        ? 'bg-neutral-800 border-neutral-700' 
-        : 'bg-white border-neutral-200'
-    }`} style={{
-      boxShadow: darkMode
-        ? '2px 0 15px -3px rgba(0, 0, 0, 0.5)'
-        : '2px 0 15px -3px rgba(0, 0, 0, 0.1)',
-    }}>
-      {/* Branding */}
-      <div className="border-b p-6" style={{
-        borderColor: darkMode ? '#374151' : '#e5e7eb',
-      }}>
+    <nav className="hidden lg:block fixed left-0 top-0 h-screen w-72 border-r transition-colors bg-white border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.1)] dark:shadow-[2px_0_15px_-3px_rgba(0,0,0,0.5)]">
+      <div className="border-b p-6 border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center justify-start gap-3">
           <div className="w-16 h-16 rounded-3xl bg-secondary flex items-center justify-center p-2 flex-shrink-0">
-            <Image 
-              src="/logo.png" 
-              alt="Plant Care Logo" 
-              width={56} 
+            <Image
+              src="/logo.png"
+              alt="Plant Care Logo"
+              width={56}
               height={56}
               priority
               className="w-full h-full object-contain"
@@ -60,40 +44,33 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Nav Items */}
       <div className="p-4 space-y-2 flex-1">
-        {navItems.map((item) => (
-          <button
-            key={item.screen}
-            onClick={() => onNavigate?.(item.screen)}
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
-              currentScreen === item.screen
-                ? 'bg-secondary text-white'
-                : darkMode
-                  ? 'text-neutral-300 hover:bg-neutral-700'
-                  : 'text-neutral-600 hover:bg-neutral-100'
-            }`}
-          >
-            <item.icon size={20} />
-            <span className="font-medium">{item.label}</span>
-          </button>
-        ))}
+        {navItems.map((item) => {
+          const isActive = currentScreen === item.screen;
+          return (
+            <button
+              key={item.screen}
+              onClick={() => onNavigate?.(item.screen)}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                isActive
+                  ? 'bg-secondary text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-700'
+              }`}
+            >
+              <item.icon size={20} />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Theme Toggle & Logout */}
-      <div className="border-t p-4 space-y-2" style={{
-        borderColor: darkMode ? '#374151' : '#e5e7eb',
-      }}>
+      <div className="border-t p-4 space-y-2 border-neutral-200 dark:border-neutral-700">
         {showThemeToggle && onToggleDarkMode && (
           <button
             onClick={onToggleDarkMode}
-            className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium ${
-              darkMode
-                ? 'bg-neutral-700 text-accent2 hover:bg-neutral-600'
-                : 'bg-neutral-200 text-primary hover:bg-neutral-300'
-            }`}
+            className="w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium bg-neutral-200 text-primary hover:bg-neutral-300 dark:bg-neutral-700 dark:text-accent2 dark:hover:bg-neutral-600"
           >
-            {darkMode ? (
+            {isDark ? (
               <>
                 <Sun size={18} />
                 Light Mode
@@ -108,11 +85,7 @@ export function Sidebar({
         )}
         <button
           onClick={logout}
-          className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium ${
-            darkMode
-              ? 'text-accent2 hover:bg-neutral-700'
-              : 'text-accent2 hover:bg-pink-50'
-          }`}
+          className="w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-accent2 hover:bg-pink-50 dark:hover:bg-neutral-700"
         >
           <LogOut size={18} />
           Log out

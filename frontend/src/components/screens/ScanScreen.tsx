@@ -7,12 +7,11 @@ import { ScanActions } from '@/components/features/scan/ScanActions';
 import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
 import { Upload } from 'lucide-react';
 import { useAddPlantMutation } from '@/hooks/usePlants';
+import { useTheme } from '@/providers';
 
-export interface ScanScreenProps {
-  darkMode: boolean;
-}
-
-export function ScanScreen({ darkMode }: ScanScreenProps) {
+export function ScanScreen() {
+  const { theme } = useTheme();
+  const darkMode = theme === 'dark';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const addPlantMutation = useAddPlantMutation();
 

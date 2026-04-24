@@ -3,18 +3,16 @@
 import { Layout } from "@/components/layout";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { useTheme } from "@/providers";
+import { useFirstVisitXP } from "@/lib/gamification/useFirstVisitXP";
 
 export default function ProfilePage() {
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
+
+  useFirstVisitXP('profile');
 
   return (
-    <Layout
-      showBottomNav
-      showSidebar
-      darkMode={theme === "dark"}
-      onToggleDarkMode={toggleTheme}
-    >
-      <ProfileScreen darkMode={theme === "dark"} onDarkModeToggle={toggleTheme} />
+    <Layout showBottomNav showSidebar onToggleDarkMode={toggleTheme}>
+      <ProfileScreen onDarkModeToggle={toggleTheme} />
     </Layout>
   );
 }
