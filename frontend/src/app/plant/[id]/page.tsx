@@ -10,11 +10,10 @@ import { WeeklyCare } from "@/components/features/plant/WeeklyCare";
 import { EnvInfoCard } from "@/components/features/plant/EnvInfoCard";
 import { CareInstructions } from "@/components/features/plant/CareInstructions";
 import { PlantActions } from "@/components/features/plant/PlantActions";
-import { useTheme } from "@/providers";
-import { usePlantQuery } from "@/hooks/usePlants";
+import { useTheme, useGamification } from "@/providers";
+import { usePlantQuery, useDeletePlantMutation } from "@/hooks/usePlants";
 import { getPlantImage } from "@/lib/utils/plantImages";
 import { removePlantImage } from "@/lib/utils/plantImages";
-import { plantApi } from "@/lib/api/plants";
 import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -25,27 +24,40 @@ export default function PlantDetailPage() {
   const { data: plant, isLoading } = usePlantQuery(plantId || undefined);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === "dark";
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { awardXP } = useGamification();
+  const deletePlantMutation = useDeletePlantMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleWaterNow = () => {
+    const plantName = plant?.custom_name || 'Your plant';
+    awardXP('WATER_PLANT', { subtitle: plantName });
+    if (new Date().getHours() < 9) {
+      awardXP('WATER_BEFORE_9AM', { subtitle: 'Watered before 9 AM' });
+    }
+  };
+
+  const handleGainXP = () => {
+    const plantName = plant?.custom_name || 'Your plant';
+    awardXP('COMPLETE_CARE_TASK', { subtitle: plantName });
+  };
 
   const imageUrl = useMemo(() => plantId ? getPlantImage(plantId) : undefined, [plantId]);
 
   const handleDelete = async () => {
     if (!plant) return;
-    setIsDeleting(true);
     try {
-      await plantApi.deletePlant(plant.id);
+      await deletePlantMutation.mutateAsync(plant.id);
       removePlantImage(plant.id);
+      setShowDeleteDialog(false);
       router.push("/collection");
     } catch {
-      setIsDeleting(false);
       setShowDeleteDialog(false);
     }
   };
 
   if (isLoading) {
     return (
-      <Layout showBottomNav showSidebar darkMode={darkMode} onToggleDarkMode={toggleTheme}>
+      <Layout showBottomNav showSidebar onToggleDarkMode={toggleTheme}>
         <div className="p-6 text-center">Loading...</div>
       </Layout>
     );
@@ -55,7 +67,6 @@ export default function PlantDetailPage() {
     <Layout
       showBottomNav
       showSidebar
-      darkMode={darkMode}
       onToggleDarkMode={toggleTheme}
     >
       <div className="p-3 sm:p-4 lg:p-6 pb-28 sm:pb-24 lg:pb-4 max-w-7xl mx-auto">
@@ -108,8 +119,8 @@ export default function PlantDetailPage() {
 
               {/* Actions */}
               <PlantActions
-                onWaterNow={() => {}}
-                onGainXP={() => {}}
+                onWaterNow={handleWaterNow}
+                onGainXP={handleGainXP}
                 darkMode={darkMode}
               />
             </div>
@@ -137,7 +148,7 @@ export default function PlantDetailPage() {
             confirmLabel="Remove"
             cancelLabel="Keep"
             onConfirm={handleDelete}
-            isLoading={isDeleting}
+            isLoading={deletePlantMutation.isPending}
           />
         </div>
       </div>

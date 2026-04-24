@@ -7,39 +7,24 @@ import { navItems } from "./navItems";
 export interface BottomNavProps {
   currentScreen: NavScreen;
   onNavigate: (screen: NavScreen) => void;
-  darkMode: boolean;
 }
 
-/**
- * Mobile-first sticky bottom navigation bar.
- */
-export function BottomNav({ currentScreen, onNavigate, darkMode }: BottomNavProps) {
+/** Mobile-first sticky bottom navigation bar. */
+export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
   return (
-    <nav
-      className={`fixed bottom-0 left-0 right-0 lg:hidden z-50 ${
-        darkMode ? "bg-neutral-800" : "bg-white"
-      } border-t ${darkMode ? "border-neutral-700" : "border-neutral-200"}`}
-      style={{
-        boxShadow: darkMode
-          ? "0 -10px 15px -3px rgba(0, 0, 0, 0.5)"
-          : "0 -10px 15px -3px rgba(0, 0, 0, 0.1)",
-      }}
-    >
+    <nav className="fixed bottom-0 left-0 right-0 lg:hidden z-50 bg-white border-t border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.5)]">
       <div className="grid grid-cols-4 gap-1 p-2">
         {navItems.map((item) => {
           const isActive = currentScreen === item.screen;
           const Icon = item.icon;
-
           return (
             <motion.button
               key={item.screen}
               onClick={() => onNavigate(item.screen)}
               className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl transition-all ${
                 isActive
-                  ? "bg-secondary text-white"
-                  : darkMode
-                    ? "text-neutral-400 hover:text-neutral-300"
-                    : "text-neutral-600 hover:text-neutral-700"
+                  ? 'bg-secondary text-white'
+                  : 'text-neutral-600 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300'
               }`}
               whileTap={{ scale: 0.95 }}
             >

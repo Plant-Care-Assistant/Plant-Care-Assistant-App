@@ -12,13 +12,15 @@ import { Plus } from 'lucide-react';
 import { useAddPlantMutation } from '@/hooks/usePlants';
 import { getPlantImage } from '@/lib/utils/plantImages';
 import { UserPlant } from '@/types';
+import { useTheme } from '@/providers';
 
 export interface CollectionScreenProps {
-  darkMode: boolean;
   plants: UserPlant[];
 }
 
-export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
+export function CollectionScreen({ plants }: CollectionScreenProps) {
+  const { theme } = useTheme();
+  const darkMode = theme === 'dark';
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('all');

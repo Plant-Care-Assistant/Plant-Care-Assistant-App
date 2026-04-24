@@ -1,64 +1,58 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/providers';
+import { useAuth, useGamification, useTheme } from '@/providers';
 import { ProfileHeader } from '@/components/features/profile/ProfileHeader';
 import { StatsGrid } from '@/components/features/profile/StatsGrid';
 import { AchievementsSection } from '@/components/features/profile/AchievementsSection';
 import { AchievementProgress } from '@/components/features/profile/AchievementProgress';
 import { SettingsSection } from '@/components/features/profile/SettingsSection';
+import { ACHIEVEMENTS } from '@/lib/data/achievements';
+
+const TOTAL_ACHIEVEMENTS = ACHIEVEMENTS.length;
 
 export interface ProfileScreenProps {
-  darkMode?: boolean;
   onDarkModeToggle?: (enabled: boolean) => void;
 }
 
-export function ProfileScreen({ darkMode = false, onDarkModeToggle }: ProfileScreenProps) {
+export function ProfileScreen({ onDarkModeToggle }: ProfileScreenProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const darkMode = theme === 'dark';
+  const { state, level, unlockedCount } = useGamification();
   const [careRemindersEnabled, setCareRemindersEnabled] = useState(true);
   const [weatherTipsEnabled, setWeatherTipsEnabled] = useState(true);
 
-  const userData = {
-    name: user?.username || 'User',
-    level: 12,
-    totalXP: 2450,
-    dayStreak: 7,
-    achievements: '3/6',
-  };
+  const streak = state.counters.currentStreak;
 
   return (
     <div className="min-h-screen pb-24 lg:pb-8">
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">
         <div className="space-y-6">
-          {/* Profile Header Card */}
           <ProfileHeader
-            name={userData.name}
-            level={userData.level}
-            totalXP={userData.totalXP}
-            dayStreak={userData.dayStreak}
-            achievements={userData.achievements}
+            name={user?.username || 'User'}
+            level={level}
+            totalXP={state.xp}
+            dayStreak={streak}
+            achievements={`${unlockedCount}/${TOTAL_ACHIEVEMENTS}`}
             darkMode={darkMode}
           />
 
-          {/* Stats Cards Grid */}
           <StatsGrid
-            level={userData.level}
-            dayStreak={userData.dayStreak}
-            totalXP={userData.totalXP}
+            level={level}
+            dayStreak={streak}
+            totalXP={state.xp}
             darkMode={darkMode}
           />
 
-          {/* Achievements Section */}
           <AchievementsSection darkMode={darkMode} />
 
-          {/* Achievement Progress Section */}
           <AchievementProgress
-            unlocked={3}
-            total={6}
+            unlocked={unlockedCount}
+            total={TOTAL_ACHIEVEMENTS}
             darkMode={darkMode}
           />
 
-          {/* Settings Section */}
           <SettingsSection
             darkMode={darkMode}
             onDarkModeToggle={onDarkModeToggle}
