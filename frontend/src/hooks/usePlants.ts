@@ -45,3 +45,15 @@ export function useAddPlantMutation() {
     },
   });
 }
+
+/** Delete a plant and invalidate the list + detail cache. */
+export function useDeletePlantMutation() {
+  const qc = useQueryClient();
+  return useMutation<void, unknown, number>({
+    mutationFn: (id: number) => plantApi.deletePlant(id),
+    onSuccess: (_, id) => {
+      qc.removeQueries({ queryKey: [...PLANTS_KEY, id] });
+      qc.invalidateQueries({ queryKey: PLANTS_KEY });
+    },
+  });
+}
