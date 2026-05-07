@@ -4,7 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Column, Field, SQLModel, table
+from sqlalchemy.ext.mutable import MutableList
+from sqlmodel import Column, Field, SQLModel
 
 
 def utc_now() -> datetime:
@@ -140,17 +141,18 @@ class GamificationData(SQLModel, table=True):
 
     flags: list[str] = Field(
         default_factory=list,
-        sa_column=Column(JSONB),
+        sa_column=Column(MutableList.as_mutable(JSONB)),
     )
 
 class Achievement(SQLModel, table=True):
+    __tablename__: str = "achievement_data"  # type: ignore
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id")
     created_at: datetime | None = Field(default_factory=utc_now)
-    achievement: str
+    achievement_name: str
 
-class XPEvent(SQLModel, table=True):
-    pass
+#class XPEvent(SQLModel, table=True):
+#   pass
 
 
 class Token(BaseModel):

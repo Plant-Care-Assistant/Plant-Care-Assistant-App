@@ -12,6 +12,7 @@ PageParamsDep = Annotated[PageParams, Query()]
 SearchParamsDep = Annotated[str, Query(min_length=1, max_length=100)]
 
 
+@router.get("", response_model=list[PlantPublic])
 @router.get("/", response_model=list[PlantPublic])
 def read_plants(p: PageParamsDep, service: PlantServiceDep):
     return service.read_plants(p)

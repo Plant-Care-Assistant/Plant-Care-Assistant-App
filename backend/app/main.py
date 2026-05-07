@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, misc, plants, user_plants, users
+from app.routers import auth, misc, plants, user_plants, users, gamification
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,3 +17,4 @@ app.include_router(users.router)
 app.include_router(plants.router)
 app.include_router(user_plants.router)
 app.include_router(misc.router)
+app.include_router(gamification.router)

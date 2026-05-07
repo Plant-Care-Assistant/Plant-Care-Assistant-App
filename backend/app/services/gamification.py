@@ -64,17 +64,27 @@ class GamificationService:
     ) -> list[str]:
         return []
 
+    def init_gamifiction_data(self, user: User) -> GamificationData:
+        new_gamifiction_data = GamificationData(user_id=user.id)
+        self.s.add(new_gamifiction_data)
+        self.s.commit()
+        self.s.refresh(new_gamifiction_data)
+        return new_gamifiction_data
+
     def user_report(self, user: User) -> UserGamificationReport:
         st = select(GamificationData).where(GamificationData.user_id == user.id)
         gd = self.s.exec(st).one_or_none()
         if gd is None:
-            raise HTTPException(500, "Gamification data not found, big oopsie")
+            gd = self.init_gamifiction_data(user)
 
+        print("---")
+        print(gd.flags)
         counters = {c: getattr(gd, c, 0) for c in COUNTERS}
-        flags = {f.name: f in gd.flags for f in FLAGS}
+        flags = {f.name: f.name in gd.flags for f in FLAGS}
+        print(flags)
 
         st = select(Achievement).where(Achievement.user_id == user.id)
-        achievements = [a.achievement for a in self.s.exec(st).all()]
+        achievements = [a.achievement_name for a in self.s.exec(st).all()]
         return UserGamificationReport(
             xp=gd.xp,
             level=self._derive_level(gd.xp),
@@ -94,7 +104,7 @@ class GamificationService:
         st = select(GamificationData).where(GamificationData.user_id == user.id)
         gd = self.s.exec(st).one_or_none()
         if gd is None:
-            raise HTTPException(500, "Gamification data not found, big oopsie")
+            gd = self.init_gamifiction_data(user)
 
         xp_awarded = XP_MAPPING[action]
 
@@ -145,6 +155,8 @@ class GamificationService:
         xp_awarded += len(newly_unlocked) * 50
         for achievement in newly_unlocked:
             self.s.add(Achievement(user_id=user.id, achievement=achievement))
+
+        gd.xp += xp_awarded
 
         self.s.add(gd)
         self.s.commit()

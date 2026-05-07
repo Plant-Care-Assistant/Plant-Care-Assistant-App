@@ -11,6 +11,7 @@ from app.services.users import UserServiceDep
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+@router.get("", response_model=list[UserPublic])
 @router.get("/", response_model=list[UserPublic])
 def read_users(service: UserServiceDep):
     return service.read_users()

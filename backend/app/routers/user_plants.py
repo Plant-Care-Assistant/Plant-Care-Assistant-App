@@ -16,6 +16,7 @@ def read_user_plants(user: LoggedUserDep, service: UserPlantServiceDep):
     return service.read_plants(user)
 
 
+@router.post("", response_model=UserPlantPublic)
 @router.post("/", response_model=UserPlantPublic)
 def create_user_plant(
     body: UserPlantCreate,
