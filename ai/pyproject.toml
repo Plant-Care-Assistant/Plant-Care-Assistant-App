@@ -81,7 +81,6 @@ extend-ignore = [
     "FBT001",  # boolean-typed positional argument in function definition
     "FBT002",  # boolean default positional argument in function definition
     "D103",    # missing docstring in public function
-    "RUF069",  # unreliable floating point equality comparison
 ]
 
 [tool.ruff.lint.pylint]
@@ -95,8 +94,9 @@ parametrize-names-type = "tuple"
 "tests/**/*.py" = [
     "FBT003", # allow boolean values in function calls
     "S101",    # allow use of assert statements in tests
+    "PLR2004", # allow magic value comparisons in tests
+    "RUF069",  # allow float equality comparisons in tests
 ]
-
 
 
 [tool.ruff.lint.pep8-naming]

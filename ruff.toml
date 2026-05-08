@@ -36,6 +36,8 @@ parametrize-names-type = "tuple"
 "ai/tests/**/*.py" = [
     "FBT003", # allow boolean values in function calls
     "S101",    # allow use of assert statements in tests
+    "PLR2004", # allow magic value comparisons in tests
+    "RUF069",  # allow float equality comparisons in tests
 ]
 
 
