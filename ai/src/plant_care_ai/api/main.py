@@ -99,7 +99,7 @@ def load_classifier() -> PlantClassifier:
 
 # ===== LIFESPAN =====
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: RUF029
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup/shutdown events.
 
     Raises:

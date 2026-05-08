@@ -12,13 +12,19 @@ indent-width = 4
 preview = true
 select = ["ALL"]
 extend-ignore = [
-    "D203", # space between 1st line and summary line in docstrings
-    "D213", # docstring summary in multi-line docstring should start at the first line
-    "T201", # allow use of print statements
-    "EXE002", # shebang not required for python files
-    "COM812", # conflict with black formatting
-    "ANN003", # allow missing type hints for kwargs
-    "ANN002", # allow missing type hints for args
+    "D203",    # space between 1st line and summary line in docstrings
+    "D213",    # docstring summary in multi-line docstring should start at the first line
+    "T201",    # allow use of print statements
+    "EXE002",  # shebang not required for python files
+    "COM812",  # conflict with black formatting
+    "ANN003",  # allow missing type hints for kwargs
+    "ANN002",  # allow missing type hints for args
+    "DOC501",  # raised exceptions missing from docstring
+    "PLR0914", # too many local variables
+    "FBT001",  # boolean-typed positional argument in function definition
+    "FBT002",  # boolean default positional argument in function definition
+    "D103",    # missing docstring in public function
+    "RUF069",  # unreliable floating point equality comparison
 ]
 
 

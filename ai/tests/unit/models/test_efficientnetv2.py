@@ -5,8 +5,6 @@ Copyright 2025 Plant Care Assistant
 
 import pytest
 import torch
-from torch import nn
-
 from plant_care_ai.models.efficientnetv2 import (
     EfficientNetV2,
     FusedMBConv,
@@ -15,6 +13,7 @@ from plant_care_ai.models.efficientnetv2 import (
     StochasticDepth,
     create_efficientnetv2,
 )
+from torch import nn
 
 EXPECTED_SE_REDUCED_CHANNELS = 16
 EXPECTED_ROUND_CHANNELS_24 = 24

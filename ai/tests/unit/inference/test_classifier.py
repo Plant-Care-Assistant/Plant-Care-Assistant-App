@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 import torch
 from PIL import Image
-
-from plant_care_ai.inference.classifier import PlantClassifier
 from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
 from plant_care_ai.models.resnet18 import Resnet18
 from plant_care_ai.models.resnet50 import Resnet50
+
+from plant_care_ai.inference.classifier import PlantClassifier
 
 # Test constants
 DEFAULT_NUM_CLASSES = 10

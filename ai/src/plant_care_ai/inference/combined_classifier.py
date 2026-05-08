@@ -1,4 +1,4 @@
-"""Combined plant classifier — merges disease/health predictions with species classification.
+"""Combined plant classifier, which merges disease/health predictions with species classification.
 
 Copyright 2026 Plant Care Assistant
 """
@@ -7,16 +7,25 @@ from typing import Any
 
 from PIL import Image
 
-from src.plant_care_ai.inference.disease_classifier import DiseasePlantClassifier
 from src.plant_care_ai.inference.classifier import PlantClassifier
+from src.plant_care_ai.inference.disease_classifier import DiseasePlantClassifier
 
 
 class CombinedPlantClassifier:
+    """Unified classifier combining species identification and disease detection."""
+
     def __init__(
         self,
         disease_classifier: DiseasePlantClassifier,
         species_classifier: PlantClassifier,
     ) -> None:
+        """Initialize with pre-built disease and species classifiers.
+
+        Args:
+            disease_classifier: Classifier for plant health and disease detection.
+            species_classifier: Classifier for plant species identification.
+
+        """
         self.disease = disease_classifier
         self.species = species_classifier
 
@@ -31,6 +40,20 @@ class CombinedPlantClassifier:
         yolo_conf: float = 0.25,
         verbose: bool = True,
     ) -> "CombinedPlantClassifier":
+        """Load a CombinedPlantClassifier from checkpoint files.
+
+        Args:
+            disease_checkpoint: Path to the disease model checkpoint.
+            species_checkpoint: Path to the species model checkpoint.
+            yolo_checkpoint: Path to the YOLO leaf-detection model checkpoint.
+            device: Target device. Auto-detected if None.
+            yolo_conf: Confidence threshold for YOLO detections.
+            verbose: Whether to print loading progress.
+
+        Returns:
+            CombinedPlantClassifier: Initialised combined classifier.
+
+        """
         disease = DiseasePlantClassifier.from_checkpoints(
             disease_checkpoint=disease_checkpoint,
             yolo_checkpoint=yolo_checkpoint,
@@ -51,6 +74,18 @@ class CombinedPlantClassifier:
         top_k_species: int = 5,
         top_k_diseases: int = 3,
     ) -> dict[str, Any]:
+        """Run combined species and disease inference on an image.
+
+        Args:
+            image: Input image as a file path or PIL Image.
+            top_k_species: Number of top species predictions to return.
+            top_k_diseases: Number of top disease predictions to return.
+
+        Returns:
+            dict: Contains 'species' predictions, disease/health results,
+                and combined 'processing_time_ms'.
+
+        """
         if isinstance(image, (str, Path)):
             image = Image.open(image).convert("RGB")
         else:

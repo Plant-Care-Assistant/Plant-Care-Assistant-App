@@ -41,7 +41,6 @@ class PlantNetPreprocessor:
         self.mean = [0.485, 0.456, 0.406]
         self.std = [0.229, 0.224, 0.225]
 
-
     def _augmentation_transforms(self) -> list:
         transforms_list = []
 
@@ -87,7 +86,7 @@ class PlantNetPreprocessor:
         return t
 
     def get_full_transform(self) -> transforms.Compose:
-        """Training pipeline: resize -> random crop -> augmentation -> tensor -> norm.
+        """Build training pipeline: resize -> random crop -> augmentation -> tensor -> norm.
 
         Returns:
             Composed transform pipeline for training.
@@ -102,7 +101,7 @@ class PlantNetPreprocessor:
         return transforms.Compose(pipeline)
 
     def get_inference_transform(self) -> transforms.Compose:
-        """Validation / inference pipeline: resize -> centre crop -> tensor -> norm.
+        """Build validation / inference pipeline: resize -> centre crop -> tensor -> norm.
 
         Returns:
             Composed transform pipeline for validation / inference.
@@ -116,6 +115,15 @@ class PlantNetPreprocessor:
         return transforms.Compose(pipeline)
 
     def get_transform(self, *, train: bool = False) -> transforms.Compose:
+        """Return the training or inference transform pipeline.
+
+        Args:
+            train: If True, return the training pipeline; otherwise the inference pipeline.
+
+        Returns:
+            Composed transform pipeline.
+
+        """
         return self.get_full_transform() if train else self.get_inference_transform()
 
 
@@ -130,11 +138,25 @@ class PlantVillagePreprocessor(PlantNetPreprocessor):
         augm_strength: float = 0.0,
         add_vertical_flip: bool = True,
     ) -> None:
+        """Initialize PlantVillage preprocessor.
+
+        Args:
+            img_size: Target image size (square).
+            normalize: Whether to apply ImageNet normalization.
+            augm_strength: Augmentation intensity [0.0 to 1.0].
+            add_vertical_flip: Whether to include a random vertical flip augmentation.
+
+        """
         super().__init__(img_size=img_size, normalize=normalize, augm_strength=augm_strength)
         self.add_vertical_flip = add_vertical_flip
 
     def _augmentation_transforms(self) -> list:
-        """Extend base augmentations with an optional vertical flip."""
+        """Extend base augmentations with an optional vertical flip.
+
+        Returns:
+            List of augmentation transforms.
+
+        """
         augs = super()._augmentation_transforms()
 
         if self.augm_strength > 0 and self.add_vertical_flip:
@@ -145,6 +167,12 @@ class PlantVillagePreprocessor(PlantNetPreprocessor):
         return augs
 
     def get_full_transform(self) -> transforms.Compose:
+        """Build training pipeline using RandomResizedCrop with augmentation.
+
+        Returns:
+            Composed transform pipeline for training.
+
+        """
         pipeline = [
             # RandomResizedCrop avoids the hard resize->RandomCrop boundary
             # artefacts common in tightly-cropped leaf images.
@@ -159,6 +187,12 @@ class PlantVillagePreprocessor(PlantNetPreprocessor):
         return transforms.Compose(pipeline)
 
     def get_inference_transform(self) -> transforms.Compose:
+        """Build validation / inference pipeline: resize -> centre crop -> tensor -> norm.
+
+        Returns:
+            Composed transform pipeline for validation / inference.
+
+        """
         pipeline = [
             transforms.Resize(int(self.img_size * 256 / 224)),   # same ratio as in PN
             transforms.CenterCrop(self.img_size),
@@ -168,11 +202,11 @@ class PlantVillagePreprocessor(PlantNetPreprocessor):
 
 
 def get_training_pipeline(img_size: int = 224, augm_strength: float = 0.5) -> transforms.Compose:
-    """PlantNet training pipeline with augmentation.
+    """Build PlantNet training pipeline with augmentation.
 
     Args:
         img_size: Target image size.
-        augm_strength: Augmentation strength [0.0 – 1.0].
+        augm_strength: Augmentation strength [0.0 - 1.0].
 
     Returns:
         Training transform pipeline.
@@ -184,7 +218,7 @@ def get_training_pipeline(img_size: int = 224, augm_strength: float = 0.5) -> tr
 
 
 def get_inference_pipeline(img_size: int = 224) -> transforms.Compose:
-    """PlantNet inference pipeline without augmentation.
+    """Build PlantNet inference pipeline without augmentation.
 
     Args:
         img_size: Target image size.
@@ -200,11 +234,11 @@ def get_plantvillage_training_pipeline(
     img_size: int = 224,
     augm_strength: float = 0.5,
 ) -> transforms.Compose:
-    """PlantVillage training pipeline with augmentation.
+    """Build PlantVillage training pipeline with augmentation.
 
     Args:
         img_size: Target image size.
-        augm_strength: Augmentation strength [0.0 – 1.0].
+        augm_strength: Augmentation strength [0.0 - 1.0].
 
     Returns:
         Training transform pipeline.
@@ -216,7 +250,7 @@ def get_plantvillage_training_pipeline(
 
 
 def get_plantvillage_inference_pipeline(img_size: int = 224) -> transforms.Compose:
-    """PlantVillage inference pipeline without augmentation.
+    """Build PlantVillage inference pipeline without augmentation.
 
     Args:
         img_size: Target image size.

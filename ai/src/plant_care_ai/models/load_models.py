@@ -4,10 +4,11 @@ Copyright (c) 2026 Plant Care Assistant. All rights reserved.
 """
 
 import pathlib
+
+import timm
 import torch
 from torchvision import models
 from torchvision.models import ResNet50_Weights
-import timm
 
 from .disease_model import DiseasePlantModel
 
@@ -23,7 +24,7 @@ def get_model(
 ) -> torch.nn.Module:
     model_name = model_name.lower().strip()
     target_classes = num_classes if num_classes is not None else num_diseases
-    
+
     pretrained = kwargs.pop("pretrained", True)
 
     if combine:
@@ -33,22 +34,21 @@ def get_model(
             pretrained=pretrained,
             **kwargs,
         )
+    elif model_name == "resnet50":
+        w = ResNet50_Weights.DEFAULT if pretrained else None
+        model = models.resnet50(weights=w)
+        model.fc = torch.nn.Linear(model.fc.in_features, target_classes)
+
+    elif "efficientnet" in model_name:
+        model = timm.create_model(
+            model_name,
+            pretrained=pretrained,
+            num_classes=target_classes,
+            **kwargs
+        )
     else:
-        if model_name == "resnet50":
-            w = ResNet50_Weights.DEFAULT if pretrained else None
-            model = models.resnet50(weights=w)
-            if target_classes != 1000:
-                model.fc = torch.nn.Linear(model.fc.in_features, target_classes)
-                
-        elif "efficientnet" in model_name:
-            model = timm.create_model(
-                model_name, 
-                pretrained=pretrained, 
-                num_classes=target_classes, 
-                **kwargs
-            )
-        else:
-            raise ValueError(f"Model '{model_name}' not supported.")
+        msg = f"Model '{model_name}' not supported."
+        raise ValueError(msg)
 
     if weights_path:
         path = pathlib.Path(weights_path)

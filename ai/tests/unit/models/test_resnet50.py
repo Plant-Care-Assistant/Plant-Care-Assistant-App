@@ -6,10 +6,9 @@ Copyright 2025 Plant Care Assistant
 from unittest.mock import patch
 
 import torch
+from plant_care_ai.models.resnet50 import Resnet50
 from torch import nn
 from torchvision import models
-
-from plant_care_ai.models.resnet50 import Resnet50
 
 RESNET50_MIN_PARAMS = 22_000_000
 RESNET50_MAX_PARAMS = 26_000_000

@@ -7,16 +7,18 @@ from pathlib import Path
 from typing import Any
 
 import torch
-import torch.nn.functional as F
 from PIL import Image
-from torch import nn
 from ultralytics import YOLO
 
-from src.plant_care_ai.models.disease_model import DiseasePlantModel
 from src.plant_care_ai.data.preprocessing import get_plantvillage_inference_pipeline
+from src.plant_care_ai.models.disease_model import DiseasePlantModel
+
+HEALTH_THRESHOLD = 0.5
 
 
 class DiseasePlantClassifier:
+    """Inference wrapper for plant disease detection using YOLO leaf cropping."""
+
     def __init__(
         self,
         disease_model: torch.nn.Module,
@@ -24,8 +26,19 @@ class DiseasePlantClassifier:
         idx_to_disease: dict[int, str],
         img_size: int = 224,
         yolo_conf: float = 0.25,
-        device: str = None,
+        device: str | None = None,
     ) -> None:
+        """Initialize the disease classifier.
+
+        Args:
+            disease_model: Trained PyTorch model for health/disease classification.
+            yolo_model: YOLO model for leaf bounding-box detection.
+            idx_to_disease: Mapping from class index to disease name.
+            img_size: Input image size expected by the disease model.
+            yolo_conf: Confidence threshold for YOLO leaf detections.
+            device: Target device ('cuda' or 'cpu'). Auto-detected if None.
+
+        """
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.disease_model = disease_model.to(self.device).eval()
         self.yolo = yolo_model
@@ -45,6 +58,19 @@ class DiseasePlantClassifier:
         yolo_conf: float = 0.25,
         verbose: bool = True,
     ) -> "DiseasePlantClassifier":
+        """Load a DiseasePlantClassifier from checkpoint files.
+
+        Args:
+            disease_checkpoint: Path to the disease model checkpoint.
+            yolo_checkpoint: Path to the YOLO leaf-detection model checkpoint.
+            device: Target device. Auto-detected if None.
+            yolo_conf: Confidence threshold for YOLO detections.
+            verbose: Whether to print loading progress.
+
+        Returns:
+            DiseasePlantClassifier: Initialised classifier with weights loaded.
+
+        """
         disease_checkpoint = Path(disease_checkpoint)
         ckpt = torch.load(disease_checkpoint, map_location="cpu", weights_only=False)
         config = ckpt.get("config", {})
@@ -85,7 +111,15 @@ class DiseasePlantClassifier:
         return obj
 
     def _detect_leaves(self, image: Image.Image) -> list[tuple[int, int, int, int]]:
-        """Run YOLO and return list of (x1, y1, x2, y2) bounding boxes."""
+        """Run YOLO leaf detection on an image.
+
+        Args:
+            image: Input PIL image to detect leaves in.
+
+        Returns:
+            list[tuple[int, int, int, int]]: Bounding boxes as (x1, y1, x2, y2).
+
+        """
         results = self.yolo.predict(image, conf=self.yolo_conf, verbose=False)
         boxes: list[tuple[int, int, int, int]] = []
         for r in results:
@@ -97,20 +131,31 @@ class DiseasePlantClassifier:
                     boxes.append((x1, y1, x2, y2))
         return boxes
 
+    @staticmethod
     def _crop_leaves(
-        self,
         image: Image.Image,
         boxes: list[tuple[int, int, int, int]],
         padding: int = 8,
     ) -> list[Image.Image]:
+        """Crop leaf regions from an image with optional padding.
+
+        Args:
+            image: Source PIL image to crop from.
+            boxes: Bounding boxes as (x1, y1, x2, y2).
+            padding: Pixels to expand each bounding box by.
+
+        Returns:
+            list[Image.Image]: Cropped leaf images.
+
+        """
         w, h = image.size
         crops = []
-        for x1, y1, x2, y2 in boxes:
-            x1 = max(0, x1 - padding)
-            y1 = max(0, y1 - padding)
-            x2 = min(w, x2 + padding)
-            y2 = min(h, y2 + padding)
-            crops.append(image.crop((x1, y1, x2, y2)))
+        for bx1, by1, bx2, by2 in boxes:
+            cx1 = max(0, bx1 - padding)
+            cy1 = max(0, by1 - padding)
+            cx2 = min(w, bx2 + padding)
+            cy2 = min(h, by2 + padding)
+            crops.append(image.crop((cx1, cy1, cx2, cy2)))
         return crops
 
     def _classify_batch(self, crops: list[Image.Image]) -> dict[str, torch.Tensor]:
@@ -123,6 +168,18 @@ class DiseasePlantClassifier:
         image: str | Path | Image.Image,
         top_k_diseases: int = 3,
     ) -> dict[str, Any]:
+        """Run disease and health inference on an image.
+
+        Args:
+            image: Input image as a file path or PIL Image.
+            top_k_diseases: Number of top disease predictions to return.
+
+        Returns:
+            dict: Contains 'health' summary, 'diseases' list, 'leaf_count',
+                'used_full_image_fallback', 'leaf_results', and
+                'processing_time_ms'.
+
+        """
         t0 = time.time()
 
         if isinstance(image, (str, Path)):
@@ -140,13 +197,15 @@ class DiseasePlantClassifier:
         disease_probs = torch.softmax(out["disease"], dim=1)
 
         mean_health_logit = float(health_logits.mean().item())
-        health_label = "diseased" if mean_health_logit >= 0.5 else "healthy"
+        health_label = "diseased" if mean_health_logit >= HEALTH_THRESHOLD else "healthy"
         health_confidence = (
-            mean_health_logit if mean_health_logit >= 0.5 else 1.0 - mean_health_logit
+            mean_health_logit
+            if mean_health_logit >= HEALTH_THRESHOLD
+            else 1.0 - mean_health_logit
         )
 
         aggregated = disease_probs.sum(dim=0)
-        aggregated = aggregated / aggregated.sum()
+        aggregated /= aggregated.sum()
 
         top_di_probs, top_di_idx = aggregated.topk(min(top_k_diseases, self.num_diseases))
         disease_preds = [
@@ -154,23 +213,12 @@ class DiseasePlantClassifier:
                 "disease": self.idx_to_disease[int(i)],
                 "confidence": float(p),
             }
-            for p, i in zip(top_di_probs.tolist(), top_di_idx.tolist())
+            for p, i in zip(top_di_probs.tolist(), top_di_idx.tolist(), strict=False)
         ]
 
-        leaf_results = []
-        for k in range(len(crops)):
-            hlp = float(health_logits[k].item())
-            di_p, di_i = disease_probs[k].topk(1)
-            leaf_results.append(
-                {
-                    "leaf_index": k,
-                    "bbox": boxes[k] if not used_full_image_fallback else None,
-                    "health_logit": hlp,
-                    "health_label": "diseased" if hlp >= 0.5 else "healthy",
-                    "top_disease": self.idx_to_disease[int(di_i[0])],
-                    "top_disease_conf": float(di_p[0]),
-                }
-            )
+        leaf_results = self._build_leaf_results(
+            crops, boxes, health_logits, disease_probs, used_full_image_fallback
+        )
 
         return {
             "health": {
@@ -184,3 +232,40 @@ class DiseasePlantClassifier:
             "leaf_results": leaf_results,
             "processing_time_ms": round((time.time() - t0) * 1000, 1),
         }
+
+    def _build_leaf_results(
+        self,
+        crops: list[Image.Image],
+        boxes: list[tuple[int, int, int, int]],
+        health_logits: torch.Tensor,
+        disease_probs: torch.Tensor,
+        used_full_image_fallback: bool,
+    ) -> list[dict[str, Any]]:
+        """Build per-leaf result dicts from batch model outputs.
+
+        Args:
+            crops: Cropped leaf images.
+            boxes: Original bounding boxes for each crop.
+            health_logits: Per-crop health sigmoid outputs.
+            disease_probs: Per-crop disease softmax outputs.
+            used_full_image_fallback: Whether the full image was used as a single crop.
+
+        Returns:
+            list[dict]: Per-leaf result dicts.
+
+        """
+        leaf_results = []
+        for k in range(len(crops)):
+            hlp = float(health_logits[k].item())
+            di_p, di_i = disease_probs[k].topk(1)
+            leaf_results.append(
+                {
+                    "leaf_index": k,
+                    "bbox": boxes[k] if not used_full_image_fallback else None,
+                    "health_logit": hlp,
+                    "health_label": "diseased" if hlp >= HEALTH_THRESHOLD else "healthy",
+                    "top_disease": self.idx_to_disease[int(di_i[0])],
+                    "top_disease_conf": float(di_p[0]),
+                }
+            )
+        return leaf_results
