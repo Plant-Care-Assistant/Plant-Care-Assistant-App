@@ -60,6 +60,7 @@ class Plant(SQLModel, table=True):
     common_name: str = Field(max_length=150)
     scientific_name: str | None = Field(default=None, max_length=150)
     fid: str | None = Field(default=None)
+    plantsnet_id: str | None = Field(default=None, max_length=20)
 
     preferred_sunlight: LightLevel
     preferred_temp_min: int | None = None

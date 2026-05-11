@@ -22,6 +22,11 @@ def read_plant_name(q: SearchParamsDep, service: PlantServiceDep):
     return service.read_plant_name(q)
 
 
+@router.get("/by-plantsnet/{plantsnet_id}", response_model=PlantPublic)
+def read_plant_by_plantsnet(plantsnet_id: str, service: PlantServiceDep):
+    return service.read_plant_by_plantsnet_id(plantsnet_id)
+
+
 @router.get("/{plant_id}", response_model=PlantPublic)
 def read_plant(plant_id: int, service: PlantServiceDep):
     return service.read_plant(plant_id)
