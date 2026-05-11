@@ -3,10 +3,13 @@
 Copyright 2025 Plant Care Assistant
 """
 
+import random
+
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from .dataset import PlantNetDataset
+from .dataset import PlantNetDataset, PlantVillageDataset
+from .preprocessing import PlantVillagePreprocessor
 
 
 class PlantNetDataLoader:
@@ -65,3 +68,108 @@ class PlantNetDataLoader:
 
         """
         return DataLoader(self.test_dataset, batch_size=self.batch_size)
+
+
+class PlantVillageDataLoader:
+    """Wrapper for creating train/val/test DataLoaders from PlantVillage dataset."""
+
+    def __init__(
+        self,
+        data_dir: str,
+        batch_size: int = 32,
+        num_workers: int = 4,
+        preprocessor: PlantVillagePreprocessor | None = None,
+        train_val_test_ratio: tuple[float, float, float] = (0.8, 0.1, 0.1),
+        seed: int = 42,
+    ) -> None:
+        """Initialize the data loader with split ratios and preprocessing.
+
+        Args:
+            data_dir: Path to the dataset directory.
+            batch_size: Number of samples per batch.
+            num_workers: Number of subprocesses for data loading.
+            preprocessor: Preprocessor instance for image transforms.
+            train_val_test_ratio: Tuple containing (train, val, test) proportions.
+            seed: Random seed for reproducible splitting.
+
+        """
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+        pre = preprocessor or PlantVillagePreprocessor(augm_strength=0.5)
+        train_transform = pre.get_full_transform()
+        val_transform = pre.get_inference_transform()
+
+        # load once (paths only, no images) to discover disease mapping
+        probe = PlantVillageDataset(data_dir, transform=None)
+
+        self.disease_classes = probe.disease_classes
+        self.disease_to_idx = probe.disease_to_idx
+        self.num_classes = len(self.disease_classes)
+
+        # shuffle indices reproducibly, then partition.
+        # S311: Standard pseudo-random generators are safe for non-cryptographic use (ML splitting)
+        indices = list(range(len(probe)))
+        random.Random(seed).shuffle(indices)  # noqa: S311
+
+        n_train = int(train_val_test_ratio[0] * len(probe))
+        n_val = int(train_val_test_ratio[1] * len(probe))
+
+        idx_train = indices[:n_train]
+        idx_val = indices[n_train : n_train + n_val]
+        idx_test = indices[n_train + n_val :]
+
+        self.train_dataset = PlantVillageDataset(
+            data_dir, transform=train_transform, indices=idx_train
+        )
+        self.val_dataset = PlantVillageDataset(
+            data_dir, transform=val_transform, indices=idx_val
+        )
+        self.test_dataset = PlantVillageDataset(
+            data_dir, transform=val_transform, indices=idx_test
+        )
+
+    def get_train_loader(self) -> DataLoader:
+        """Return the training DataLoader with shuffling enabled.
+
+        Returns:
+            DataLoader: DataLoader configured for training (with shuffling enabled).
+
+        """
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    def get_val_loader(self) -> DataLoader:
+        """Return the validation DataLoader.
+
+        Returns:
+            DataLoader: DataLoader configured for validation (without shuffling).
+
+        """
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    def get_test_loader(self) -> DataLoader:
+        """Return the test DataLoader.
+
+        Returns:
+            DataLoader: DataLoader configured for testing (without shuffling).
+
+        """
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )

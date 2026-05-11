@@ -208,7 +208,7 @@ class PlantTrainer:
             self.model = Resnet50(num_classes=self.num_classes, pretrained=pretrained)
         elif model_type == "efficientnetv2":
             self.model = create_efficientnetv2(
-                variant=self.config["variant"],
+                variant=self.config.get("variant", "b0"),
                 num_classes=self.num_classes,
             )
         else:

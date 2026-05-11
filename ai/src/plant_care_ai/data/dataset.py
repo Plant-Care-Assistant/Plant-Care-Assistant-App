@@ -1,4 +1,4 @@
-"""Dataset class for loading PlantNet plant images.
+"""Dataset classes for loading PlantNet and PlantVillage images.
 
 Copyright 2025 Plant Care Assistant
 """
@@ -89,3 +89,88 @@ class PlantNetDataset(Dataset):
 
         """
         return len(self.paths)
+
+
+class PlantVillageDataset(Dataset):
+    """Custom sub-dataset for PlantVillage data.
+
+    Loads images from a structured directory:
+        data_dir/{color,segmented}/{species__disease}/*.jpg
+    """
+
+    def __init__(
+        self,
+        data_dir: str,
+        transform: transforms.Compose | None = None,
+        disease_to_idx: dict[str, int] | None = None,
+    ) -> None:
+        """Initialize dataset.
+
+        Args:
+            data_dir: Path to the dataset directory (either 'color' or 'segmented' subdir).
+            transform: Image transformations to apply.
+            disease_to_idx: Optional pre-built mapping of disease name to index.
+                If omitted, the mapping is derived from the directory structure.
+
+        """
+        self.transform = transform
+
+        # we assume that 'color' or 'segmented' dir was already passed as an argument
+        # and we will act like that (in a training process)
+        path = Path(data_dir)
+
+        class_dirs = sorted(d for d in path.iterdir() if d.is_dir())
+
+        if disease_to_idx is not None:
+            self.disease_to_idx = disease_to_idx
+            self.disease_classes = sorted(disease_to_idx, key=disease_to_idx.get)
+
+        else:
+            disease_names = [d.name for d in class_dirs if not d.name.lower().endswith("_healthy")]
+            self.disease_classes = disease_names
+            self.disease_to_idx = {n: i for i, n in enumerate(disease_names)}
+
+        self._samples: list[dict] = []
+        for class_dir in class_dirs:
+            is_healthy = class_dir.name.lower().endswith("_healthy")
+            health_idx = 0 if is_healthy else 1
+            disease_idx = -1 if is_healthy else self.disease_to_idx.get(class_dir.name, -1)
+
+            for img_path in class_dir.glob("*"):
+                if img_path.suffix.lower() in {".jpg", ".jpeg", ".png"}:
+                    self._samples.append({
+                        "path":        img_path,
+                        "health_idx":  health_idx,
+                        "disease_idx": disease_idx,
+                    })
+
+        n_samples = len(self._samples)
+        n_diseases = len(self.disease_classes)
+        print(f"PlantVillage: {n_samples} samples, {n_diseases} disease classes")
+
+    def __len__(self) -> int:
+        """Get the total number of samples in the dataset.
+
+        Returns:
+            Number of samples.
+
+        """
+        return len(self._samples)
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int, int]:
+        """Return image tensor with health and disease labels.
+
+        disease_idx is -1 for healthy samples.
+
+        Args:
+            idx: Index of the item to retrieve.
+
+        Returns:
+            Tuple of (image_tensor, health_idx, disease_idx).
+
+        """
+        s = self._samples[idx]
+        image = Image.open(s["path"]).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return image, s["health_idx"], s["disease_idx"]
