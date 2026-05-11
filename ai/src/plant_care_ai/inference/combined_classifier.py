@@ -2,13 +2,14 @@
 
 Copyright 2026 Plant Care Assistant
 """
+
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
 
-from src.plant_care_ai.inference.classifier import PlantClassifier
-from src.plant_care_ai.inference.disease_classifier import DiseasePlantClassifier
+from plant_care_ai.inference.classifier import PlantClassifier
+from plant_care_ai.inference.disease_classifier import DiseasePlantClassifier
 
 
 class CombinedPlantClassifier:
@@ -98,8 +99,7 @@ class CombinedPlantClassifier:
             "species": species_result["predictions"],
             **disease_result,
             "processing_time_ms": round(
-                disease_result["processing_time_ms"]
-                + species_result["processing_time_ms"],
+                disease_result["processing_time_ms"] + species_result["processing_time_ms"],
                 1,
             ),
         }

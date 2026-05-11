@@ -10,17 +10,18 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import numpy as np
-import timm
 import torch
 from torch import nn
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.utils.data import DataLoader, Subset
-from torchvision import models
 from tqdm import tqdm
 
 from plant_care_ai.data.dataset import PlantNetDataset
 from plant_care_ai.data.preprocessing import get_inference_pipeline, get_training_pipeline
+from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
+from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 
 class PlantTrainer:
@@ -202,22 +203,12 @@ class PlantTrainer:
         model_type = self.config["model"]
         pretrained = self.config.get("pretrained", True)
         if model_type == "resnet18":
-            self.model = models.resnet18(
-                weights=models.ResNet18_Weights.DEFAULT
-                if pretrained
-                else None
-            )
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_classes)
+            self.model = Resnet18(num_classes=self.num_classes)
         elif model_type == "resnet50":
-            self.model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT
-                if pretrained
-                else None
-            )
-            self.model.fc = nn.Linear(self.model.fc.in_features, self.num_classes)
+            self.model = Resnet50(num_classes=self.num_classes, pretrained=pretrained)
         elif model_type == "efficientnetv2":
-            self.model = timm.create_model(
-                self.config.get("variant", "tf_efficientnetv2_b0"),
-                pretrained=pretrained,
+            self.model = create_efficientnetv2(
+                variant=self.config.get("variant", "b0"),
                 num_classes=self.num_classes,
             )
         else:

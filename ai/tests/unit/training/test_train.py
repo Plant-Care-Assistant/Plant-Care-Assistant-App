@@ -10,12 +10,12 @@ from unittest.mock import patch
 
 import pytest
 import torch
-from plant_care_ai.models.resnet18 import Resnet18
-from plant_care_ai.models.resnet50 import Resnet50
 from torch import nn
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
 
+from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 from plant_care_ai.training.train import PlantTrainer
 
 # Test constants

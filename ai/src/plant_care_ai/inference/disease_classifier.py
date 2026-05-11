@@ -2,18 +2,23 @@
 
 Copyright 2026 Plant Care Assistant
 """
+
+from __future__ import annotations
+
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 from PIL import Image
-from ultralytics import YOLO
 
-from src.plant_care_ai.data.preprocessing import get_plantvillage_inference_pipeline
-from src.plant_care_ai.models.disease_model import DiseasePlantModel
+from plant_care_ai.data.preprocessing import get_plantvillage_inference_pipeline
+from plant_care_ai.models.disease_model import DiseasePlantModel
 
-HEALTH_THRESHOLD = 0.5
+if TYPE_CHECKING:
+    from ultralytics import YOLO
+
+DEFAULT_HEALTH_THRESHOLD = 0.5
 
 
 class DiseasePlantClassifier:
@@ -26,6 +31,7 @@ class DiseasePlantClassifier:
         idx_to_disease: dict[int, str],
         img_size: int = 224,
         yolo_conf: float = 0.25,
+        health_threshold: float = DEFAULT_HEALTH_THRESHOLD,
         device: str | None = None,
     ) -> None:
         """Initialize the disease classifier.
@@ -36,6 +42,8 @@ class DiseasePlantClassifier:
             idx_to_disease: Mapping from class index to disease name.
             img_size: Input image size expected by the disease model.
             yolo_conf: Confidence threshold for YOLO leaf detections.
+            health_threshold: Sigmoid threshold above which a plant is considered
+                diseased (default 0.5). Lower values increase sensitivity.
             device: Target device ('cuda' or 'cpu'). Auto-detected if None.
 
         """
@@ -45,6 +53,7 @@ class DiseasePlantClassifier:
         self.idx_to_disease = idx_to_disease
         self.num_diseases = len(idx_to_disease)
         self.yolo_conf = yolo_conf
+        self.health_threshold = health_threshold
 
         self.transform = get_plantvillage_inference_pipeline(img_size)
 
@@ -56,8 +65,9 @@ class DiseasePlantClassifier:
         device: str | None = None,
         *,
         yolo_conf: float = 0.25,
+        health_threshold: float = DEFAULT_HEALTH_THRESHOLD,
         verbose: bool = True,
-    ) -> "DiseasePlantClassifier":
+    ) -> DiseasePlantClassifier:
         """Load a DiseasePlantClassifier from checkpoint files.
 
         Args:
@@ -65,12 +75,22 @@ class DiseasePlantClassifier:
             yolo_checkpoint: Path to the YOLO leaf-detection model checkpoint.
             device: Target device. Auto-detected if None.
             yolo_conf: Confidence threshold for YOLO detections.
+            health_threshold: Sigmoid threshold above which a plant is diseased.
             verbose: Whether to print loading progress.
 
         Returns:
             DiseasePlantClassifier: Initialised classifier with weights loaded.
 
         """
+        try:
+            from ultralytics import YOLO  # noqa: PLC0415
+        except ImportError as exc:
+            msg = (
+                "ultralytics is required for DiseasePlantClassifier. "
+                "Install it with: pip install ultralytics"
+            )
+            raise ImportError(msg) from exc
+
         disease_checkpoint = Path(disease_checkpoint)
         ckpt = torch.load(disease_checkpoint, map_location="cpu", weights_only=False)
         config = ckpt.get("config", {})
@@ -99,12 +119,15 @@ class DiseasePlantClassifier:
             idx_to_disease=idx_di,
             img_size=img_size,
             yolo_conf=yolo_conf,
+            health_threshold=health_threshold,
             device=device,
         )
 
         if verbose:
-            print(f"Disease model : {disease_checkpoint.name}  "
-                  f"(variant={config.get('model_name', 'efficientnetv2')}_{variant})")
+            print(
+                f"Disease model : {disease_checkpoint.name}  "
+                f"(variant={config.get('model_name', 'efficientnetv2')}_{variant})"
+            )
             print(f"YOLO model    : {Path(yolo_checkpoint).name}")
             print(f"Diseases      : {num_diseases}")
 
@@ -197,10 +220,10 @@ class DiseasePlantClassifier:
         disease_probs = torch.softmax(out["disease"], dim=1)
 
         mean_health_logit = float(health_logits.mean().item())
-        health_label = "diseased" if mean_health_logit >= HEALTH_THRESHOLD else "healthy"
+        health_label = "diseased" if mean_health_logit >= self.health_threshold else "healthy"
         health_confidence = (
             mean_health_logit
-            if mean_health_logit >= HEALTH_THRESHOLD
+            if mean_health_logit >= self.health_threshold
             else 1.0 - mean_health_logit
         )
 
@@ -263,7 +286,7 @@ class DiseasePlantClassifier:
                     "leaf_index": k,
                     "bbox": boxes[k] if not used_full_image_fallback else None,
                     "health_logit": hlp,
-                    "health_label": "diseased" if hlp >= HEALTH_THRESHOLD else "healthy",
+                    "health_label": "diseased" if hlp >= self.health_threshold else "healthy",
                     "top_disease": self.idx_to_disease[int(di_i[0])],
                     "top_disease_conf": float(di_p[0]),
                 }

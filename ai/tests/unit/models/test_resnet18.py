@@ -4,8 +4,9 @@ Copyright 2025 Plant Care Assistant
 """
 
 import torch
-from plant_care_ai.models.resnet18 import BasicBlock, Resnet18
 from torch import nn
+
+from plant_care_ai.models.resnet18 import BasicBlock, Resnet18
 
 SHORTCUT_LAYER_COUNT = 2
 RESNET18_MIN_PARAMS = 10_000_000

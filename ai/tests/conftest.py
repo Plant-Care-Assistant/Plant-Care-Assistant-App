@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+
 from plant_care_ai.models.efficientnetv2 import EfficientNetV2
 from plant_care_ai.models.resnet18 import Resnet18
 from plant_care_ai.models.resnet50 import Resnet50

@@ -23,7 +23,6 @@ extend-ignore = [
     "PLR0914", # too many local variables
     "FBT001",  # boolean-typed positional argument in function definition
     "FBT002",  # boolean default positional argument in function definition
-    "D103",    # missing docstring in public function
 ]
 
 
@@ -34,7 +33,8 @@ parametrize-names-type = "tuple"
 [lint.per-file-ignores]
 "ai/tests/**/*.py" = [
     "FBT003", # allow boolean values in function calls
-    "S101",    # allow use of assert statements in tests
+    "S101",   # allow use of assert statements in tests
+    "SLF001", # allow private member access in tests
 ]
 
 

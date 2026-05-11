@@ -3,18 +3,18 @@
 Copyright 2025 Plant Care Assistant
 """
 
-import json
 import time
 from pathlib import Path
 from typing import Any
 
-import timm
 import torch
 from PIL import Image
 from torch import nn
-from torchvision import models
 
-from src.plant_care_ai.data.preprocessing import get_inference_pipeline
+from plant_care_ai.data.preprocessing import get_inference_pipeline
+from plant_care_ai.models.efficientnetv2 import create_efficientnetv2
+from plant_care_ai.models.resnet18 import Resnet18
+from plant_care_ai.models.resnet50 import Resnet50
 
 
 class PlantClassifier:
@@ -55,15 +55,18 @@ class PlantClassifier:
         *,
         verbose: bool = True,
     ) -> "PlantClassifier":
-        """Load a PlantClassifier from a saved checkpoint file.
+        """Load classifier from a training checkpoint file.
 
         Args:
-            checkpoint_path: Path to the .pt/.pth checkpoint file.
-            device: Target device. Auto-detected if None.
-            verbose: Whether to print loading progress.
+            checkpoint_path: Path to checkpoint file (.pth).
+            device: Device to load model on. If None, uses CUDA if available.
+            verbose: Whether to print loading information.
 
         Returns:
-            PlantClassifier: Initialised classifier with weights loaded.
+            PlantClassifier instance ready for inference.
+
+        Raises:
+            ValueError: If model type is unknown or num_classes cannot be determined.
 
         """
         checkpoint_path = Path(checkpoint_path)
@@ -71,22 +74,17 @@ class PlantClassifier:
 
         config = checkpoint.get("config", {})
         model_type = config.get("model", checkpoint.get("model_type", "efficientnetv2"))
-        variant = config.get("variant", "tf_efficientnetv2_b0")
-        num_classes = config.get("num_classes", checkpoint.get("num_classes", 1081))
+        num_classes = checkpoint.get("num_classes", config.get("num_classes", 1081))
         img_size = config.get("img_size", 224)
 
-        if model_type == "resnet50":
-            model = models.resnet50(weights=None)
-            model.fc = nn.Linear(model.fc.in_features, num_classes)
-        elif (
-            model_type == "timm"
-            or "efficientnet" in str(model_type)
-            or model_type == "efficientnetv2"
-        ):
-            model = timm.create_model(
-                variant,
+        if model_type == "resnet18":
+            model: nn.Module = Resnet18(num_classes=num_classes)
+        elif model_type == "resnet50":
+            model = Resnet50(num_classes=num_classes, pretrained=False)
+        elif model_type == "efficientnetv2":
+            model = create_efficientnetv2(
+                variant=config.get("variant", "b0"),
                 num_classes=num_classes,
-                pretrained=False
             )
         else:
             msg = f"Unknown model type: {model_type}"
@@ -95,16 +93,7 @@ class PlantClassifier:
         state_dict = checkpoint.get("model_state_dict", checkpoint)
         model.load_state_dict(state_dict)
 
-        if "idx_to_class" in checkpoint:
-            idx_to_class = {int(k): v for k, v in checkpoint["idx_to_class"].items()}
-        else:
-            mapping_path = checkpoint_path.parent / "class_id_to_name.json"
-            if verbose:
-                print(f"Loading mapping from {mapping_path}")
-
-            with Path(mapping_path).open(encoding="utf-8") as f:
-                loaded_mapping = json.load(f)
-                idx_to_class = {int(k): v["class_id"] for k, v in loaded_mapping.items()}
+        idx_to_class = {int(k): v for k, v in checkpoint["idx_to_class"].items()}
 
         classifier = cls(
             model=model,
@@ -115,10 +104,15 @@ class PlantClassifier:
 
         if checkpoint.get("id_to_name"):
             classifier.set_name_mapping(checkpoint["id_to_name"])
+            if verbose:
+                print(f"Loaded {len(checkpoint['id_to_name'])} class name mappings from checkpoint")
 
         if verbose:
-            print(f"Loaded checkpoint: {checkpoint_path.name}")
-            print(f"Model: {model_type} | Classes: {len(idx_to_class)}")
+            print(f"Loaded checkpoint from {checkpoint_path}")
+            print(f"Model: {model_type}")
+            print(f"Classes: {num_classes}")
+            if "best_acc" in checkpoint:
+                print(f"Best validation accuracy: {checkpoint['best_acc']:.2f}%")
 
         return classifier
 
@@ -139,12 +133,15 @@ class PlantClassifier:
         """Run inference on an image and return top-k species predictions.
 
         Args:
-            image: Input image as a file path or PIL Image.
+            image: Path to image file or PIL Image object.
             top_k: Number of top predictions to return.
 
         Returns:
             dict: Contains 'predictions' (list of dicts with class_id and
                 confidence) and 'processing_time_ms'.
+
+        Raises:
+            KeyError: If model output index is not found in idx_to_class mapping.
 
         """
         start_time = time.time()
@@ -165,12 +162,17 @@ class PlantClassifier:
         predictions = []
         for prob, idx in zip(
             top_probs[0].cpu().numpy(),
-            top_indices[0].cpu().numpy(), strict=False,
+            top_indices[0].cpu().numpy(),
+            strict=False,
         ):
             idx_int = int(idx)
+            if idx_int not in self.idx_to_class:
+                msg = f"Class index {idx_int} not found in idx_to_class mapping"
+                raise KeyError(msg)
+
             plant_id = self.idx_to_class[idx_int]
 
-            prediction = {
+            prediction: dict[str, Any] = {
                 "class_id": plant_id,
                 "confidence": float(prob),
             }
