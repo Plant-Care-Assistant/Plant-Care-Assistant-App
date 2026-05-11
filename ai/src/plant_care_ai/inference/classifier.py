@@ -86,6 +86,11 @@ class PlantClassifier:
                 variant=config.get("variant", "b0"),
                 num_classes=num_classes,
             )
+        elif model_type.startswith(("tf_", "timm/")):
+            # Checkpoint trained directly with a timm model (e.g. 'tf_efficientnetv2_b0')
+            import timm  # noqa: PLC0415
+
+            model = timm.create_model(model_type, num_classes=num_classes, pretrained=False)
         else:
             msg = f"Unknown model type: {model_type}"
             raise ValueError(msg)
