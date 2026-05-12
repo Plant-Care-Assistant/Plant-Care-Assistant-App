@@ -48,6 +48,7 @@ export default function PlantDetailPage() {
     try {
       await deletePlantMutation.mutateAsync(plant.id);
       removePlantImage(plant.id);
+      awardXP('DELETE_PLANT', { subtitle: plant.custom_name ?? 'Plant' });
       setShowDeleteDialog(false);
       router.push("/collection");
     } catch {

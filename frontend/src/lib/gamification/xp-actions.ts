@@ -4,6 +4,7 @@ export type XpActionId =
   | 'SCAN_IDENTIFY'
   | 'SCAN_AND_ADD'
   | 'ADD_PLANT'
+  | 'DELETE_PLANT'
   | 'WATER_PLANT'
   | 'COMPLETE_CARE_TASK'
   | 'WATER_BEFORE_9AM'
@@ -48,6 +49,12 @@ export const XP_ACTIONS: Record<XpActionId, XpAction> = {
     label: 'Plant Added',
     description: 'Added a plant to your collection',
     counters: ['plantsAdded', 'speciesOwned'],
+  },
+  DELETE_PLANT: {
+    id: 'DELETE_PLANT',
+    xp: 0,
+    label: 'Plant Removed',
+    description: 'Removed a plant from your collection',
   },
   WATER_PLANT: {
     id: 'WATER_PLANT',

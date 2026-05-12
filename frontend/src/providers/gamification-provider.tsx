@@ -115,6 +115,10 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       const prev = stateRef.current;
       if (action.onceOnly && action.flag && prev.flags[action.flag]) return;
 
+      // Audit-only actions (xp=0, no counters, no flag) do not mutate local
+      // state. After Section B they still fire POST /events for the audit log.
+      if (action.xp === 0 && !action.counters?.length && !action.flag) return;
+
       const newCounters = { ...prev.counters };
       action.counters?.forEach((c) => {
         newCounters[c] = (newCounters[c] ?? 0) + 1;
