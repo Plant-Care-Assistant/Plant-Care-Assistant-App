@@ -76,8 +76,81 @@ export interface PlantIdentification {
   confidence: number;
   careInstructions: string[];
   temperature: string;
-  light: string;
+  light: "low" | "medium" | "high";
   wateringFrequency: number;
+  catalogId: number | null;
+  diseaseAvailable: boolean;
+  healthLabel: "healthy" | "diseased" | null;
+  healthConfidence: number | null;
+  diseases: Array<{ plant: string; condition: string; confidence: number }> | null;
+}
+
+/**
+ * Plant catalog entry returned from GET /plants/by-plantsnet/{id} or /plants/{id}.
+ */
+export interface CatalogPlant {
+  id: number;
+  common_name: string;
+  scientific_name: string | null;
+  plantsnet_id: string | null;
+  preferred_sunlight: "low" | "medium" | "high";
+  preferred_temp_min: number | null;
+  preferred_temp_max: number | null;
+  air_humidity_req: "low" | "medium" | "high" | null;
+  soil_humidity_req: "low" | "medium" | "high" | null;
+  preferred_watering_interval_days: number | null;
+}
+
+/**
+ * AI service response shapes (port :8001, proxied via /ai)
+ */
+export interface AiSpeciesPrediction {
+  class_id: string;
+  class_name: string | null;
+  confidence: number;
+}
+
+export interface AiHealthSummary {
+  label: "healthy" | "diseased";
+  confidence: number;
+  logit: number;
+}
+
+export interface AiDiseasePrediction {
+  disease: string;
+  confidence: number;
+}
+
+export interface AiLeafResult {
+  leaf_index: number;
+  bbox: [number, number, number, number] | null;
+  health_logit: number;
+  health_label: string;
+  top_disease: string;
+  top_disease_conf: number;
+}
+
+export interface AiSpeciesResponse {
+  predictions: AiSpeciesPrediction[];
+  processing_time_ms: number;
+}
+
+export interface AiCombinedResponse {
+  species: AiSpeciesPrediction[];
+  health: AiHealthSummary;
+  diseases: AiDiseasePrediction[];
+  leaf_count: number;
+  used_full_image_fallback: boolean;
+  leaf_results: AiLeafResult[];
+  processing_time_ms: number;
+}
+
+export interface AiHealthResponse {
+  status: "healthy" | "not_ready";
+  device: string;
+  num_classes: number;
+  checkpoint_loaded: boolean;
+  disease_detection_available: boolean;
 }
 
 /**

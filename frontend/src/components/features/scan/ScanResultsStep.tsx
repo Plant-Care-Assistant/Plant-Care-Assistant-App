@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Sparkles, AlertCircle, Sun, Droplet } from 'lucide-react';
+import { ChevronLeft, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import type { ScanPlantData } from './ScanCameraModal';
 
@@ -109,6 +109,50 @@ export function ScanResultsStep({
               Please provide your plant's details manually.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Health Banner — only when AI returned a verdict */}
+      {plantData.healthLabel != null && (
+        <div
+          className={`rounded-xl p-4 flex flex-col gap-2 border ${
+            plantData.healthLabel === 'diseased'
+              ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+              : 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {plantData.healthLabel === 'diseased' ? (
+              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+            )}
+            <span
+              className={`font-semibold text-sm ${
+                darkMode ? 'text-white' : 'text-neutral-900'
+              }`}
+            >
+              {plantData.healthLabel === 'diseased'
+                ? 'Plant may be diseased'
+                : 'Plant looks healthy'}
+            </span>
+          </div>
+
+          {plantData.healthLabel === 'diseased' && plantData.diseases?.length ? (
+            <ul className="mt-1 space-y-1">
+              {plantData.diseases.slice(0, 3).map((d, i) => (
+                <li key={i} className="flex justify-between text-xs">
+                  <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
+                    {d.plant}
+                    {d.condition ? ` — ${d.condition}` : ''}
+                  </span>
+                  <span className="text-neutral-400 ml-2 shrink-0">
+                    {Math.round(d.confidence * 100)}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
 

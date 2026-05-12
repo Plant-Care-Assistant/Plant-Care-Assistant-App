@@ -30,6 +30,9 @@ export interface ScanPlantData {
   location?: string;
   confidence?: number; // Confidence score 0-100
   aiIdentified?: boolean;
+  catalogId?: number | null;
+  healthLabel?: 'healthy' | 'diseased' | null;
+  diseases?: Array<{ plant: string; condition: string; confidence: number }> | null;
 }
 
 interface ScanCameraModalProps {
@@ -71,7 +74,11 @@ export function ScanCameraModal({
         species: result.scientificName,
         confidence: result.confidence,
         aiIdentified: true,
+        lightLevel: result.light,
         wateringFrequency: result.wateringFrequency,
+        catalogId: result.catalogId,
+        healthLabel: result.healthLabel,
+        diseases: result.diseases,
       }));
       didIdentifyRef.current = true;
     } catch {
