@@ -28,6 +28,7 @@ class GameAction(StrEnum):
     scan_identify = "SCAN_IDENTIFY"
     scan_and_add = "SCAN_AND_ADD"
     add_plant = "ADD_PLANT"
+    delete_plant = "DELETE_PLANT"
     water_plant = "WATER_PLANT"
     complete_care_task = "COMPLETE_CARE_TASK"
     water_before_9am = "WATER_BEFORE_9AM"
@@ -36,7 +37,7 @@ class GameAction(StrEnum):
     first_home_visit = "FIRST_HOME_VISIT"
     first_collection_visit = "FIRST_COLLECTION_VISIT"
     first_scan_visit = "FIRST_SCAN_VISIT"
-    first_profile_visit = "FIRST_SCAN_VISIT"
+    first_profile_visit = "FIRST_PROFILE_VISIT"
     first_theme_change = "FIRST_THEME_CHANGE"
     daily_login_bonus = "DAILY_LOGIN_BONUS"
     achievement_unlock = "ACHIEVEMENT_UNLOCK"
@@ -143,9 +144,9 @@ class GamificationData(SQLModel, table=True):
     # Counters
     plants_added: int = Field(default=0)
     plants_scanned: int = Field(default=0)
-    plants_not_added: int = Field(default=0)
+    plants_scanned_not_added: int = Field(default=0)
     plants_watered: int = Field(default=0)
-    care_task_completed: int = Field(default=0)
+    care_tasks_completed: int = Field(default=0)
     species_owned: int = Field(default=0)
     species_scanned: int = Field(default=0)
     waters_before_9am: int = Field(default=0)

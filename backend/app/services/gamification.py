@@ -8,6 +8,11 @@ from sqlmodel import select
 from app.db import SessionDep
 from app.models.base import Achievement, GameAction, GamificationData, User
 from app.models.requests import UserActionResponse, UserGamificationReport
+from app.services.achievement_catalog import (
+    COUNTER_AND_STREAK_ACHIEVEMENTS,
+    FLAG_ACHIEVEMENTS,
+    LEVEL_ACHIEVEMENTS,
+)
 
 EARLY_MORNING_HOUR = 9
 
@@ -15,6 +20,7 @@ XP_MAPPING = {
     GameAction.scan_identify: 25,
     GameAction.scan_and_add: 100,
     GameAction.add_plant: 75,
+    GameAction.delete_plant: 0,
     GameAction.water_plant: 15,
     GameAction.complete_care_task: 25,
     GameAction.water_before_9am: 10,
@@ -32,9 +38,9 @@ XP_MAPPING = {
 COUNTERS = [
     "plants_added",
     "plants_scanned",
-    "plants_not_added",
+    "plants_scanned_not_added",
     "plants_watered",
-    "care_task_completed",
+    "care_tasks_completed",
     "species_owned",
     "species_scanned",
     "waters_before_9am",
@@ -63,10 +69,26 @@ class GamificationService:
 
     @staticmethod
     def _award_achievements(
-        current_achievements: list[str],  # noqa: ARG004
-        gd: GamificationData,  # noqa: ARG004
+        current_achievements: list[str],
+        gd: GamificationData,
     ) -> list[str]:
-        return []
+        already = set(current_achievements)
+        newly: list[str] = []
+
+        for aid, predicate in COUNTER_AND_STREAK_ACHIEVEMENTS:
+            if aid not in already and predicate(gd):
+                newly.append(aid)
+
+        level = GamificationService._derive_level(gd.xp)
+        for aid, min_level in LEVEL_ACHIEVEMENTS:
+            if aid not in already and level >= min_level:
+                newly.append(aid)
+
+        for aid, flag in FLAG_ACHIEVEMENTS:
+            if aid not in already and flag in gd.flags:
+                newly.append(aid)
+
+        return newly
 
     def init_gamifiction_data(self, user: User) -> GamificationData:
         new_gamifiction_data = GamificationData(user_id=user.id)
@@ -117,7 +139,7 @@ class GamificationService:
         match action:
             case GameAction.scan_identify:
                 gd.plants_scanned += 1
-                gd.plants_not_added += 1
+                gd.plants_scanned_not_added += 1
                 gd.species_scanned += 1
             case GameAction.scan_and_add:
                 gd.plants_scanned += 1
@@ -127,10 +149,14 @@ class GamificationService:
             case GameAction.add_plant:
                 gd.plants_added += 1
                 gd.species_owned += 1
+            case GameAction.delete_plant:
+                # Audit-only. Counters are lifetime monotonic so nothing changes.
+                # xp_awarded stays 0 from XP_MAPPING above.
+                pass
             case GameAction.water_plant:
                 gd.plants_watered += 1
             case GameAction.complete_care_task:
-                gd.care_task_completed += 1
+                gd.care_tasks_completed += 1
             case GameAction.water_before_9am:
                 if client_time.hour < EARLY_MORNING_HOUR:
                     gd.waters_before_9am += 1
@@ -153,12 +179,12 @@ class GamificationService:
                     xp_awarded = 0
 
         st = select(Achievement).where(Achievement.user_id == user.id)
-        current_achievements = [a.achievement for a in self.s.exec(st).all()]
+        current_achievements = [a.achievement_name for a in self.s.exec(st).all()]
 
         newly_unlocked = self._award_achievements(current_achievements, gd)
-        xp_awarded += len(newly_unlocked) * 50
+        xp_awarded += len(newly_unlocked) * XP_MAPPING[GameAction.achievement_unlock]
         for achievement in newly_unlocked:
-            self.s.add(Achievement(user_id=user.id, achievement=achievement))
+            self.s.add(Achievement(user_id=user.id, achievement_name=achievement))
 
         gd.xp += xp_awarded
 
