@@ -11,6 +11,7 @@ router = APIRouter(prefix="/my-plants", tags=["user_plants"])
 UPSD = UserPlantServiceDep
 
 
+@router.get("", response_model=list[UserPlantPublic])
 @router.get("/", response_model=list[UserPlantPublic])
 def read_user_plants(user: LoggedUserDep, service: UserPlantServiceDep):
     return service.read_plants(user)
