@@ -27,7 +27,7 @@ export function ScanScreen() {
     addPlantMutation.mutate({
       custom_name: plant.name || 'Unknown Plant',
       note: plant.species || null,
-      plant_catalog_id: null,
+      plant_catalog_id: plant.catalogId ?? null,
       imageUrl: plant.imageUrl,
     });
   };
