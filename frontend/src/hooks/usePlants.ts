@@ -6,6 +6,17 @@ import { UserPlant, UserPlantCreate } from "@/types";
 import { savePlantImage } from "@/lib/utils/plantImages";
 
 const PLANTS_KEY = ["plants"];
+const CATALOG_KEY = ["plants", "catalog"];
+
+/** Fetch a catalog entry (care fields, common name) for a UserPlant.plant_catalog_id. */
+export function useCatalogPlantQuery(catalogId: number | null | undefined) {
+  return useQuery({
+    queryKey: [...CATALOG_KEY, catalogId],
+    queryFn: () => plantApi.getCatalogPlant(catalogId as number),
+    enabled: catalogId != null,
+    staleTime: 1000 * 60 * 60, // catalog rarely changes
+  });
+}
 
 /** Fetch all plants in the user's collection. */
 export function usePlantsQuery(enabled = true) {

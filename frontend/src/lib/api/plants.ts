@@ -67,6 +67,19 @@ export const plantApi = {
   },
 
   /**
+   * Fetch a catalog entry by its database id (UserPlant.plant_catalog_id). Used
+   * on the plant detail screen to show real care fields instead of mock values.
+   */
+  async getCatalogPlant(catalogId: number): Promise<CatalogPlant | null> {
+    try {
+      const response = await apiClient.get<CatalogPlant>(`/plants/${catalogId}`);
+      return response.data;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Identify plant from image. Routes through /ai/predict/combined when disease
    * detection is available, otherwise falls back to /ai/predict. Enriches the
    * result with catalog data (care fields, common name) when the AI's class_id

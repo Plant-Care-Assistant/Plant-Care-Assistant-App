@@ -11,7 +11,7 @@ import { EnvInfoCard } from "@/components/features/plant/EnvInfoCard";
 import { CareInstructions } from "@/components/features/plant/CareInstructions";
 import { PlantActions } from "@/components/features/plant/PlantActions";
 import { useTheme, useGamification } from "@/providers";
-import { usePlantQuery, useDeletePlantMutation } from "@/hooks/usePlants";
+import { usePlantQuery, useDeletePlantMutation, useCatalogPlantQuery } from "@/hooks/usePlants";
 import { getPlantImage } from "@/lib/utils/plantImages";
 import { removePlantImage } from "@/lib/utils/plantImages";
 import { Trash2 } from "lucide-react";
@@ -22,11 +22,22 @@ export default function PlantDetailPage() {
   const router = useRouter();
   const plantId = useMemo(() => Number(params?.id), [params]);
   const { data: plant, isLoading } = usePlantQuery(plantId || undefined);
+  const { data: catalog } = useCatalogPlantQuery(plant?.plant_catalog_id);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === "dark";
   const { awardXP } = useGamification();
   const deletePlantMutation = useDeletePlantMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const tempLabel =
+    catalog?.preferred_temp_min != null && catalog?.preferred_temp_max != null
+      ? `${catalog.preferred_temp_min}–${catalog.preferred_temp_max}°C`
+      : "—";
+  const lightLabel = catalog?.preferred_sunlight
+    ? catalog.preferred_sunlight[0].toUpperCase() + catalog.preferred_sunlight.slice(1)
+    : "—";
+  const wateringValue: string | number =
+    catalog?.preferred_watering_interval_days ?? "—";
 
   const handleWaterNow = () => {
     const plantName = plant?.custom_name || 'Your plant';
@@ -91,7 +102,7 @@ export default function PlantDetailPage() {
               {/* Stats row */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <StatCard type="watered" value="—" darkMode={darkMode} />
-                <StatCard type="cycle" value={5} darkMode={darkMode} />
+                <StatCard type="cycle" value={wateringValue} darkMode={darkMode} />
                 <StatCard type="health" value={85} darkMode={darkMode} />
               </div>
 
@@ -103,8 +114,8 @@ export default function PlantDetailPage() {
             <div className="lg:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6 lg:sticky lg:top-24">
               {/* Environment info */}
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
-                <EnvInfoCard type="temperature" value="18-26°C" darkMode={darkMode} />
-                <EnvInfoCard type="light" value="Low to medium" darkMode={darkMode} />
+                <EnvInfoCard type="temperature" value={tempLabel} darkMode={darkMode} />
+                <EnvInfoCard type="light" value={lightLabel} darkMode={darkMode} />
               </div>
 
               {/* Care instructions */}
