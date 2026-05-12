@@ -3,35 +3,6 @@
  */
 
 /**
- * User profile and gamification data
- */
-export interface UserData {
-  name: string;
-  level: number;
-  xp: number;
-  xpToNextLevel: number;
-  streak: number;
-  healthScore: number;
-  weeklyChallenge: {
-    completed: number;
-    total: number;
-    description: string;
-  };
-  achievements: Achievement[];
-}
-
-/**
- * Achievement/badge earned by user
- */
-export interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  unlocked: boolean;
-  icon: string;
-}
-
-/**
  * Authentication token response
  */
 export interface Token {
