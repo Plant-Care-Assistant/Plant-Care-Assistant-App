@@ -123,7 +123,8 @@ export const gamificationApi = {
     try {
       const res = await apiClient.get<BackendSnapshot>("/gamification/me");
       return normalizeSnapshot(res.data);
-    } catch {
+    } catch (err) {
+      console.warn("gamificationApi.getMe failed:", err);
       return null;
     }
   },
@@ -139,7 +140,8 @@ export const gamificationApi = {
         xpAwarded: res.data.xp_awarded,
         newlyUnlocked: res.data.newly_unlocked,
       };
-    } catch {
+    } catch (err) {
+      console.warn(`gamificationApi.postEvent(${actionId}) failed:`, err);
       return null;
     }
   },

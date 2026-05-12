@@ -54,6 +54,9 @@ export function useAddPlantMutation() {
       }
       qc.invalidateQueries({ queryKey: PLANTS_KEY });
     },
+    onError: (err) => {
+      console.error("addPlant failed:", err);
+    },
   });
 }
 
