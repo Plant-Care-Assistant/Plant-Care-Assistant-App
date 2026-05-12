@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, misc, plants, user_plants, users, gamification
+from app.routers import auth, gamification, misc, plants, user_plants, users
 
 app = FastAPI(root_path="/api")
 

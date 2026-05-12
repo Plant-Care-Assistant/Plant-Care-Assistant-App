@@ -23,6 +23,7 @@ class HumidityLevel(StrEnum):
     medium = "medium"
     high = "high"
 
+
 class GameAction(StrEnum):
     scan_identify = "SCAN_IDENTIFY"
     scan_and_add = "SCAN_AND_ADD"
@@ -39,6 +40,7 @@ class GameAction(StrEnum):
     first_theme_change = "FIRST_THEME_CHANGE"
     daily_login_bonus = "DAILY_LOGIN_BONUS"
     achievement_unlock = "ACHIEVEMENT_UNLOCK"
+
 
 # 1. TABELA UŻYTKOWNIKÓW
 class User(SQLModel, table=True):
@@ -117,6 +119,7 @@ class LevelsXpRanges(SQLModel, table=True):
     level_val: int = Field(primary_key=True)
     req_xp: int
 
+
 class GamificationData(SQLModel, table=True):
     __tablename__: str = "gamification_data"  # type: ignore
     id: int | None = Field(default=None, primary_key=True)
@@ -144,6 +147,7 @@ class GamificationData(SQLModel, table=True):
         sa_column=Column(MutableList.as_mutable(JSONB)),
     )
 
+
 class Achievement(SQLModel, table=True):
     __tablename__: str = "achievement_data"  # type: ignore
     id: int | None = Field(default=None, primary_key=True)
@@ -151,7 +155,8 @@ class Achievement(SQLModel, table=True):
     created_at: datetime | None = Field(default_factory=utc_now)
     achievement_name: str
 
-#class XPEvent(SQLModel, table=True):
+
+# class XPEvent(SQLModel, table=True):
 #   pass
 
 

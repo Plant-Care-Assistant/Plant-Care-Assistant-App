@@ -1,12 +1,15 @@
-from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from datetime import UTC, datetime, timedelta
 from math import floor, sqrt
+from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from sqlmodel import select
+
 from app.db import SessionDep
 from app.models.base import Achievement, GameAction, GamificationData, User
 from app.models.requests import UserActionResponse, UserGamificationReport
+
+EARLY_MORNING_HOUR = 9
 
 XP_MAPPING = {
     GameAction.scan_identify: 25,
@@ -60,7 +63,8 @@ class GamificationService:
 
     @staticmethod
     def _award_achievements(
-        current_achievements: list[str], gd: GamificationData
+        current_achievements: list[str],  # noqa: ARG004
+        gd: GamificationData,  # noqa: ARG004
     ) -> list[str]:
         return []
 
@@ -77,11 +81,8 @@ class GamificationService:
         if gd is None:
             gd = self.init_gamifiction_data(user)
 
-        print("---")
-        print(gd.flags)
         counters = {c: getattr(gd, c, 0) for c in COUNTERS}
         flags = {f.name: f.name in gd.flags for f in FLAGS}
-        print(flags)
 
         st = select(Achievement).where(Achievement.user_id == user.id)
         achievements = [a.achievement_name for a in self.s.exec(st).all()]
@@ -96,8 +97,11 @@ class GamificationService:
             last_active_date=gd.last_activity,
         )
 
-    def handle_action(
-        self, user: User, action: GameAction, delta_minutes: int = 0
+    def handle_action(  # noqa: C901, PLR0912, PLR0915
+        self,
+        user: User,
+        action: GameAction,
+        delta_minutes: int = 0,
     ) -> UserActionResponse:
         if user.id is None:
             raise HTTPException(401, "User not authenticated")
@@ -108,7 +112,7 @@ class GamificationService:
 
         xp_awarded = XP_MAPPING[action]
 
-        utc_time = datetime.now(timezone.utc)
+        utc_time = datetime.now(UTC)
         client_time = utc_time + timedelta(minutes=delta_minutes)
         match action:
             case GameAction.scan_identify:
@@ -128,7 +132,7 @@ class GamificationService:
             case GameAction.complete_care_task:
                 gd.care_task_completed += 1
             case GameAction.water_before_9am:
-                if client_time.hour < 9:
+                if client_time.hour < EARLY_MORNING_HOUR:
                     gd.waters_before_9am += 1
                 else:
                     xp_awarded = 0

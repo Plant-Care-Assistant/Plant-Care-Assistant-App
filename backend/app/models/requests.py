@@ -87,9 +87,11 @@ class UserGamificationReport(BaseModel):
     longest_streak: int
     last_active_date: datetime | None
 
+
 class GamificationActionBody(BaseModel):
     action_id: str
     client_tz_offset_min: int
+
 
 class UserActionResponse(BaseModel):
     snapshot: UserGamificationReport

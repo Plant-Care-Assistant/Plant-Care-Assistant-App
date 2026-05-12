@@ -1,3 +1,5 @@
+from fastapi import APIRouter
+
 from app.models.base import GameAction
 from app.models.requests import (
     GamificationActionBody,
@@ -6,7 +8,6 @@ from app.models.requests import (
 )
 from app.services.gamification import GamificationServiceDep
 from app.services.security import LoggedUserDep
-from fastapi import APIRouter, Query, Response
 
 router = APIRouter(prefix="/gamification", tags=["gamification"])
 
@@ -18,10 +19,14 @@ def read_stats(user: LoggedUserDep, service: GamificationServiceDep):
 
 @router.post("/events", response_model=UserActionResponse)
 def create_event(
-    body: GamificationActionBody, user: LoggedUserDep, service: GamificationServiceDep
+    body: GamificationActionBody,
+    user: LoggedUserDep,
+    service: GamificationServiceDep,
 ):
     return service.handle_action(
-        user, GameAction(body.action_id), body.client_tz_offset_min
+        user,
+        GameAction(body.action_id),
+        body.client_tz_offset_min,
     )
 
 
