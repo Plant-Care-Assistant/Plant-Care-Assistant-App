@@ -95,7 +95,7 @@ class PlantTrainer:
 
         seed = 42
         random.seed(seed)
-        np.random.default_rng(seed)
+        np.random.seed(seed)  # noqa: NPY002
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 

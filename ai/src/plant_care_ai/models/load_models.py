@@ -70,10 +70,13 @@ def get_model(
         path = pathlib.Path(weights_path)
         if path.exists():
             checkpoint = torch.load(weights_path, map_location=device, weights_only=False)
-            if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
-                model.load_state_dict(checkpoint["state_dict"])
+            if isinstance(checkpoint, dict):
+                state = (
+                    checkpoint.get("model_state_dict") or checkpoint.get("state_dict") or checkpoint
+                )
             else:
-                model.load_state_dict(checkpoint)
+                state = checkpoint
+            model.load_state_dict(state)
         else:
             print(f"Warning: Weights file not found at {weights_path}.")
 
