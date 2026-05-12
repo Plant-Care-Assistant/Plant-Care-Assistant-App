@@ -251,28 +251,28 @@ class TestEfficientNetV2:
     def test_round_channels() -> None:
         """Test _round_channels rounds to nearest divisor."""
         # 24 * 1.0 = 24, already divisible by 8
-        assert EfficientNetV2._round_channels(24, 1.0) == EXPECTED_ROUND_CHANNELS_24  # noqa: SLF001
+        assert EfficientNetV2._round_channels(24, 1.0) == EXPECTED_ROUND_CHANNELS_24
         # 24 * 1.1 = 26.4, rounds to 24
-        assert EfficientNetV2._round_channels(24, 1.1) == EXPECTED_ROUND_CHANNELS_24  # noqa: SLF001
+        assert EfficientNetV2._round_channels(24, 1.1) == EXPECTED_ROUND_CHANNELS_24
         # 24 * 1.5 = 36, rounds to 40
-        assert EfficientNetV2._round_channels(24, 1.5) == EXPECTED_ROUND_CHANNELS_40  # noqa: SLF001
+        assert EfficientNetV2._round_channels(24, 1.5) == EXPECTED_ROUND_CHANNELS_40
 
     @staticmethod
     def test_round_channels_adds_divisor_when_too_small() -> None:
         """Test _round_channels adds divisor when rounded value is < 90% of scaled."""
         # 9 * 1.0 = 9, rounds to 8, but 8 < 0.9 * 9 = 8.1, so add divisor -> 16
-        assert EfficientNetV2._round_channels(9, 1.0) == EXPECTED_ROUND_CHANNELS_16  # noqa: SLF001
+        assert EfficientNetV2._round_channels(9, 1.0) == EXPECTED_ROUND_CHANNELS_16
         # 17 * 1.0 = 17, rounds to 16, but 16 < 0.9 * 17 = 15.3? No, 16 > 15.3
         # Let's find a case: channels=11, width_mult=1.0 -> 11, rounds to 8
         # 8 < 0.9 * 11 = 9.9, so add divisor -> 16
-        assert EfficientNetV2._round_channels(11, 1.0) == EXPECTED_ROUND_CHANNELS_16  # noqa: SLF001
+        assert EfficientNetV2._round_channels(11, 1.0) == EXPECTED_ROUND_CHANNELS_16
 
     @staticmethod
     def test_round_repeats() -> None:
         """Test _round_repeats rounds up correctly."""
-        assert EfficientNetV2._round_repeats(2, 1.0) == EXPECTED_ROUND_REPEATS_2  # noqa: SLF001
-        assert EfficientNetV2._round_repeats(2, 1.1) == EXPECTED_ROUND_REPEATS_3  # noqa: SLF001
-        assert EfficientNetV2._round_repeats(4, 0.5) == EXPECTED_ROUND_REPEATS_2  # noqa: SLF001
+        assert EfficientNetV2._round_repeats(2, 1.0) == EXPECTED_ROUND_REPEATS_2
+        assert EfficientNetV2._round_repeats(2, 1.1) == EXPECTED_ROUND_REPEATS_3
+        assert EfficientNetV2._round_repeats(4, 0.5) == EXPECTED_ROUND_REPEATS_2
 
 
 class TestCreateEfficientNetV2:

@@ -73,7 +73,7 @@ class TestPlantTrainerInit:
         assert trainer.model is None
         assert trainer.optimizer is None
         assert trainer.scheduler is None
-        assert trainer.best_acc == 0.0
+        assert trainer.best_acc == pytest.approx(0.0)
         assert trainer.best_epoch == 0
 
     @staticmethod

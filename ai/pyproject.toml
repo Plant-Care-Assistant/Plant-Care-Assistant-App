@@ -28,8 +28,10 @@ maintainers = [
 # CUDA: pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cu124
 dependencies = [
     "pandas==2.3.3",
+    "pillow==11.1.0",
     "scikit-learn==1.7.2",
     "numpy==2.3.4",
+    "timm==1.0.22",
 ]
 
 [project.optional-dependencies]
@@ -38,8 +40,8 @@ api = [
     "fastapi==0.115.12",
     "uvicorn[standard]==0.34.0",
     "python-multipart==0.0.20",
-    "pillow==11.1.0",
     "requests==2.32.3",
+    "ultralytics==8.3.221",
 ]
 
 dev = [
@@ -53,6 +55,7 @@ dev = [
     "python-multipart==0.0.20",
     "tqdm==4.66.4",
     "pytest-asyncio==0.21.0",
+    "ultralytics==8.3.221",
 ]
 
 [tool.ruff]
@@ -69,13 +72,18 @@ indent-width = 4
 preview = true
 select = ["ALL"]
 extend-ignore = [
-    "D203", # space between 1st line and summary line in docstrings
-    "D213", # docstring summary in multi-line docstring should start at the first line
-    "T201", # allow use of print statements
-    "EXE002", # shebang not required for python files
-    "COM812", # conflict with black formatting
-    "ANN003", # allow missing type hints for kwargs
-    "ANN002", # allow missing type hints for args
+    "D203",    # space between 1st line and summary line in docstrings
+    "D213",    # docstring summary in multi-line docstring should start at the first line
+    "T201",    # allow use of print statements
+    "EXE002",  # shebang not required for python files
+    "COM812",  # conflict with black formatting
+    "ANN003",  # allow missing type hints for kwargs
+    "ANN002",  # allow missing type hints for args
+    "DOC501",  # raised exceptions missing from docstring
+    "PLR0914", # too many local variables
+    "FBT001",  # boolean-typed positional argument in function definition
+    "FBT002",  # boolean default positional argument in function definition
+    "D103",    # missing docstring in public function
 ]
 
 [tool.ruff.lint.pylint]
@@ -87,11 +95,13 @@ parametrize-names-type = "tuple"
 [tool.ruff.lint.per-file-ignores]
 
 "tests/**/*.py" = [
-    "FBT003", # allow boolean values in function calls
+    "FBT003",  # allow boolean values in function calls
     "S101",    # allow use of assert statements in tests
+    "PLR2004", # allow magic value comparisons in tests
+    "SLF001",  # allow private member access in tests
 ]
 
-
+"src/plant_care_ai/api/*.py" = ["RUF029"]
 
 [tool.ruff.lint.pep8-naming]
 ignore-names = ["df"]

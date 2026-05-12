@@ -297,7 +297,7 @@ class EfficientNetV2(nn.Module):
             ["mbconv", 6, 224, 19, 1, 3, 0.25],
             ["mbconv", 6, 384, 25, 2, 3, 0.25],
             ["mbconv", 6, 640, 7, 1, 3, 0.25],
-        ]
+        ],
     }
 
     def __init__(
