@@ -68,6 +68,7 @@ class PlantPublic(BaseModel):
     id: int
     common_name: str
     scientific_name: str | None
+    plantsnet_id: str | None
     preferred_sunlight: LightLevel
     preferred_temp_min: int | None
     preferred_temp_max: int | None

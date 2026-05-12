@@ -44,8 +44,12 @@ services:
             dockerfile: docker/api.Dockerfile
         environment:
             - DEVICE=cpu
-            - MODEL_CHECKPOINT_PATH=/app/models/best.pth
+            # Species identification model (PlantNet EfficientNetV2-B0)
+            - MODEL_CHECKPOINT_PATH=/app/models/plantnet_effv2b0.pth
             - CLASS_MAPPING_PATH=/app/models/class_id_to_name.json
+            # Disease detection — requires both to enable /predict/disease and /predict/combined
+            - DISEASE_CHECKPOINT_PATH=/app/models/model_disease.pt
+            - YOLO_CHECKPOINT_PATH=/app/models/yolo_leaf.pt
         volumes:
             - ../ai/models:/app/models:ro
         network_mode: service:sidecar

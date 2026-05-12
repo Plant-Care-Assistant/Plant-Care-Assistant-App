@@ -41,6 +41,13 @@ class PlantService:
                 top_plants.append(mapping[r[0]])
         return top_plants
 
+    def read_plant_by_plantsnet_id(self, plantsnet_id: str) -> Plant:
+        statement = select(Plant).where(Plant.plantsnet_id == plantsnet_id)
+        plant = self.s.exec(statement).first()
+        if plant is None:
+            raise HTTPException(404, "Plant not found for this PlantNet ID")
+        return plant
+
     def read_plant_image(self, plant_id: int) -> str:
         plant = self.s.get(Plant, plant_id)
         if plant is None:
