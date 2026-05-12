@@ -18,9 +18,11 @@ import {
 } from '@/lib/gamification/types';
 import { XP_ACTIONS, type XpActionId } from '@/lib/gamification/xp-actions';
 import { progressWithinLevel } from '@/lib/gamification/level';
-import { ACHIEVEMENTS, isAchievementUnlocked } from '@/lib/data/achievements';
-
-const STORAGE_PREFIX = 'gamification:';
+import { ACHIEVEMENTS } from '@/lib/data/achievements';
+import {
+  gamificationApi,
+  type NormalizedSnapshot,
+} from '@/lib/api/gamification';
 
 interface GamificationContextType {
   state: GamificationState;
@@ -36,76 +38,57 @@ interface GamificationContextType {
 
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
 
-function storageKey(userId: string | null) {
-  return `${STORAGE_PREFIX}${userId ?? 'anonymous'}`;
+function snapshotToState(snap: NormalizedSnapshot): GamificationState {
+  return {
+    xp: snap.xp,
+    counters: snap.counters,
+    flags: snap.flags,
+    unlockedAchievementIds: snap.unlockedAchievementIds,
+    lastActiveDate: snap.lastActiveDate,
+  };
 }
 
-function loadState(userId: string | null): GamificationState {
-  if (typeof window === 'undefined') return EMPTY_STATE;
-  try {
-    const raw = window.localStorage.getItem(storageKey(userId));
-    if (!raw) return EMPTY_STATE;
-    const parsed = JSON.parse(raw) as Partial<GamificationState>;
-    return {
-      ...EMPTY_STATE,
-      ...parsed,
-      counters: { ...EMPTY_STATE.counters, ...(parsed.counters ?? {}) },
-      flags: { ...EMPTY_STATE.flags, ...(parsed.flags ?? {}) },
-      unlockedAchievementIds: parsed.unlockedAchievementIds ?? [],
-    };
-  } catch {
-    return EMPTY_STATE;
-  }
-}
-
-function saveState(userId: string | null, state: GamificationState) {
+/** One-time cleanup: drop stale `gamification:*` localStorage keys from v1. */
+function purgeLegacyLocalStorage() {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(storageKey(userId), JSON.stringify(state));
+    const keys = Object.keys(window.localStorage).filter((k) => k.startsWith('gamification:'));
+    keys.forEach((k) => window.localStorage.removeItem(k));
   } catch {
-    // quota/serialization errors: state is recoverable from memory until next write
+    /* ignore */
   }
 }
 
 export function GamificationProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { showXpToast, showAchievementToast } = useToast();
   const [state, setState] = useState<GamificationState>(EMPTY_STATE);
   const [hydrated, setHydrated] = useState(false);
   const stateRef = useRef<GamificationState>(EMPTY_STATE);
-  const userIdRef = useRef<string | null>(null);
 
+  // Hydrate from backend on auth ready. Legacy localStorage is purged once.
   useEffect(() => {
     if (authLoading) return;
-    const uid = user?.id ?? null;
-    userIdRef.current = uid;
-    let loaded = loadState(uid);
-
-    // Existing users (account older than 10 min) shouldn't be forced through the
-    // "welcome aboard" toast flow on a new device — pre-seed the flag silently.
-    if (user && !loaded.flags.accountCreated) {
-      const accountAgeMs = Date.now() - new Date(user.created_at).getTime();
-      if (accountAgeMs > 10 * 60 * 1000) {
-        const unlocked = new Set(loaded.unlockedAchievementIds);
-        unlocked.add('welcome-aboard');
-        loaded = {
-          ...loaded,
-          flags: { ...loaded.flags, accountCreated: true },
-          unlockedAchievementIds: Array.from(unlocked),
-        };
-      }
+    if (!isAuthenticated) {
+      setState(EMPTY_STATE);
+      stateRef.current = EMPTY_STATE;
+      setHydrated(true);
+      return;
     }
-
-    stateRef.current = loaded;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating React state from localStorage
-    setState(loaded);
-    setHydrated(true);
-  }, [user, authLoading]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveState(userIdRef.current, state);
-  }, [state, hydrated]);
+    let cancelled = false;
+    (async () => {
+      purgeLegacyLocalStorage();
+      const snap = await gamificationApi.getMe();
+      if (cancelled) return;
+      const next = snap ? snapshotToState(snap) : EMPTY_STATE;
+      stateRef.current = next;
+      setState(next);
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isAuthenticated]);
 
   const awardXP = useCallback<GamificationContextType['awardXP']>(
     (actionId, opts) => {
@@ -113,102 +96,68 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       if (!action) return;
 
       const prev = stateRef.current;
+      // Once-only actions short-circuit when the flag is already set, avoiding
+      // a needless round-trip. Backend is also idempotent here (§7.2) — this is
+      // just an optimization, not a correctness guard.
       if (action.onceOnly && action.flag && prev.flags[action.flag]) return;
 
-      // Audit-only actions (xp=0, no counters, no flag) do not mutate local
-      // state. After Section B they still fire POST /events for the audit log.
-      if (action.xp === 0 && !action.counters?.length && !action.flag) return;
+      // Fire-and-forget: backend is authoritative. We apply the returned
+      // snapshot. Toasts are driven by `xp_awarded` / `newly_unlocked`.
+      (async () => {
+        const res = await gamificationApi.postEvent(actionId);
+        if (!res) return;
 
-      const newCounters = { ...prev.counters };
-      action.counters?.forEach((c) => {
-        newCounters[c] = (newCounters[c] ?? 0) + 1;
-      });
-      const newFlags = { ...prev.flags };
-      if (action.flag) newFlags[action.flag] = true;
+        stateRef.current = snapshotToState(res.snapshot);
+        setState(stateRef.current);
 
-      let next: GamificationState = {
-        ...prev,
-        xp: prev.xp + action.xp,
-        counters: newCounters,
-        flags: newFlags,
-      };
-
-      const prevIds = new Set(prev.unlockedAchievementIds);
-      const newlyUnlocked: string[] = [];
-      for (const achievement of ACHIEVEMENTS) {
-        if (!prevIds.has(achievement.id) && isAchievementUnlocked(achievement, next)) {
-          newlyUnlocked.push(achievement.id);
+        if (res.xpAwarded > 0) {
+          // Subtract the achievement-unlock bonus from the main toast so the
+          // numbers add up cleanly (main action toast + per-unlock bonus toast).
+          const unlockBonus =
+            res.newlyUnlocked.length * XP_ACTIONS.ACHIEVEMENT_UNLOCK.xp;
+          const actionXp = res.xpAwarded - unlockBonus;
+          if (actionXp > 0) {
+            showXpToast({
+              amount: actionXp,
+              title: action.label,
+              subtitle: opts?.subtitle ?? action.description,
+            });
+          }
+          if (unlockBonus > 0) {
+            showXpToast({
+              amount: unlockBonus,
+              title: XP_ACTIONS.ACHIEVEMENT_UNLOCK.label,
+              subtitle: `${res.newlyUnlocked.length} achievement${
+                res.newlyUnlocked.length > 1 ? 's' : ''
+              } unlocked`,
+            });
+          }
         }
-      }
-      const bonusXp = newlyUnlocked.length * XP_ACTIONS.ACHIEVEMENT_UNLOCK.xp;
-      if (newlyUnlocked.length > 0) {
-        next = {
-          ...next,
-          xp: next.xp + bonusXp,
-          unlockedAchievementIds: [...next.unlockedAchievementIds, ...newlyUnlocked],
-        };
-      }
-
-      stateRef.current = next;
-      setState(next);
-
-      if (action.xp > 0) {
-        showXpToast({
-          amount: action.xp,
-          title: action.label,
-          subtitle: opts?.subtitle ?? action.description,
+        res.newlyUnlocked.forEach((id) => {
+          const a = ACHIEVEMENTS.find((x) => x.id === id);
+          if (a) showAchievementToast({ title: a.title, subtitle: a.hint });
         });
-      }
-      newlyUnlocked.forEach((id) => {
-        const a = ACHIEVEMENTS.find((x) => x.id === id);
-        if (a) showAchievementToast({ title: a.title, subtitle: a.hint });
-      });
-      if (bonusXp > 0) {
-        showXpToast({
-          amount: bonusXp,
-          title: XP_ACTIONS.ACHIEVEMENT_UNLOCK.label,
-          subtitle: `${newlyUnlocked.length} achievement${newlyUnlocked.length > 1 ? 's' : ''} unlocked`,
-        });
-      }
+      })();
     },
     [showXpToast, showAchievementToast],
   );
 
+  // First login: fire once per session when authenticated. Backend's
+  // GameAction.first_login is gated by the `first_login` flag (§7.2) so any
+  // duplicate fires return xp_awarded=0 with an unchanged snapshot.
   useEffect(() => {
     if (!isAuthenticated || !hydrated) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot welcome grant gated by flag
     if (!state.flags.accountCreated) awardXP('FIRST_LOGIN');
   }, [isAuthenticated, hydrated, state.flags.accountCreated, awardXP]);
 
-  // Daily streak + login bonus: runs once per local day when the user is active.
-  // Guarded by lastActiveDate so remounts within the same day don't re-award.
+  // Daily login: backend handles the once-per-day gate via last_login_at, so
+  // we can fire on every mount and trust the no-op when already awarded today.
   useEffect(() => {
     if (!isAuthenticated || !hydrated) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const prev = stateRef.current;
-    if (prev.lastActiveDate === today) return;
-
-    let newStreak = 1;
-    if (prev.lastActiveDate) {
-      const msPerDay = 24 * 60 * 60 * 1000;
-      const diffDays = Math.round(
-        (new Date(today).getTime() - new Date(prev.lastActiveDate).getTime()) / msPerDay,
-      );
-      if (diffDays === 1) newStreak = prev.counters.currentStreak + 1;
-    }
-
-    stateRef.current = {
-      ...prev,
-      lastActiveDate: today,
-      counters: {
-        ...prev.counters,
-        currentStreak: newStreak,
-        longestStreak: Math.max(prev.counters.longestStreak, newStreak),
-      },
-    };
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- daily bonus gated by date comparison
     awardXP('DAILY_LOGIN_BONUS');
-  }, [isAuthenticated, hydrated, awardXP]);
+    // Intentionally fires once on hydration; backend dedupes by calendar day.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, hydrated]);
 
   const unlockedIdSet = useMemo(
     () => new Set(state.unlockedAchievementIds),
