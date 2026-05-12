@@ -11,7 +11,7 @@ export function DailyGoal({ current, total, darkMode }: DailyGoalProps) {
     <div className={`p-5 rounded-3xl ${darkMode ? 'bg-neutral-800' : 'bg-white'} shadow-md mb-5`}>
       <div className="flex justify-between items-center mb-3">
         <h3 className={`text-sm font-semibold ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-          Daily Goal
+          Progress to next level
         </h3>
         <span className={`text-sm font-bold ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
           {current}/{total} XP

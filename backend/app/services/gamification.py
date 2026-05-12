@@ -140,10 +140,21 @@ class GamificationService:
     ) -> UserActionResponse:
         if user.id is None:
             raise HTTPException(401, "User not authenticated")
-        st = select(GamificationData).where(GamificationData.user_id == user.id)
+        # FOR UPDATE locks the gamification row for the duration of this
+        # transaction so concurrent FIRST_LOGIN / FIRST_HOME_VISIT / SCAN_AND_ADD
+        # events don't double-award (e.g. both seeing flag=absent and appending it,
+        # or both bumping plants_added and unlocking first-sprout twice).
+        st = (
+            select(GamificationData)
+            .where(GamificationData.user_id == user.id)
+            .with_for_update()
+        )
         gd = self.s.exec(st).one_or_none()
         if gd is None:
             gd = self.init_gamifiction_data(user)
+            # Re-select with lock so subsequent reads in this transaction see
+            # the same row under FOR UPDATE semantics.
+            gd = self.s.exec(st).one()
 
         xp_awarded = XP_MAPPING[action]
 

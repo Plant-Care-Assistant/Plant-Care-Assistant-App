@@ -65,6 +65,10 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GamificationState>(EMPTY_STATE);
   const [hydrated, setHydrated] = useState(false);
   const stateRef = useRef<GamificationState>(EMPTY_STATE);
+  // Once-only actions still in flight to the backend. React StrictMode (dev)
+  // double-invokes effects; without this guard both invocations see flag=false
+  // and send two POSTs before either response lands.
+  const inFlight = useRef<Set<XpActionId>>(new Set());
 
   // Hydrate from backend on auth ready. Legacy localStorage is purged once.
   useEffect(() => {
@@ -100,11 +104,17 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       // a needless round-trip. Backend is also idempotent here (§7.2) — this is
       // just an optimization, not a correctness guard.
       if (action.onceOnly && action.flag && prev.flags[action.flag]) return;
+      // Dedupe parallel calls of the same once-only action (React StrictMode
+      // double-fire, fast remounts) so we don't post twice before the first
+      // response sets the flag.
+      if (action.onceOnly && inFlight.current.has(actionId)) return;
+      if (action.onceOnly) inFlight.current.add(actionId);
 
       // Fire-and-forget: backend is authoritative. We apply the returned
       // snapshot. Toasts are driven by `xp_awarded` / `newly_unlocked`.
       (async () => {
         const res = await gamificationApi.postEvent(actionId);
+        if (action.onceOnly) inFlight.current.delete(actionId);
         if (!res) return;
 
         stateRef.current = snapshotToState(res.snapshot);
