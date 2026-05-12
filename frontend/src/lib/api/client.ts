@@ -3,7 +3,7 @@ import axios from "axios";
 /**
  * Base API URL - configure via environment variable
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 /**
  * Axios instance for API requests
