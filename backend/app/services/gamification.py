@@ -3,6 +3,7 @@ from math import floor, sqrt
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
 from app.db import SessionDep
@@ -91,11 +92,23 @@ class GamificationService:
         return newly
 
     def init_gamifiction_data(self, user: User) -> GamificationData:
-        new_gamifiction_data = GamificationData(user_id=user.id)
-        self.s.add(new_gamifiction_data)
-        self.s.commit()
-        self.s.refresh(new_gamifiction_data)
-        return new_gamifiction_data
+        # Frontend fires FIRST_LOGIN, FIRST_HOME_VISIT, DAILY_LOGIN_BONUS in
+        # parallel on first authenticated mount. Without the UNIQUE(user_id)
+        # constraint two of them race and create duplicate rows. With the
+        # constraint the loser's INSERT raises IntegrityError; recover by
+        # fetching the winner's row.
+        new_gd = GamificationData(user_id=user.id)
+        self.s.add(new_gd)
+        try:
+            self.s.commit()
+            self.s.refresh(new_gd)
+            return new_gd
+        except IntegrityError:
+            self.s.rollback()
+            existing = self.s.exec(
+                select(GamificationData).where(GamificationData.user_id == user.id),
+            ).one()
+            return existing
 
     def user_report(self, user: User) -> UserGamificationReport:
         st = select(GamificationData).where(GamificationData.user_id == user.id)

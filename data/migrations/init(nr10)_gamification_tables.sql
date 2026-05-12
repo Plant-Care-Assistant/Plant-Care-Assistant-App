@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS gamification_data (
     species_scanned          INTEGER NOT NULL DEFAULT 0,
     waters_before_9am        INTEGER NOT NULL DEFAULT 0,
 
-    flags                    JSONB NOT NULL DEFAULT '[]'::jsonb
+    flags                    JSONB NOT NULL DEFAULT '[]'::jsonb,
+
+    UNIQUE (user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_gamification_data_user_id ON gamification_data(user_id);
