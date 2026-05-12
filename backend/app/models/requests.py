@@ -41,12 +41,28 @@ class UserPlantCreate(BaseModel):
     note: str | None = None
     sprouted_at: datetime | None = None
 
+    scientific_name: str | None = None
+    preferred_sunlight: LightLevel | None = None
+    preferred_temp_min: int | None = None
+    preferred_temp_max: int | None = None
+    air_humidity_req: HumidityLevel | None = None
+    soil_humidity_req: HumidityLevel | None = None
+    preferred_watering_interval_days: int | None = None
+
 
 class UserPlantUpdate(BaseModel):
     plant_catalog_id: int | None = None
     custom_name: str | None = None
     note: str | None = None
     sprouted_at: datetime | None = None
+
+    scientific_name: str | None = None
+    preferred_sunlight: LightLevel | None = None
+    preferred_temp_min: int | None = None
+    preferred_temp_max: int | None = None
+    air_humidity_req: HumidityLevel | None = None
+    soil_humidity_req: HumidityLevel | None = None
+    preferred_watering_interval_days: int | None = None
 
 
 class UserPlantPublic(BaseModel):
@@ -60,6 +76,14 @@ class UserPlantPublic(BaseModel):
 
     created_at: datetime
     sprouted_at: datetime | None = None
+
+    scientific_name: str | None = None
+    preferred_sunlight: LightLevel | None = None
+    preferred_temp_min: int | None = None
+    preferred_temp_max: int | None = None
+    air_humidity_req: HumidityLevel | None = None
+    soil_humidity_req: HumidityLevel | None = None
+    preferred_watering_interval_days: int | None = None
 
 
 class PlantPublic(BaseModel):
