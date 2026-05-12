@@ -43,7 +43,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'small-garden',
     title: 'Small Garden',
-    hint: 'Own 5 plants at once',
+    hint: 'Add 5 plants to your collection',
     iconSrc: '/ic-6.png',
     category: 'collection',
     requirement: { type: 'counter', counter: 'plantsAdded', gte: 5 },
@@ -59,7 +59,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'jungle-keeper',
     title: 'Jungle Keeper',
-    hint: 'Own 20 plants at once',
+    hint: 'Add 20 plants to your collection',
     iconSrc: '/ic-6.png',
     category: 'collection',
     requirement: { type: 'counter', counter: 'plantsAdded', gte: 20 },
@@ -201,7 +201,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'green-thumb',
     title: 'Green Thumb',
-    hint: 'Keep 5 plants healthy for a full week',
+    hint: 'Water your plants 35 times',
     iconSrc: '/ic-2.png',
     category: 'health',
     requirement: { type: 'counter', counter: 'plantsWatered', gte: 35 },
@@ -209,7 +209,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'plant-whisperer',
     title: 'Plant Whisperer',
-    hint: 'All plants 100% healthy for 30 days',
+    hint: 'Complete 150 care tasks',
     iconSrc: '/ic-2.png',
     category: 'health',
     requirement: { type: 'counter', counter: 'careTasksCompleted', gte: 150 },
