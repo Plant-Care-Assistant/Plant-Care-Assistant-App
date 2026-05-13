@@ -49,6 +49,8 @@ services:
       DEVICE: cpu
       MODEL_CHECKPOINT_PATH: /app/models/best.pth
       CLASS_MAPPING_PATH: /app/models/class_id_to_name.json
+      DISEASE_CHECKPOINT_PATH: /app/models/model_disease.pt
+      YOLO_CHECKPOINT_PATH: /app/models/yolo_leaf.pt
     ports:
       - "8001:8001"
     volumes:
