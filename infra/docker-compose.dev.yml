@@ -20,6 +20,17 @@ services:
       timeout: 5s
       retries: 5
 
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: pcaa-dev-seaweedfs
+    command: server -dir=/data -master.port=9333 -volume.port=8333 -ip=seaweedfs
+    ports:
+      - "9333:9333"
+      - "8333:8333"
+    volumes:
+      - ../data/seaweedfs:/data
+    restart: unless-stopped
+
   api:
     container_name: pcaa-dev-api
     build:
@@ -28,8 +39,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://pca_devuser:pca_devpass@db:5432/pca_localdb
       JWT_SECRET: dev-secret-key-change-in-production
-      BLOBSTORAGE_URL: "localhost:9333"
-      BLOBSTORAGE_BACKEND_URL: "localhost:8333"
+      BLOBSTORAGE_URL: "seaweedfs:9333"
+      BLOBSTORAGE_BACKEND_URL: "seaweedfs:8333"
     ports:
       - "8000:8000"
     volumes:
@@ -38,6 +49,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      seaweedfs:
+        condition: service_started
     restart: unless-stopped
 
   ai:
