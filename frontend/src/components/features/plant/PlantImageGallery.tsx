@@ -70,7 +70,7 @@ export function PlantImageGallery({
 
   return (
     <div className="rounded-3xl overflow-hidden">
-      <div className="grid grid-cols-2 gap-2 aspect-[16/9] sm:aspect-[18/9]">
+      <div className="grid grid-cols-2 gap-2 aspect-[16/9] sm:aspect-[3/1] lg:aspect-[4/1]">
         {/* LEFT: latest (or empty + upload trigger) — full hero with overlays */}
         <button
           type="button"

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plantApi } from "@/lib/api";
 import { UserPlant, UserPlantCreate } from "@/types";
 import { savePlantImage } from "@/lib/utils/plantImages";
+import { dataUrlToFile } from "@/lib/utils/dataUrl";
 
 const PLANTS_KEY = ["plants"];
 const CATALOG_KEY = ["plants", "catalog"];
@@ -48,9 +49,20 @@ export function useAddPlantMutation() {
   const qc = useQueryClient();
   return useMutation<UserPlant, unknown, UserPlantCreate & { imageUrl?: string }>({
     mutationFn: ({ imageUrl: _, ...plant }) => plantApi.addPlant(plant),
-    onSuccess: (createdPlant, variables) => {
+    onSuccess: async (createdPlant, variables) => {
       if (variables.imageUrl && createdPlant.id) {
+        // Optimistic local cache so the collection card has something to show
+        // immediately, even before the gallery upload finishes.
         savePlantImage(createdPlant.id, variables.imageUrl);
+        // Persist the captured scan to the plant gallery so it shows up on the
+        // detail page (and survives device switches via SeaweedFS).
+        try {
+          const file = dataUrlToFile(variables.imageUrl, `scan-${Date.now()}.jpg`);
+          await plantApi.uploadImage(createdPlant.id, file);
+          qc.invalidateQueries({ queryKey: ["plants", "images", createdPlant.id] });
+        } catch (err) {
+          console.error("Failed to persist scan image to gallery:", err);
+        }
       }
       qc.invalidateQueries({ queryKey: PLANTS_KEY });
     },
