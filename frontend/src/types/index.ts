@@ -182,6 +182,25 @@ export interface UserPlantUpdate {
 }
 
 /**
+ * Single photo of a user plant from the gallery (multi-image per plant).
+ */
+export interface UserPlantImage {
+  id: number;
+  user_plant_id: number;
+  fid: string;
+  uploaded_at: string;
+}
+
+/**
+ * Watering history snapshot for plant detail widgets.
+ */
+export interface CareHistory {
+  waterings: string[];
+  current_streak_days: number;
+  unique_days_last_week: number;
+}
+
+/**
  * API error response
  */
 export interface ApiError {

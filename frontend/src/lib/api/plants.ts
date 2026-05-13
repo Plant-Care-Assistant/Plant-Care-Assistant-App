@@ -4,10 +4,12 @@ import {
   AiHealthResponse,
   AiSpeciesPrediction,
   AiSpeciesResponse,
+  CareHistory,
   CatalogPlant,
   PlantIdentification,
   UserPlant,
   UserPlantCreate,
+  UserPlantImage,
   UserPlantUpdate,
 } from "@/types";
 
@@ -163,5 +165,48 @@ export const plantApi = {
    */
   async deletePlant(id: number): Promise<void> {
     await apiClient.delete(`/my-plants/${id}`);
+  },
+
+  /**
+   * List all gallery photos for a user plant, newest first.
+   */
+  async listImages(plantId: number): Promise<UserPlantImage[]> {
+    const res = await apiClient.get<UserPlantImage[]>(`/my-plants/${plantId}/images`);
+    return res.data;
+  },
+
+  /**
+   * Upload a new photo to the plant gallery.
+   */
+  async uploadImage(plantId: number, file: File): Promise<UserPlantImage> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiClient.post<UserPlantImage>(
+      `/my-plants/${plantId}/images`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return res.data;
+  },
+
+  /**
+   * Delete a single gallery photo by image id.
+   */
+  async deleteImage(plantId: number, imageId: number): Promise<void> {
+    await apiClient.delete(`/my-plants/${plantId}/images/${imageId}`);
+  },
+
+  /**
+   * Record a watering event and pull computed care widgets for the plant.
+   */
+  async recordWatering(plantId: number): Promise<void> {
+    await apiClient.post(`/my-plants/${plantId}/water`);
+  },
+
+  async getCareHistory(plantId: number, days = 30): Promise<CareHistory> {
+    const res = await apiClient.get<CareHistory>(
+      `/my-plants/${plantId}/care-history?days=${days}`,
+    );
+    return res.data;
   },
 };

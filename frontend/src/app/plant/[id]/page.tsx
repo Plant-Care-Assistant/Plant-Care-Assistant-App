@@ -11,12 +11,18 @@ import { EnvInfoCard } from "@/components/features/plant/EnvInfoCard";
 import { CareInstructions } from "@/components/features/plant/CareInstructions";
 import { PlantActions } from "@/components/features/plant/PlantActions";
 import { useTheme, useGamification } from "@/providers";
-import { usePlantQuery, useDeletePlantMutation, useCatalogPlantQuery } from "@/hooks/usePlants";
+import {
+  usePlantQuery,
+  useDeletePlantMutation,
+  useCatalogPlantQuery,
+  useCareHistoryQuery,
+  useRecordWateringMutation,
+} from "@/hooks/usePlants";
 import { getPlantImage } from "@/lib/utils/plantImages";
 import { removePlantImage } from "@/lib/utils/plantImages";
-import { Trash2 } from "lucide-react";
+import { Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { PlantImageGallery } from "@/components/features/plant/PlantImageGallery";
 
 export default function PlantDetailPage() {
   const params = useParams();
@@ -24,6 +30,8 @@ export default function PlantDetailPage() {
   const plantId = useMemo(() => Number(params?.id), [params]);
   const { data: plant, isLoading } = usePlantQuery(plantId || undefined);
   const { data: catalog } = useCatalogPlantQuery(plant?.plant_catalog_id);
+  const { data: careHistory } = useCareHistoryQuery(plantId || undefined);
+  const recordWateringMutation = useRecordWateringMutation(plantId || 0);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === "dark";
   const { awardXP } = useGamification();
@@ -40,8 +48,24 @@ export default function PlantDetailPage() {
   const wateringValue: string | number =
     catalog?.preferred_watering_interval_days ?? "—";
 
+  // Health percent for the hero bar derives from the last AI verdict.
+  // No verdict yet → neutral 70%.
+  const healthPercent =
+    plant?.last_health_label === "healthy"
+      ? 90
+      : plant?.last_health_label === "diseased"
+        ? 35
+        : 70;
+
+  const streakDays = careHistory?.current_streak_days ?? 0;
+  const weeklyActiveDays = careHistory?.unique_days_last_week ?? 0;
+  const lastWateredLabel = careHistory?.waterings?.[0]
+    ? new Date(careHistory.waterings[0]).toLocaleDateString()
+    : "—";
+
   const handleWaterNow = () => {
     const plantName = plant?.custom_name || 'Your plant';
+    recordWateringMutation.mutate();
     awardXP('WATER_PLANT', { subtitle: plantName });
     if (new Date().getHours() < 9) {
       awardXP('WATER_BEFORE_9AM', { subtitle: 'Watered before 9 AM' });
@@ -89,10 +113,19 @@ export default function PlantDetailPage() {
             name={plant?.custom_name || "Unknown Plant"}
             species={plant?.note || undefined}
             imageUrl={imageUrl}
-            healthPercent={85}
+            healthPercent={healthPercent}
             onBack={() => router.push('/collection')}
             darkMode={darkMode}
           />
+
+          {/* Multi-image gallery (newest left, 2 previous right, ... more) */}
+          {plant && (
+            <PlantImageGallery
+              plantId={plant.id}
+              fallbackImageUrl={imageUrl}
+              darkMode={darkMode}
+            />
+          )}
 
           {/* Health verdict from last AI scan (if any) */}
           {plant?.last_health_label && (
@@ -149,17 +182,17 @@ export default function PlantDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4">
             {/* Main column */}
             <div className="lg:col-span-8 space-y-3 sm:space-y-4">
-              <DayStreakCard days={8} />
+              <DayStreakCard days={streakDays} />
 
               {/* Stats row */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <StatCard type="watered" value="—" darkMode={darkMode} />
+                <StatCard type="watered" value={lastWateredLabel} darkMode={darkMode} />
                 <StatCard type="cycle" value={wateringValue} darkMode={darkMode} />
-                <StatCard type="health" value={85} darkMode={darkMode} />
+                <StatCard type="health" value={healthPercent} darkMode={darkMode} />
               </div>
 
               {/* Weekly care */}
-              <WeeklyCare totalDays={7} activeDays={3} darkMode={darkMode} />
+              <WeeklyCare totalDays={7} activeDays={weeklyActiveDays} darkMode={darkMode} />
             </div>
 
             {/* Sidebar */}

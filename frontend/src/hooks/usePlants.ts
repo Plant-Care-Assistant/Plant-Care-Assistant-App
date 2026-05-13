@@ -71,3 +71,59 @@ export function useDeletePlantMutation() {
     },
   });
 }
+
+// === Gallery ===
+
+const IMAGES_KEY = ["plants", "images"] as const;
+
+export function usePlantImagesQuery(plantId: number | null | undefined) {
+  return useQuery({
+    queryKey: [...IMAGES_KEY, plantId],
+    queryFn: () => plantApi.listImages(plantId as number),
+    enabled: plantId != null,
+  });
+}
+
+export function useUploadPlantImageMutation(plantId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => plantApi.uploadImage(plantId, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...IMAGES_KEY, plantId] });
+    },
+    onError: (err) => console.error("uploadImage failed:", err),
+  });
+}
+
+export function useDeletePlantImageMutation(plantId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (imageId: number) => plantApi.deleteImage(plantId, imageId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...IMAGES_KEY, plantId] });
+    },
+  });
+}
+
+// === Care history ===
+
+const CARE_HISTORY_KEY = ["plants", "care-history"] as const;
+
+export function useCareHistoryQuery(plantId: number | null | undefined) {
+  return useQuery({
+    queryKey: [...CARE_HISTORY_KEY, plantId],
+    queryFn: () => plantApi.getCareHistory(plantId as number),
+    enabled: plantId != null,
+  });
+}
+
+export function useRecordWateringMutation(plantId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => plantApi.recordWatering(plantId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...CARE_HISTORY_KEY, plantId] });
+    },
+    onError: (err) => console.error("recordWatering failed:", err),
+  });
+}
