@@ -49,6 +49,11 @@ class UserPlantCreate(BaseModel):
     soil_humidity_req: HumidityLevel | None = None
     preferred_watering_interval_days: int | None = None
 
+    last_health_label: str | None = None
+    last_health_confidence: float | None = None
+    last_health_check_at: datetime | None = None
+    last_diseases: list[dict[str, Any]] | None = None
+
 
 class UserPlantUpdate(BaseModel):
     plant_catalog_id: int | None = None
@@ -63,6 +68,11 @@ class UserPlantUpdate(BaseModel):
     air_humidity_req: HumidityLevel | None = None
     soil_humidity_req: HumidityLevel | None = None
     preferred_watering_interval_days: int | None = None
+
+    last_health_label: str | None = None
+    last_health_confidence: float | None = None
+    last_health_check_at: datetime | None = None
+    last_diseases: list[dict[str, Any]] | None = None
 
 
 class UserPlantPublic(BaseModel):
@@ -84,6 +94,11 @@ class UserPlantPublic(BaseModel):
     air_humidity_req: HumidityLevel | None = None
     soil_humidity_req: HumidityLevel | None = None
     preferred_watering_interval_days: int | None = None
+
+    last_health_label: str | None = None
+    last_health_confidence: float | None = None
+    last_health_check_at: datetime | None = None
+    last_diseases: list[dict[str, Any]] | None = None
 
 
 class PlantPublic(BaseModel):

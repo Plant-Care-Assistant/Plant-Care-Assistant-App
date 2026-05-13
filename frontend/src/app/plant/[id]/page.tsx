@@ -16,6 +16,7 @@ import { getPlantImage } from "@/lib/utils/plantImages";
 import { removePlantImage } from "@/lib/utils/plantImages";
 import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function PlantDetailPage() {
   const params = useParams();
@@ -92,6 +93,57 @@ export default function PlantDetailPage() {
             onBack={() => router.push('/collection')}
             darkMode={darkMode}
           />
+
+          {/* Health verdict from last AI scan (if any) */}
+          {plant?.last_health_label && (
+            <div
+              className={`rounded-2xl p-4 flex flex-col gap-2 border ${
+                plant.last_health_label === 'diseased'
+                  ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                  : 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {plant.last_health_label === 'diseased' ? (
+                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  )}
+                  <span
+                    className={`font-semibold text-sm ${
+                      darkMode ? 'text-white' : 'text-neutral-900'
+                    }`}
+                  >
+                    {plant.last_health_label === 'diseased'
+                      ? 'Plant may be diseased'
+                      : 'Plant looks healthy'}
+                  </span>
+                </div>
+                {plant.last_health_check_at && (
+                  <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                    Last checked {new Date(plant.last_health_check_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+
+              {plant.last_health_label === 'diseased' && plant.last_diseases?.length ? (
+                <ul className="mt-1 space-y-1">
+                  {plant.last_diseases.slice(0, 3).map((d, i) => (
+                    <li key={i} className="flex justify-between text-xs">
+                      <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
+                        {d.plant}
+                        {d.condition ? ` — ${d.condition}` : ''}
+                      </span>
+                      <span className="text-neutral-400 ml-2 shrink-0">
+                        {Math.round(d.confidence * 100)}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          )}
 
           {/* Two-column layout on laptop */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4">

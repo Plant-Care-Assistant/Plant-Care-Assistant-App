@@ -59,11 +59,16 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
   };
 
   const handleAddToCollection = (plant: ScanPlantData) => {
+    const hasHealthVerdict = plant.healthLabel != null;
     addPlantMutation.mutate({
       custom_name: plant.name || 'Unknown Plant',
       note: plant.species || null,
       plant_catalog_id: plant.catalogId ?? null,
       imageUrl: plant.imageUrl,
+      last_health_label: plant.healthLabel ?? null,
+      last_health_confidence: hasHealthVerdict ? plant.confidence ?? null : null,
+      last_health_check_at: hasHealthVerdict ? new Date().toISOString() : null,
+      last_diseases: plant.diseases ?? null,
     });
     setIsAddPlantModalOpen(false);
   };

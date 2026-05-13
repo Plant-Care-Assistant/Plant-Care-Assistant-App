@@ -125,6 +125,16 @@ export interface AiHealthResponse {
 }
 
 /**
+ * Disease snapshot stored on user_plants. Shape mirrors what AI service
+ * returns in /predict/combined response after mapping.
+ */
+export interface UserPlantDisease {
+  plant: string;
+  condition: string;
+  confidence: number;
+}
+
+/**
  * User plant as returned by the backend (GET /my-plants)
  */
 export interface UserPlant {
@@ -134,6 +144,11 @@ export interface UserPlant {
   note: string | null;
   created_at: string;
   sprouted_at: string | null;
+
+  last_health_label: "healthy" | "diseased" | null;
+  last_health_confidence: number | null;
+  last_health_check_at: string | null;
+  last_diseases: UserPlantDisease[] | null;
 }
 
 /**
@@ -144,6 +159,11 @@ export interface UserPlantCreate {
   custom_name?: string | null;
   note?: string | null;
   sprouted_at?: string | null;
+
+  last_health_label?: "healthy" | "diseased" | null;
+  last_health_confidence?: number | null;
+  last_health_check_at?: string | null;
+  last_diseases?: UserPlantDisease[] | null;
 }
 
 /**
@@ -154,6 +174,11 @@ export interface UserPlantUpdate {
   custom_name?: string | null;
   note?: string | null;
   sprouted_at?: string | null;
+
+  last_health_label?: "healthy" | "diseased" | null;
+  last_health_confidence?: number | null;
+  last_health_check_at?: string | null;
+  last_diseases?: UserPlantDisease[] | null;
 }
 
 /**

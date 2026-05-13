@@ -111,6 +111,15 @@ class UserPlant(SQLModel, table=True):
     soil_humidity_req: HumidityLevel | None = None
     preferred_watering_interval_days: int | None = None
 
+    # AI disease classifier snapshot from the last scan that produced a verdict.
+    last_health_label: str | None = None
+    last_health_confidence: float | None = None
+    last_health_check_at: datetime | None = None
+    last_diseases: list[dict[str, Any]] | None = Field(
+        default=None,
+        sa_column=Column(JSONB),
+    )
+
 
 # 4. HISTORIA PODLEWANIA
 class WateringData(SQLModel, table=True):
