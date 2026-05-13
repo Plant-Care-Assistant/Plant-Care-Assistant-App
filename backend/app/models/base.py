@@ -131,6 +131,15 @@ class WateringData(SQLModel, table=True):
     )
 
 
+# 4b. ZDJĘCIA ROŚLIN UŻYTKOWNIKA (wiele zdjęć na jedną roślinę, sortowane od najnowszego)
+class UserPlantImage(SQLModel, table=True):
+    __tablename__: str = "user_plant_images"  # type: ignore
+    id: int | None = Field(default=None, primary_key=True)
+    user_plant_id: int = Field(foreign_key="user_plants.id")
+    fid: str = Field(max_length=255)
+    uploaded_at: datetime = Field(default_factory=utc_now)
+
+
 # 5. POZIOMY
 class LevelsXpRanges(SQLModel, table=True):
     __tablename__: str = "levels_xp_ranges"  # type: ignore

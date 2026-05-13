@@ -101,6 +101,23 @@ class UserPlantPublic(BaseModel):
     last_diseases: list[dict[str, Any]] | None = None
 
 
+class UserPlantImagePublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_plant_id: int
+    fid: str
+    uploaded_at: datetime
+
+
+class CareHistoryPublic(BaseModel):
+    """Watering history snapshot for plant detail screen widgets."""
+
+    waterings: list[datetime]
+    current_streak_days: int
+    unique_days_last_week: int
+
+
 class PlantPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
