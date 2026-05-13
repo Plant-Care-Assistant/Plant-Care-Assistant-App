@@ -68,6 +68,25 @@ export function PlantImageGallery({
     ? 'bg-neutral-800 border border-neutral-700'
     : 'bg-neutral-200 border border-neutral-300';
 
+  const EmptyTile = ({ iconSize = 28 }: { iconSize?: number }) => (
+    <button
+      type="button"
+      onClick={openUpload}
+      disabled={uploadMutation.isPending}
+      className={`relative rounded-2xl ${greyTileClass} flex items-center justify-center cursor-pointer hover:brightness-95 transition`}
+      aria-label="Add photo"
+    >
+      <div
+        className={`rounded-full flex items-center justify-center ${
+          darkMode ? 'bg-neutral-700/60' : 'bg-white/70'
+        }`}
+        style={{ width: iconSize * 2, height: iconSize * 2 }}
+      >
+        <Plus size={iconSize} className={darkMode ? 'text-neutral-400' : 'text-neutral-500'} />
+      </div>
+    </button>
+  );
+
   return (
     <div className="rounded-3xl overflow-hidden">
       <div className="grid grid-cols-2 gap-2 aspect-[16/9] sm:aspect-[3/1] lg:aspect-[4/1]">
@@ -172,7 +191,7 @@ export function PlantImageGallery({
             />
           </button>
         ) : (
-          <div className={`rounded-2xl ${greyTileClass}`} />
+          <EmptyTile iconSize={22} />
         )}
 
         {/* RIGHT BOTTOM: prev-2 (with +N more overlay if there are extras) */}
@@ -197,7 +216,7 @@ export function PlantImageGallery({
             )}
           </button>
         ) : (
-          <div className={`rounded-2xl ${greyTileClass}`} />
+          <EmptyTile iconSize={22} />
         )}
       </div>
 
