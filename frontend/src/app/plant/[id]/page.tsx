@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Layout } from "@/components/layout";
-import { PlantHero } from "@/components/features/plant/PlantHero";
 import { DayStreakCard } from "@/components/features/plant/DayStreakCard";
 import { StatCard } from "@/components/features/plant/StatCard";
 import { WeeklyCare } from "@/components/features/plant/WeeklyCare";
@@ -18,7 +17,6 @@ import {
   useCareHistoryQuery,
   useRecordWateringMutation,
 } from "@/hooks/usePlants";
-import { getPlantImage } from "@/lib/utils/plantImages";
 import { removePlantImage } from "@/lib/utils/plantImages";
 import { Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -77,8 +75,6 @@ export default function PlantDetailPage() {
     awardXP('COMPLETE_CARE_TASK', { subtitle: plantName });
   };
 
-  const imageUrl = useMemo(() => plantId ? getPlantImage(plantId) : undefined, [plantId]);
-
   const handleDelete = async () => {
     if (!plant) return;
     try {
@@ -108,21 +104,15 @@ export default function PlantDetailPage() {
     >
       <div className="p-3 sm:p-4 lg:p-6 pb-28 sm:pb-24 lg:pb-4 max-w-7xl mx-auto">
         <div className="space-y-4 lg:space-y-6">
-          {/* Hero spans full width */}
-          <PlantHero
-            name={plant?.custom_name || "Unknown Plant"}
-            species={plant?.note || undefined}
-            imageUrl={imageUrl}
-            healthPercent={healthPercent}
-            onBack={() => router.push('/collection')}
-            darkMode={darkMode}
-          />
-
-          {/* Multi-image gallery (newest left, 2 previous right, ... more) */}
+          {/* Hero = photo gallery: latest (50% width) + 2 previous (right column).
+              Plant name, species, health badge, and back button overlay on the latest tile. */}
           {plant && (
             <PlantImageGallery
               plantId={plant.id}
-              fallbackImageUrl={imageUrl}
+              plantName={plant.custom_name || "Unknown Plant"}
+              plantSpecies={plant.note || undefined}
+              healthPercent={healthPercent}
+              onBack={() => router.push('/collection')}
               darkMode={darkMode}
             />
           )}
