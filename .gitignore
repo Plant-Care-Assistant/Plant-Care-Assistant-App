@@ -70,6 +70,9 @@ instance/
 # Postgres stuff:
 data/postgres_data/
 
+# SeaweedFS blob volumes (local dev runtime data)
+data/seaweedfs/
+
 # Scrapy stuff:
 .scrapy
 

@@ -60,7 +60,7 @@ services:
       dockerfile: docker/api.Dockerfile
     environment:
       DEVICE: cpu
-      MODEL_CHECKPOINT_PATH: /app/models/best.pth
+      MODEL_CHECKPOINT_PATH: /app/models/plantnet_effv2b0.pth
       CLASS_MAPPING_PATH: /app/models/class_id_to_name.json
       DISEASE_CHECKPOINT_PATH: /app/models/model_disease.pt
       YOLO_CHECKPOINT_PATH: /app/models/yolo_leaf.pt
