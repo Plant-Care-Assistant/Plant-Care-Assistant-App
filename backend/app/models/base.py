@@ -24,6 +24,16 @@ class HumidityLevel(StrEnum):
     high = "high"
 
 
+class CareType(StrEnum):
+    water = "water"
+    mist = "mist"
+    fertilize = "fertilize"
+    prune = "prune"
+    rotate = "rotate"
+    inspect = "inspect"
+    other = "other"
+
+
 class GameAction(StrEnum):
     scan_identify = "SCAN_IDENTIFY"
     scan_and_add = "SCAN_AND_ADD"
@@ -121,7 +131,8 @@ class UserPlant(SQLModel, table=True):
     )
 
 
-# 4. HISTORIA PODLEWANIA
+# 4. HISTORIA OPIEKI (watering + other care activities, on the same table for
+# backward compat; care_type discriminates the activity).
 class WateringData(SQLModel, table=True):
     __tablename__: str = "watering_data"  # type: ignore
     plant_id: int = Field(foreign_key="user_plants.id", primary_key=True)
@@ -129,6 +140,7 @@ class WateringData(SQLModel, table=True):
         default_factory=utc_now,
         primary_key=True,
     )
+    care_type: CareType = Field(default=CareType.water)
 
 
 # 4b. ZDJĘCIA ROŚLIN UŻYTKOWNIKA (wiele zdjęć na jedną roślinę, sortowane od najnowszego)

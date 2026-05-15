@@ -5,6 +5,7 @@ import {
   AiSpeciesPrediction,
   AiSpeciesResponse,
   CareHistory,
+  CareType,
   CatalogPlant,
   PlantIdentification,
   UserPlant,
@@ -201,6 +202,14 @@ export const plantApi = {
    */
   async recordWatering(plantId: number): Promise<void> {
     await apiClient.post(`/my-plants/${plantId}/water`);
+  },
+
+  /**
+   * Log any care activity (mist/fertilize/prune/...). For type='water' the
+   * legacy /water endpoint and this one are equivalent.
+   */
+  async recordCare(plantId: number, type: CareType): Promise<void> {
+    await apiClient.post(`/my-plants/${plantId}/care`, { type });
   },
 
   async getCareHistory(plantId: number, days = 30): Promise<CareHistory> {

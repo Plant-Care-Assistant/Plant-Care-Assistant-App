@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plantApi } from "@/lib/api";
-import { UserPlant, UserPlantCreate } from "@/types";
+import { CareType, UserPlant, UserPlantCreate } from "@/types";
 import { savePlantImage } from "@/lib/utils/plantImages";
 import { dataUrlToFile } from "@/lib/utils/dataUrl";
 
@@ -137,5 +137,17 @@ export function useRecordWateringMutation(plantId: number) {
       qc.invalidateQueries({ queryKey: [...CARE_HISTORY_KEY, plantId] });
     },
     onError: (err) => console.error("recordWatering failed:", err),
+  });
+}
+
+/** Log any care activity for a plant; pass the type when calling .mutate(). */
+export function useRecordCareMutation(plantId: number) {
+  const qc = useQueryClient();
+  return useMutation<void, unknown, CareType>({
+    mutationFn: (type: CareType) => plantApi.recordCare(plantId, type),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...CARE_HISTORY_KEY, plantId] });
+    },
+    onError: (err) => console.error("recordCare failed:", err),
   });
 }

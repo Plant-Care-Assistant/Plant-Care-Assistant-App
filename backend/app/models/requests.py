@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models.base import HumidityLevel, LightLevel
+from app.models.base import CareType, HumidityLevel, LightLevel
 
 
 class UserCreate(BaseModel):
@@ -100,6 +100,13 @@ class UserPlantPublic(BaseModel):
     last_health_check_at: datetime | None = None
     last_diseases: list[dict[str, Any]] | None = None
 
+    # Care-urgency fields populated by the service from watering_data. None
+    # when the plant has never been watered yet.
+    last_watered_at: datetime | None = None
+    # Days remaining until the next watering is due (0 = due today/overdue).
+    # None when there's no watering interval set and no history.
+    days_until_water: int | None = None
+
 
 class UserPlantImagePublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -110,12 +117,31 @@ class UserPlantImagePublic(BaseModel):
     uploaded_at: datetime
 
 
+class CareEventPublic(BaseModel):
+    timestamp: datetime
+    type: CareType
+
+
+class DailyCarePublic(BaseModel):
+    """One day in the Weekly Care 7-day strip. `types` is the set of care
+    activities the user logged that day (empty list = no care recorded)."""
+
+    date: str  # ISO YYYY-MM-DD
+    types: list[CareType]
+
+
 class CareHistoryPublic(BaseModel):
-    """Watering history snapshot for plant detail screen widgets."""
+    """Care history snapshot for plant detail screen widgets."""
 
     waterings: list[datetime]
+    events: list[CareEventPublic]
     current_streak_days: int
     unique_days_last_week: int
+    daily_last_week: list[DailyCarePublic]
+
+
+class CareEventCreate(BaseModel):
+    type: CareType
 
 
 class PlantPublic(BaseModel):

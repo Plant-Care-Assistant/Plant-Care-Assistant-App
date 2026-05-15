@@ -1,16 +1,21 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx
 from fastapi import Depends, HTTPException, UploadFile
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlmodel import select
 
 from app.db import SessionDep
-from app.models.base import User, UserPlant, UserPlantImage, WateringData
+from app.models.base import CareType, User, UserPlant, UserPlantImage, WateringData
 from app.models.requests import UserPlantCreate, UserPlantUpdate
 from app.settings import DEFAULT_IMAGE, settings
+
+# Fallback watering interval when neither the plant override nor the catalog
+# specifies one. Matches the frontend default so values agree.
+DEFAULT_WATERING_INTERVAL_DAYS = 7
 
 logger = logging.getLogger(__name__)
 
@@ -35,32 +40,78 @@ class UserPlantService:
             raise HTTPException(401, "User not authenticated")
         return user.id
 
-    def read_plant(self, user: User, plant_id: int) -> UserPlant:
+    def _last_waterings(self, plant_ids: list[int]) -> dict[int, datetime]:
+        """Single GROUP BY query → {plant_id: latest watering timestamp}.
+
+        Pulls only `care_type='water'` rows; misting/fertilizing don't reset
+        the watering schedule. Plants without any watering history are absent
+        from the map.
+        """
+        if not plant_ids:
+            return {}
+        rows = self.s.exec(
+            select(
+                WateringData.plant_id,
+                func.max(WateringData.timestamp_of_watering),
+            )
+            .where(WateringData.plant_id.in_(plant_ids))
+            .where(WateringData.care_type == CareType.water)
+            .group_by(WateringData.plant_id),
+        ).all()
+        return {pid: ts for pid, ts in rows}
+
+    @staticmethod
+    def _enrich(plant: UserPlant, last_watered_at: datetime | None) -> dict[str, Any]:
+        """Convert a UserPlant ORM row to a dict + care-urgency fields.
+
+        Returning a dict (not the ORM object) so the Pydantic response model
+        picks up the extra computed fields without requiring them on the
+        SQLModel class.
+        """
+        data: dict[str, Any] = plant.model_dump()
+        data["last_watered_at"] = last_watered_at
+
+        interval = plant.preferred_watering_interval_days or DEFAULT_WATERING_INTERVAL_DAYS
+        if last_watered_at is None:
+            # Never watered — treat the plant as due in `interval` days from
+            # now (i.e. give the user the full interval to do the first watering).
+            data["days_until_water"] = interval
+        else:
+            days_since = (datetime.now(UTC) - last_watered_at).days
+            data["days_until_water"] = max(0, interval - days_since)
+        return data
+
+    def read_plant(self, user: User, plant_id: int) -> dict[str, Any]:
         self._check_user(user)
         plant = self.s.get(UserPlant, plant_id)
         if plant is None or plant.user_id != user.id:
             raise HTTPException(404, "Plant not found")
-        return plant
+        last = self._last_waterings([plant_id]).get(plant_id)
+        return self._enrich(plant, last)
 
-    def read_plants(self, user: User):
+    def read_plants(self, user: User) -> list[dict[str, Any]]:
         self._check_user(user)
-        statement = select(UserPlant).where(UserPlant.user_id == user.id)
-        return list(self.s.exec(statement).all())
+        plants = list(
+            self.s.exec(select(UserPlant).where(UserPlant.user_id == user.id)).all(),
+        )
+        last_map = self._last_waterings([p.id for p in plants if p.id is not None])
+        return [self._enrich(p, last_map.get(p.id)) for p in plants if p.id is not None]
 
-    def create_plant(self, user: User, body: UserPlantCreate) -> UserPlant:
+    def create_plant(self, user: User, body: UserPlantCreate) -> dict[str, Any]:
         user_id = self._check_user(user)
         new_plant = UserPlant(user_id=user_id, **body.model_dump(exclude_none=True))
         self.s.add(new_plant)
         self.s.commit()
         self.s.refresh(new_plant)
-        return new_plant
+        # Brand-new plant has no waterings yet.
+        return self._enrich(new_plant, None)
 
     def update_plant(
         self,
         user: User,
         plant_id: int,
         body: UserPlantUpdate,
-    ) -> UserPlant:
+    ) -> dict[str, Any]:
         self._check_user(user)
         plant = self.s.get(UserPlant, plant_id)
         if plant is None or plant.user_id != user.id:
@@ -70,7 +121,8 @@ class UserPlantService:
         self.s.add(new_plant)
         self.s.commit()
         self.s.refresh(new_plant)
-        return new_plant
+        last = self._last_waterings([plant_id]).get(plant_id)
+        return self._enrich(new_plant, last)
 
     def delete_plant(self, user: User, plant_id: int):
         self._check_user(user)
@@ -220,20 +272,41 @@ class UserPlantService:
             raise HTTPException(404, "Image not found")
         return row.fid
 
-    # === Care history (watering) ===
+    # === Care history (watering + other care activities) ===
 
     def record_watering(self, user: User, plant_id: int) -> WateringData:
+        """Back-compat wrapper used by the legacy /water endpoint."""
+        return self.record_care(user, plant_id, CareType.water)
+
+    def record_care(
+        self,
+        user: User,
+        plant_id: int,
+        care_type: CareType,
+    ) -> WateringData:
         self._ensure_owned(user, plant_id)
-        row = WateringData(plant_id=plant_id, timestamp_of_watering=datetime.now(UTC))
+        row = WateringData(
+            plant_id=plant_id,
+            timestamp_of_watering=datetime.now(UTC),
+            care_type=care_type,
+        )
         self.s.add(row)
         self.s.commit()
         self.s.refresh(row)
         return row
 
     def care_history(self, user: User, plant_id: int, days: int = 30) -> dict:
-        """Return waterings within the last `days` plus computed widgets:
-        - current_streak_days: count of consecutive trailing days with ≥1 watering
-        - unique_days_last_week: distinct days with ≥1 watering in the last 7 days
+        """Return care events within the last `days` plus computed widgets.
+
+        - waterings: timestamps of watering events only (back-compat for the
+          "last watered" card on the detail screen).
+        - events: every care event in the window with its type.
+        - current_streak_days: consecutive trailing days with ≥ 1 care event of
+          any type (water/mist/fertilize/...).
+        - unique_days_last_week: distinct days with ≥ 1 care event in last 7.
+        - daily_last_week: ordered list of 7 entries (oldest → today) each
+          containing date + set of care types performed that day, for the
+          Weekly Care grid.
         """
         self._ensure_owned(user, plant_id)
         cutoff = datetime.now(UTC) - timedelta(days=days)
@@ -244,25 +317,50 @@ class UserPlantService:
             .order_by(WateringData.timestamp_of_watering.desc())
         )
         rows = list(self.s.exec(st).all())
-        waterings = [r.timestamp_of_watering for r in rows]
 
-        # Day-bucket the timestamps in UTC.
-        watered_days = {ts.date() for ts in waterings}
+        events = [
+            {"timestamp": r.timestamp_of_watering, "type": r.care_type.value}
+            for r in rows
+        ]
+        waterings = [
+            r.timestamp_of_watering for r in rows if r.care_type == CareType.water
+        ]
+
+        # Day-bucket every care event (any type) for streak + weekly metrics.
+        cared_days_by_type: dict = {}
+        for r in rows:
+            d = r.timestamp_of_watering.date()
+            cared_days_by_type.setdefault(d, set()).add(r.care_type.value)
+        cared_days = set(cared_days_by_type.keys())
 
         today = datetime.now(UTC).date()
         streak = 0
         cursor = today
-        while cursor in watered_days:
+        while cursor in cared_days:
             streak += 1
             cursor -= timedelta(days=1)
 
         week_cutoff = today - timedelta(days=6)
-        unique_days_last_week = len({d for d in watered_days if d >= week_cutoff})
+        unique_days_last_week = len({d for d in cared_days if d >= week_cutoff})
+
+        # Build a fixed 7-day strip ending today so the frontend doesn't have
+        # to fill gaps; missing days have an empty `types` list.
+        daily_last_week = [
+            {
+                "date": (week_cutoff + timedelta(days=i)).isoformat(),
+                "types": sorted(
+                    cared_days_by_type.get(week_cutoff + timedelta(days=i), set())
+                ),
+            }
+            for i in range(7)
+        ]
 
         return {
             "waterings": waterings,
+            "events": events,
             "current_streak_days": streak,
             "unique_days_last_week": unique_days_last_week,
+            "daily_last_week": daily_last_week,
         }
 
 

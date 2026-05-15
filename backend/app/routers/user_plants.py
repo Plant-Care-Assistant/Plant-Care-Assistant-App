@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, File, HTTPException, Response, UploadFile
 
 from app.models.requests import (
+    CareEventCreate,
     CareHistoryPublic,
     UserPlantCreate,
     UserPlantImagePublic,
@@ -148,7 +149,7 @@ def delete_user_plant_image_record(
     return Response(status_code=204)
 
 
-# === Care history (watering) ===
+# === Care history (watering + other care activities) ===
 
 @router.post("/{plant_id}/water")
 def record_user_plant_watering(
@@ -156,7 +157,19 @@ def record_user_plant_watering(
     user: LoggedUserDep,
     service: UserPlantServiceDep,
 ):
+    """Legacy alias kept for back-compat; equivalent to POST /care {type:water}."""
     service.record_watering(user, plant_id)
+    return Response(status_code=204)
+
+
+@router.post("/{plant_id}/care")
+def record_user_plant_care(
+    plant_id: int,
+    body: CareEventCreate,
+    user: LoggedUserDep,
+    service: UserPlantServiceDep,
+):
+    service.record_care(user, plant_id, body.type)
     return Response(status_code=204)
 
 

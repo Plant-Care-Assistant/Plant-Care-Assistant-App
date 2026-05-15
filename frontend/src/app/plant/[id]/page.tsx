@@ -16,7 +16,9 @@ import {
   useCatalogPlantQuery,
   useCareHistoryQuery,
   useRecordWateringMutation,
+  useRecordCareMutation,
 } from "@/hooks/usePlants";
+import type { CareType } from "@/types";
 import { removePlantImage } from "@/lib/utils/plantImages";
 import { Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -30,36 +32,72 @@ export default function PlantDetailPage() {
   const { data: catalog } = useCatalogPlantQuery(plant?.plant_catalog_id);
   const { data: careHistory } = useCareHistoryQuery(plantId || undefined);
   const recordWateringMutation = useRecordWateringMutation(plantId || 0);
+  const recordCareMutation = useRecordCareMutation(plantId || 0);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === "dark";
   const { awardXP } = useGamification();
   const deletePlantMutation = useDeletePlantMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const tempLabel =
-    catalog?.preferred_temp_min != null && catalog?.preferred_temp_max != null
-      ? `${catalog.preferred_temp_min}–${catalog.preferred_temp_max}°C`
-      : "—";
-  const lightLabel = catalog?.preferred_sunlight
-    ? catalog.preferred_sunlight[0].toUpperCase() + catalog.preferred_sunlight.slice(1)
-    : "—";
-  const wateringValue: string | number =
-    catalog?.preferred_watering_interval_days ?? "—";
+  // Care fields fall back through: per-plant override → catalog → mock default.
+  // Mocks keep the cards informative when the species isn't in the catalog
+  // (e.g. plant added without a successful AI scan).
+  const tempMin = plant?.preferred_temp_min ?? catalog?.preferred_temp_min ?? 18;
+  const tempMax = plant?.preferred_temp_max ?? catalog?.preferred_temp_max ?? 24;
+  const tempLabel = `${tempMin}–${tempMax}°C`;
 
-  // Health percent for the hero bar derives from the last AI verdict.
-  // No verdict yet → neutral 70%.
-  const healthPercent =
-    plant?.last_health_label === "healthy"
-      ? 90
-      : plant?.last_health_label === "diseased"
-        ? 35
-        : 70;
+  const lightRaw = plant?.preferred_sunlight ?? catalog?.preferred_sunlight ?? "medium";
+  const lightLabel = lightRaw[0].toUpperCase() + lightRaw.slice(1);
+
+  const wateringIntervalDays =
+    plant?.preferred_watering_interval_days
+    ?? catalog?.preferred_watering_interval_days
+    ?? 7;
+
+  // Healthy % derives from the last AI verdict + its confidence.
+  // Confidence is stored inconsistently (sometimes 0..1 fraction, sometimes 1..100 percent)
+  // so normalize defensively. Diseased verdicts invert the confidence so that a
+  // high-confidence disease detection reads as low health.
+  const healthPercent = (() => {
+    if (!plant?.last_health_label) return 70;
+    const raw = plant.last_health_confidence;
+    if (raw == null) return plant.last_health_label === "healthy" ? 90 : 35;
+    const confPct = raw > 1 ? Math.min(100, Math.round(raw)) : Math.round(raw * 100);
+    return plant.last_health_label === "healthy" ? confPct : 100 - confPct;
+  })();
 
   const streakDays = careHistory?.current_streak_days ?? 0;
   const weeklyActiveDays = careHistory?.unique_days_last_week ?? 0;
-  const lastWateredLabel = careHistory?.waterings?.[0]
-    ? new Date(careHistory.waterings[0]).toLocaleDateString()
-    : "—";
+  // Backend returns oldest→today; fall back to an empty 7-day strip ending
+  // today so the grid still renders before the query resolves.
+  const dailyLastWeek = careHistory?.daily_last_week ?? (() => {
+    const out: { date: string; types: CareType[] }[] = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      out.push({
+        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+        types: [],
+      });
+    }
+    return out;
+  })();
+  const lastWateredAt = careHistory?.waterings?.[0]
+    ? new Date(careHistory.waterings[0])
+    : null;
+  const lastWateredLabel = lastWateredAt ? lastWateredAt.toLocaleDateString() : "—";
+
+  // Day-cycle card now shows days remaining until the next watering is due.
+  // Falls back to the full interval when the plant has never been watered.
+  const daysSinceLastWater = lastWateredAt
+    ? Math.floor((Date.now() - lastWateredAt.getTime()) / 86_400_000)
+    : null;
+  const daysUntilNextWater =
+    daysSinceLastWater == null
+      ? wateringIntervalDays
+      : Math.max(0, wateringIntervalDays - daysSinceLastWater);
+  const cycleLabel = daysUntilNextWater === 0 ? "water now" : "days to water";
 
   const handleWaterNow = () => {
     const plantName = plant?.custom_name || 'Your plant';
@@ -70,9 +108,10 @@ export default function PlantDetailPage() {
     }
   };
 
-  const handleGainXP = () => {
+  const handleLogCare = (type: Exclude<CareType, 'water'>) => {
     const plantName = plant?.custom_name || 'Your plant';
-    awardXP('COMPLETE_CARE_TASK', { subtitle: plantName });
+    recordCareMutation.mutate(type);
+    awardXP('COMPLETE_CARE_TASK', { subtitle: `${plantName} — ${type}` });
   };
 
   const handleDelete = async () => {
@@ -142,6 +181,22 @@ export default function PlantDetailPage() {
                       ? 'Plant may be diseased'
                       : 'Plant looks healthy'}
                   </span>
+                  {plant.last_health_confidence != null && (
+                    <span
+                      className={`text-sm font-semibold ${
+                        plant.last_health_label === 'diseased'
+                          ? 'text-red-600 dark:text-red-300'
+                          : 'text-green-600 dark:text-green-300'
+                      }`}
+                    >
+                      {/* Stored as percent for new rows, but legacy rows used
+                          fractions (0..1). Normalize defensively. */}
+                      {plant.last_health_confidence > 1
+                        ? Math.round(plant.last_health_confidence)
+                        : Math.round(plant.last_health_confidence * 100)}
+                      %
+                    </span>
+                  )}
                 </div>
                 {plant.last_health_check_at && (
                   <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
@@ -155,8 +210,10 @@ export default function PlantDetailPage() {
                   {plant.last_diseases.slice(0, 3).map((d, i) => (
                     <li key={i} className="flex justify-between text-xs">
                       <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
-                        {d.plant}
-                        {d.condition ? ` — ${d.condition}` : ''}
+                        {/* AI labels prefix with a training-set host species
+                            (Apple/Orange/...) that doesn't match the user's
+                            actual plant. Show only the condition. */}
+                        {d.condition || d.plant}
                       </span>
                       <span className="text-neutral-400 ml-2 shrink-0">
                         {Math.round(d.confidence * 100)}%
@@ -177,12 +234,21 @@ export default function PlantDetailPage() {
               {/* Stats row */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <StatCard type="watered" value={lastWateredLabel} darkMode={darkMode} />
-                <StatCard type="cycle" value={wateringValue} darkMode={darkMode} />
+                <StatCard
+                  type="cycle"
+                  value={daysUntilNextWater}
+                  label={cycleLabel}
+                  darkMode={darkMode}
+                />
                 <StatCard type="health" value={healthPercent} darkMode={darkMode} />
               </div>
 
               {/* Weekly care */}
-              <WeeklyCare totalDays={7} activeDays={weeklyActiveDays} darkMode={darkMode} />
+              <WeeklyCare
+                daily={dailyLastWeek}
+                activeDays={weeklyActiveDays}
+                darkMode={darkMode}
+              />
             </div>
 
             {/* Sidebar */}
@@ -207,7 +273,7 @@ export default function PlantDetailPage() {
               {/* Actions */}
               <PlantActions
                 onWaterNow={handleWaterNow}
-                onGainXP={handleGainXP}
+                onLogCare={handleLogCare}
                 darkMode={darkMode}
               />
             </div>

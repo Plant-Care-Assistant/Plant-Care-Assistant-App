@@ -145,10 +145,23 @@ export interface UserPlant {
   created_at: string;
   sprouted_at: string | null;
 
+  scientific_name: string | null;
+  preferred_sunlight: "low" | "medium" | "high" | null;
+  preferred_temp_min: number | null;
+  preferred_temp_max: number | null;
+  air_humidity_req: "low" | "medium" | "high" | null;
+  soil_humidity_req: "low" | "medium" | "high" | null;
+  preferred_watering_interval_days: number | null;
+
   last_health_label: "healthy" | "diseased" | null;
   last_health_confidence: number | null;
   last_health_check_at: string | null;
   last_diseases: UserPlantDisease[] | null;
+
+  /** Latest watering timestamp from the care log, or null if never watered. */
+  last_watered_at: string | null;
+  /** Days remaining until the next watering is due (0 = due today/overdue). */
+  days_until_water: number | null;
 }
 
 /**
@@ -192,12 +205,41 @@ export interface UserPlantImage {
 }
 
 /**
- * Watering history snapshot for plant detail widgets.
+ * Care activity types the user can log. Watering is the historical default;
+ * the others were added so users on weekly-watering schedules can still build
+ * meaningful streaks via misting, fertilizing, etc.
+ */
+export type CareType =
+  | "water"
+  | "mist"
+  | "fertilize"
+  | "prune"
+  | "rotate"
+  | "inspect"
+  | "other";
+
+export interface CareEvent {
+  timestamp: string;
+  type: CareType;
+}
+
+export interface DailyCare {
+  /** ISO YYYY-MM-DD */
+  date: string;
+  /** Care types performed that day (empty if no care recorded). */
+  types: CareType[];
+}
+
+/**
+ * Care history snapshot for plant detail widgets.
  */
 export interface CareHistory {
   waterings: string[];
+  events: CareEvent[];
   current_streak_days: number;
   unique_days_last_week: number;
+  /** Fixed 7-day strip ending today, oldest first. */
+  daily_last_week: DailyCare[];
 }
 
 /**
