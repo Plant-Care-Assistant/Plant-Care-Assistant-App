@@ -156,6 +156,31 @@ export default function PlantDetailPage() {
             />
           )}
 
+          {/* Overdue watering banner — only when due today */}
+          {plant && daysUntilNextWater === 0 && (
+            <button
+              onClick={handleWaterNow}
+              className="w-full rounded-2xl p-4 flex items-center justify-between gap-3 border bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 hover:opacity-90 transition-opacity text-left"
+            >
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                <div>
+                  <p className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                    Time to water this plant
+                  </p>
+                  <p className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                    {lastWateredAt
+                      ? `Last watered ${lastWateredLabel}`
+                      : 'No watering recorded yet'}
+                  </p>
+                </div>
+              </div>
+              <span className="text-sm font-semibold text-red-600 dark:text-red-300 shrink-0">
+                Water now →
+              </span>
+            </button>
+          )}
+
           {/* Health verdict from last AI scan (if any) */}
           {plant?.last_health_label && (
             <div
@@ -238,6 +263,7 @@ export default function PlantDetailPage() {
                   type="cycle"
                   value={daysUntilNextWater}
                   label={cycleLabel}
+                  urgent={daysUntilNextWater === 0}
                   darkMode={darkMode}
                 />
                 <StatCard type="health" value={healthPercent} darkMode={darkMode} />

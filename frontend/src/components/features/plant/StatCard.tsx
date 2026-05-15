@@ -8,10 +8,13 @@ interface StatCardProps {
   type: StatType;
   value: string | number; // e.g., '2 days ago' | 5 | 85
   label?: string; // optional label override
+  /** Override the background colour to red — used to flag overdue watering. */
+  urgent?: boolean;
   darkMode?: boolean;
 }
 
-const colorForType = (type: StatType) => {
+const colorForType = (type: StatType, urgent: boolean) => {
+  if (urgent) return 'bg-red-500';
   switch (type) {
     case 'watered':
       return 'bg-accent'; // Light blue
@@ -44,9 +47,15 @@ const defaultLabel = (type: StatType) => {
   }
 };
 
-export const StatCard: React.FC<StatCardProps> = ({ type, value, label, darkMode = false }) => {
-  const bgColor = colorForType(type);
-  
+export const StatCard: React.FC<StatCardProps> = ({
+  type,
+  value,
+  label,
+  urgent = false,
+  darkMode = false,
+}) => {
+  const bgColor = colorForType(type, urgent);
+
   return (
     <div className={`flex-1 rounded-3xl shadow-lg p-3 sm:p-6 flex flex-col items-center text-center ${bgColor}`}>
       <span className="text-white mt-2 sm:mt-4">{iconForType(type)}</span>
