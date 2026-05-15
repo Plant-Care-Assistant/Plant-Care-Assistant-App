@@ -131,15 +131,19 @@ class UserPlant(SQLModel, table=True):
     )
 
 
-# 4. HISTORIA OPIEKI (watering + other care activities, on the same table for
-# backward compat; care_type discriminates the activity).
-class WateringData(SQLModel, table=True):
+# 4. HISTORIA OPIEKI (watering + other care activities). The underlying table
+# is still named watering_data for backward compat with earlier migrations and
+# external tooling; the Python class reflects its current generalized purpose.
+class CareEvent(SQLModel, table=True):
     __tablename__: str = "watering_data"  # type: ignore
-    plant_id: int = Field(foreign_key="user_plants.id", primary_key=True)
-    timestamp_of_watering: datetime = Field(
-        default_factory=utc_now,
-        primary_key=True,
-    )
+    # The DB has had id BIGSERIAL PRIMARY KEY since the first migration; the
+    # previous composite (plant_id, timestamp) PK on the model never matched
+    # the schema.
+    id: int | None = Field(default=None, primary_key=True)
+    plant_id: int = Field(foreign_key="user_plants.id", index=True)
+    # Column name kept as `timestamp_of_watering` for compatibility with
+    # existing rows and queries.
+    timestamp_of_watering: datetime = Field(default_factory=utc_now)
     care_type: CareType = Field(default=CareType.water)
 
 

@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlmodel import select
 
 from app.db import SessionDep
-from app.models.base import CareType, User, UserPlant, UserPlantImage, WateringData
+from app.models.base import CareType, User, UserPlant, UserPlantImage, CareEvent
 from app.models.requests import UserPlantCreate, UserPlantUpdate
 from app.settings import DEFAULT_IMAGE, settings
 
@@ -51,12 +51,12 @@ class UserPlantService:
             return {}
         rows = self.s.exec(
             select(
-                WateringData.plant_id,
-                func.max(WateringData.timestamp_of_watering),
+                CareEvent.plant_id,
+                func.max(CareEvent.timestamp_of_watering),
             )
-            .where(WateringData.plant_id.in_(plant_ids))
-            .where(WateringData.care_type == CareType.water)
-            .group_by(WateringData.plant_id),
+            .where(CareEvent.plant_id.in_(plant_ids))
+            .where(CareEvent.care_type == CareType.water)
+            .group_by(CareEvent.plant_id),
         ).all()
         return {pid: ts for pid, ts in rows}
 
@@ -274,7 +274,7 @@ class UserPlantService:
 
     # === Care history (watering + other care activities) ===
 
-    def record_watering(self, user: User, plant_id: int) -> WateringData:
+    def record_watering(self, user: User, plant_id: int) -> CareEvent:
         """Back-compat wrapper used by the legacy /water endpoint."""
         return self.record_care(user, plant_id, CareType.water)
 
@@ -283,9 +283,9 @@ class UserPlantService:
         user: User,
         plant_id: int,
         care_type: CareType,
-    ) -> WateringData:
+    ) -> CareEvent:
         self._ensure_owned(user, plant_id)
-        row = WateringData(
+        row = CareEvent(
             plant_id=plant_id,
             timestamp_of_watering=datetime.now(UTC),
             care_type=care_type,
@@ -311,10 +311,10 @@ class UserPlantService:
         self._ensure_owned(user, plant_id)
         cutoff = datetime.now(UTC) - timedelta(days=days)
         st = (
-            select(WateringData)
-            .where(WateringData.plant_id == plant_id)
-            .where(WateringData.timestamp_of_watering >= cutoff)
-            .order_by(WateringData.timestamp_of_watering.desc())
+            select(CareEvent)
+            .where(CareEvent.plant_id == plant_id)
+            .where(CareEvent.timestamp_of_watering >= cutoff)
+            .order_by(CareEvent.timestamp_of_watering.desc())
         )
         rows = list(self.s.exec(st).all())
 
