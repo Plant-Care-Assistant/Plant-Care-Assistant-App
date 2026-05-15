@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import type { ScanPlantData } from './ScanCameraModal';
+import { getDiseaseAdvice } from '@/lib/disease/advice';
 
 interface ScanResultsStepProps {
   plantData: Partial<ScanPlantData>;
@@ -150,22 +151,43 @@ export function ScanResultsStep({
           </div>
 
           {plantData.healthLabel === 'diseased' && plantData.diseases?.length ? (
-            <ul className="mt-1 space-y-1">
-              {plantData.diseases.slice(0, 3).map((d, i) => (
-                <li key={i} className="flex justify-between text-xs">
-                  <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
-                    {/* The AI's labels carry a species prefix (Apple/Orange/...)
-                        that's the training-set host plant, not the user's plant.
-                        Show only the condition; fall back to the plant token if
-                        the source string had no separator. */}
-                    {d.condition || d.plant}
-                  </span>
-                  <span className="text-neutral-400 ml-2 shrink-0">
-                    {Math.round(d.confidence * 100)}%
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="mt-1 space-y-1">
+                {plantData.diseases.slice(0, 3).map((d, i) => (
+                  <li key={i} className="flex justify-between text-xs">
+                    <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
+                      {/* The AI's labels carry a species prefix (Apple/Orange/...)
+                          that's the training-set host plant, not the user's plant.
+                          Show only the condition; fall back to the plant token if
+                          the source string had no separator. */}
+                      {d.condition || d.plant}
+                    </span>
+                    <span className="text-neutral-400 ml-2 shrink-0">
+                      {Math.round(d.confidence * 100)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {/* Actionable advice for the top disease only — the user can re-scan
+                  to focus on a different condition if needed. */}
+              {(() => {
+                const top = plantData.diseases[0];
+                const advice = getDiseaseAdvice(top.condition || top.plant);
+                if (!advice) return null;
+                return (
+                  <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
+                    <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                      What to do:
+                    </p>
+                    <ul className={`text-xs space-y-1 list-disc pl-4 ${
+                      darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                    }`}>
+                      {advice.map((tip, i) => <li key={i}>{tip}</li>)}
+                    </ul>
+                  </div>
+                );
+              })()}
+            </>
           ) : null}
         </div>
       )}

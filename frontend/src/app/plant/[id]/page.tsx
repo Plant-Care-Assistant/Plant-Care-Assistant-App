@@ -24,6 +24,7 @@ import { Trash2, AlertCircle, CheckCircle2, Pencil } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PlantImageGallery } from "@/components/features/plant/PlantImageGallery";
 import { EditPlantDialog } from "@/components/features/plant/EditPlantDialog";
+import { getDiseaseAdvice } from "@/lib/disease/advice";
 
 export default function PlantDetailPage() {
   const params = useParams();
@@ -233,21 +234,40 @@ export default function PlantDetailPage() {
               </div>
 
               {plant.last_health_label === 'diseased' && plant.last_diseases?.length ? (
-                <ul className="mt-1 space-y-1">
-                  {plant.last_diseases.slice(0, 3).map((d, i) => (
-                    <li key={i} className="flex justify-between text-xs">
-                      <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
-                        {/* AI labels prefix with a training-set host species
-                            (Apple/Orange/...) that doesn't match the user's
-                            actual plant. Show only the condition. */}
-                        {d.condition || d.plant}
-                      </span>
-                      <span className="text-neutral-400 ml-2 shrink-0">
-                        {Math.round(d.confidence * 100)}%
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="mt-1 space-y-1">
+                    {plant.last_diseases.slice(0, 3).map((d, i) => (
+                      <li key={i} className="flex justify-between text-xs">
+                        <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
+                          {/* AI labels prefix with a training-set host species
+                              (Apple/Orange/...) that doesn't match the user's
+                              actual plant. Show only the condition. */}
+                          {d.condition || d.plant}
+                        </span>
+                        <span className="text-neutral-400 ml-2 shrink-0">
+                          {Math.round(d.confidence * 100)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {(() => {
+                    const top = plant.last_diseases[0];
+                    const advice = getDiseaseAdvice(top.condition || top.plant);
+                    if (!advice) return null;
+                    return (
+                      <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
+                        <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                          What to do:
+                        </p>
+                        <ul className={`text-xs space-y-1 list-disc pl-4 ${
+                          darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                        }`}>
+                          {advice.map((tip, i) => <li key={i}>{tip}</li>)}
+                        </ul>
+                      </div>
+                    );
+                  })()}
+                </>
               ) : null}
             </div>
           )}
