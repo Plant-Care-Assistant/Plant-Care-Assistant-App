@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useEffect, useState, useRef, ChangeEvent } from 'react';
 import Image from 'next/image';
-import { Plus, X, Trash2, ChevronLeft } from 'lucide-react';
+import { Plus, X, Trash2, ChevronLeft, ImagePlay } from 'lucide-react';
 import {
   usePlantImagesQuery,
   useUploadPlantImageMutation,
   useDeletePlantImageMutation,
 } from '@/hooks/usePlants';
 import type { UserPlantImage } from '@/types';
+import { PhotoCompareSlider } from './PhotoCompareSlider';
 
 interface PlantImageGalleryProps {
   plantId: number;
@@ -50,6 +51,17 @@ export function PlantImageGallery({
   const deleteMutation = useDeletePlantImageMutation(plantId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
+  // Defaults: compare the oldest (last in the newest-first array) vs the newest.
+  // Re-seeded when images change so opening compare always shows extremes.
+  const [beforeIdx, setBeforeIdx] = useState(0);
+  const [afterIdx, setAfterIdx] = useState(0);
+  useEffect(() => {
+    if (images.length >= 2) {
+      setBeforeIdx(images.length - 1);
+      setAfterIdx(0);
+    }
+  }, [images.length]);
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,20 +168,36 @@ export function PlantImageGallery({
             )}
           </div>
 
-          {/* Bottom-right add-photo pill (only when gallery is non-empty;
+          {/* Bottom-right action pills (only when gallery is non-empty;
               empty-state click already triggers upload via the tile itself). */}
           {!isEmpty && (
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                openUpload();
-              }}
-              className="absolute bottom-4 right-4 flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-secondary text-xs font-medium cursor-pointer shadow-md"
-              role="button"
-              aria-label="Add photo"
-            >
-              <Plus size={14} />
-              {uploadMutation.isPending ? 'Uploading…' : 'Add photo'}
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              {images.length >= 2 && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCompare(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-secondary text-xs font-medium cursor-pointer shadow-md"
+                  role="button"
+                  aria-label="Compare photos over time"
+                >
+                  <ImagePlay size={14} />
+                  Compare
+                </div>
+              )}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openUpload();
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-secondary text-xs font-medium cursor-pointer shadow-md"
+                role="button"
+                aria-label="Add photo"
+              >
+                <Plus size={14} />
+                {uploadMutation.isPending ? 'Uploading…' : 'Add photo'}
+              </div>
             </div>
           )}
         </button>
@@ -227,6 +255,84 @@ export function PlantImageGallery({
         className="hidden"
         onChange={handleFileSelect}
       />
+
+      {/* Compare modal — before/after slider with thumbnail pickers */}
+      {showCompare && images.length >= 2 && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col p-4 sm:p-6"
+          onClick={() => setShowCompare(false)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCompare(false);
+            }}
+            className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full z-10"
+            aria-label="Close compare"
+          >
+            <X size={24} />
+          </button>
+          <div
+            className="flex flex-col gap-4 max-w-4xl w-full mx-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PhotoCompareSlider
+              beforeUrl={imageUrlFor(images[beforeIdx])}
+              beforeLabel={`Before · ${new Date(images[beforeIdx].uploaded_at).toLocaleDateString()}`}
+              afterUrl={imageUrlFor(images[afterIdx])}
+              afterLabel={`After · ${new Date(images[afterIdx].uploaded_at).toLocaleDateString()}`}
+            />
+
+            {/* Pickers: tap a thumbnail to set it as before/after */}
+            <div className="space-y-2">
+              <p className="text-white/70 text-xs font-medium">Tap thumbnails to choose</p>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {images.map((img, i) => {
+                  const isBefore = i === beforeIdx;
+                  const isAfter = i === afterIdx;
+                  return (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => {
+                        // Tapping cycles role: not-in-comparison → after → before.
+                        if (isAfter) setBeforeIdx(i);
+                        else setAfterIdx(i);
+                      }}
+                      className={`relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden ${
+                        isBefore
+                          ? 'ring-2 ring-amber-400'
+                          : isAfter
+                            ? 'ring-2 ring-emerald-400'
+                            : 'opacity-60 hover:opacity-100'
+                      }`}
+                      aria-label={`Photo from ${new Date(img.uploaded_at).toLocaleDateString()}`}
+                    >
+                      <Image
+                        src={imageUrlFor(img)}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      {(isBefore || isAfter) && (
+                        <span
+                          className={`absolute bottom-0 inset-x-0 text-[10px] font-bold uppercase text-center py-0.5 ${
+                            isBefore ? 'bg-amber-400 text-black' : 'bg-emerald-400 text-black'
+                          }`}
+                        >
+                          {isBefore ? 'Before' : 'After'}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxIndex !== null && images[lightboxIndex] && (
