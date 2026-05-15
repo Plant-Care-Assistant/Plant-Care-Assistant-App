@@ -94,7 +94,7 @@ export const plantApi = {
     const formData = new FormData();
     formData.append("file", file);
 
-    let top: AiSpeciesPrediction;
+    let top: AiSpeciesPrediction | null = null;
     let healthLabel: "healthy" | "diseased" | null = null;
     let healthConfidence: number | null = null;
     let diseases: Array<{ plant: string; condition: string; confidence: number }> | null = null;
@@ -103,18 +103,24 @@ export const plantApi = {
       const res = await fetch("/ai/predict/combined", { method: "POST", body: formData });
       if (!res.ok) throw new Error(`AI service error: ${res.status}`);
       const json: AiCombinedResponse = await res.json();
-      if (!json.species?.length) throw new Error("No species predictions returned");
-      top = json.species[0];
-      healthLabel = json.health.label;
-      healthConfidence = json.health.confidence;
-      diseases = json.diseases.map((d) => {
-        const [plant, condition] = d.disease.split("___");
-        return {
-          plant: (plant ?? d.disease).replace(/_/g, " "),
-          condition: (condition ?? "").replace(/_/g, " "),
-          confidence: d.confidence,
-        };
-      });
+      // Species detection may come back empty even when disease detection
+      // succeeded (low species confidence vs strong leaf-disease signal).
+      // Surface whatever the AI gave us instead of aborting the whole call.
+      top = json.species?.[0] ?? null;
+      healthLabel = json.health?.label ?? null;
+      healthConfidence = json.health?.confidence ?? null;
+      diseases =
+        json.diseases?.map((d) => {
+          const [plant, condition] = d.disease.split("___");
+          return {
+            plant: (plant ?? d.disease).replace(/_/g, " "),
+            condition: (condition ?? "").replace(/_/g, " "),
+            confidence: d.confidence,
+          };
+        }) ?? null;
+      if (!top && !healthLabel) {
+        throw new Error("AI returned no species and no health verdict");
+      }
     } else {
       const res = await fetch("/ai/predict", { method: "POST", body: formData });
       if (!res.ok) throw new Error(`AI service error: ${res.status}`);
@@ -123,13 +129,17 @@ export const plantApi = {
       top = json.predictions[0];
     }
 
-    const scientific = (top.class_name ?? top.class_id).replace(/_/g, " ");
-    const catalog = await plantApi.getCatalogPlantByPlantsnetId(top.class_id);
+    const scientific = top
+      ? (top.class_name ?? top.class_id).replace(/_/g, " ")
+      : "";
+    const catalog = top
+      ? await plantApi.getCatalogPlantByPlantsnetId(top.class_id)
+      : null;
 
     return {
-      name: catalog?.common_name ?? scientific.split(" ")[0],
+      name: catalog?.common_name ?? (scientific ? scientific.split(" ")[0] : ""),
       scientificName: scientific,
-      confidence: Math.round(top.confidence * 100),
+      confidence: top ? Math.round(top.confidence * 100) : 0,
       careInstructions: [],
       temperature:
         catalog?.preferred_temp_min != null && catalog?.preferred_temp_max != null

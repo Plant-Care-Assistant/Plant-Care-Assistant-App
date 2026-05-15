@@ -17,10 +17,12 @@ export interface ScanPlantData {
   lightLevel: 'low' | 'medium' | 'high';
   wateringFrequency: number; // days
   location?: string;
-  confidence?: number; // Confidence score 0-100
+  confidence?: number; // SPECIES identification confidence, 0-100
   aiIdentified?: boolean;
   catalogId?: number | null;
   healthLabel?: 'healthy' | 'diseased' | null;
+  /** AI HEALTH verdict confidence, 0-1 (raw from AI service). */
+  healthConfidence?: number | null;
   diseases?: Array<{ plant: string; condition: string; confidence: number }> | null;
 }
 
@@ -62,11 +64,15 @@ export function ScanCameraModal({
         name: result.name,
         species: result.scientificName,
         confidence: result.confidence,
-        aiIdentified: true,
+        // Treat as identified only when we got a usable species name back.
+        // When species is empty the user fills the name in manually, but we
+        // still keep the health/disease info the AI did return.
+        aiIdentified: Boolean(result.name),
         lightLevel: result.light,
         wateringFrequency: result.wateringFrequency,
         catalogId: result.catalogId,
         healthLabel: result.healthLabel,
+        healthConfidence: result.healthConfidence,
         diseases: result.diseases,
       }));
       didIdentifyRef.current = true;

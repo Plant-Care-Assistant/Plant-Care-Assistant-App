@@ -121,21 +121,32 @@ export function ScanResultsStep({
               : 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
           }`}
         >
-          <div className="flex items-center gap-2">
-            {plantData.healthLabel === 'diseased' ? (
-              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {plantData.healthLabel === 'diseased' ? (
+                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+              )}
+              <span
+                className={`font-semibold text-sm ${
+                  darkMode ? 'text-white' : 'text-neutral-900'
+                }`}
+              >
+                {plantData.healthLabel === 'diseased'
+                  ? 'Plant may be diseased'
+                  : 'Plant looks healthy'}
+              </span>
+            </div>
+            {plantData.healthConfidence != null && (
+              <span
+                className={`text-sm font-semibold ${
+                  plantData.healthLabel === 'diseased' ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'
+                }`}
+              >
+                {Math.round(plantData.healthConfidence * 100)}%
+              </span>
             )}
-            <span
-              className={`font-semibold text-sm ${
-                darkMode ? 'text-white' : 'text-neutral-900'
-              }`}
-            >
-              {plantData.healthLabel === 'diseased'
-                ? 'Plant may be diseased'
-                : 'Plant looks healthy'}
-            </span>
           </div>
 
           {plantData.healthLabel === 'diseased' && plantData.diseases?.length ? (
@@ -143,8 +154,11 @@ export function ScanResultsStep({
               {plantData.diseases.slice(0, 3).map((d, i) => (
                 <li key={i} className="flex justify-between text-xs">
                   <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
-                    {d.plant}
-                    {d.condition ? ` — ${d.condition}` : ''}
+                    {/* The AI's labels carry a species prefix (Apple/Orange/...)
+                        that's the training-set host plant, not the user's plant.
+                        Show only the condition; fall back to the plant token if
+                        the source string had no separator. */}
+                    {d.condition || d.plant}
                   </span>
                   <span className="text-neutral-400 ml-2 shrink-0">
                     {Math.round(d.confidence * 100)}%

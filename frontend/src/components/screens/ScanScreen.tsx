@@ -25,13 +25,18 @@ export function ScanScreen() {
 
   const handleAddToCollection = (plant: ScanPlantData) => {
     const hasHealthVerdict = plant.healthLabel != null;
+    // AI returns healthConfidence as a 0..1 fraction; store as 0..100 percent.
+    const healthConfPct =
+      hasHealthVerdict && plant.healthConfidence != null
+        ? Math.round(plant.healthConfidence * 100)
+        : null;
     addPlantMutation.mutate({
       custom_name: plant.name || 'Unknown Plant',
       note: plant.species || null,
       plant_catalog_id: plant.catalogId ?? null,
       imageUrl: plant.imageUrl,
       last_health_label: plant.healthLabel ?? null,
-      last_health_confidence: hasHealthVerdict ? plant.confidence ?? null : null,
+      last_health_confidence: healthConfPct,
       last_health_check_at: hasHealthVerdict ? new Date().toISOString() : null,
       last_diseases: plant.diseases ?? null,
     });
