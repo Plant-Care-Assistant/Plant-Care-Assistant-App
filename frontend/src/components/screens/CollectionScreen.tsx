@@ -39,16 +39,29 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
       );
     }
 
-    // Filters - with real data we don't have health status yet,
-    // so "recent" sorts by created_at, others show all for now
     if (activeFilter === 'recent') {
       filtered = filtered.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
+    } else {
+      // Default sort: plants that need attention first (overdue → due-soon →
+      // diseased → rest). Within each bucket, by least days remaining.
+      filtered = filtered.sort((a, b) => {
+        const aDue = a.days_until_water ?? Number.POSITIVE_INFINITY;
+        const bDue = b.days_until_water ?? Number.POSITIVE_INFINITY;
+        return aDue - bDue;
+      });
     }
 
     return filtered;
   }, [plants, searchQuery, activeFilter]);
+
+  // Map AI verdict + watering urgency → 3-bucket health for the card badge.
+  const cardHealth = (p: UserPlant): 'healthy' | 'needs-attention' | 'critical' => {
+    if (p.last_health_label === 'diseased') return 'critical';
+    if (p.days_until_water != null && p.days_until_water <= 0) return 'needs-attention';
+    return 'healthy';
+  };
 
   const handlePlantClick = (plantId: number) => {
     router.push(`/plant/${plantId}`);
@@ -120,7 +133,8 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
                   name={plant.custom_name || 'Unnamed Plant'}
                   species={plant.note || undefined}
                   imageUrl={getPlantImage(plant.id)}
-                  health="healthy"
+                  health={cardHealth(plant)}
+                  daysUntilWater={plant.days_until_water}
                   darkMode={darkMode}
                   onClick={() => handlePlantClick(plant.id)}
                 />
