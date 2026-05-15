@@ -8,7 +8,7 @@ import { CollectionSearch } from '@/components/features/collection/CollectionSea
 import { CollectionFilters, FilterOption } from '@/components/features/collection/CollectionFilters';
 import { PlantCard } from '@/components/features/collection/PlantCard';
 import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
-import { Plus } from 'lucide-react';
+import { Plus, Sprout } from 'lucide-react';
 import { useAddPlantMutation } from '@/hooks/usePlants';
 import { getPlantImage } from '@/lib/utils/plantImages';
 import { UserPlant } from '@/types';
@@ -105,6 +105,48 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
           {/* Header */}
           <CollectionHeader plantCount={plants.length} darkMode={darkMode} />
 
+          {/* First-run empty state — skip search/filters/grid entirely when there
+              are no plants and show a friendly hero with a single CTA instead. */}
+          {plants.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center text-center py-16 lg:py-24 px-4"
+            >
+              <div
+                className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${
+                  darkMode ? 'bg-neutral-800' : 'bg-secondary/10'
+                }`}
+              >
+                <Sprout size={48} className="text-secondary" />
+              </div>
+              <h2
+                className={`text-2xl font-bold mb-2 ${
+                  darkMode ? 'text-white' : 'text-neutral-900'
+                }`}
+              >
+                Your collection is empty
+              </h2>
+              <p
+                className={`max-w-md mb-8 ${
+                  darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                }`}
+              >
+                Snap or upload a photo of your first plant — the AI will identify the
+                species, suggest care settings, and check for disease.
+              </p>
+              <motion.button
+                onClick={handleAddPlant}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-secondary text-white font-semibold shadow-lg hover:opacity-90 transition-opacity"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Plus size={20} />
+                Add your first plant
+              </motion.button>
+            </motion.div>
+          ) : (
+          <>
           {/* Search */}
           <CollectionSearch
             value={searchQuery}
@@ -165,7 +207,7 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
             </motion.button>
           </div>
 
-          {/* No Results State */}
+          {/* No Results State (search/filter returned empty) */}
           {filteredPlants.length === 0 && plants.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -178,6 +220,8 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
                 No plants found matching your search
               </p>
             </motion.div>
+          )}
+          </>
           )}
 
         </div>
