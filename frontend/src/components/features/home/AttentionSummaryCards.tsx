@@ -1,12 +1,12 @@
-import { Droplet, Sun } from 'lucide-react';
+import { Droplet, AlertCircle } from 'lucide-react';
 
 interface AttentionSummaryCardsProps {
   needWater: number;
-  lowLight: number;
+  diseased: number;
   darkMode: boolean;
 }
 
-export function AttentionSummaryCards({ needWater, lowLight, darkMode }: AttentionSummaryCardsProps) {
+export function AttentionSummaryCards({ needWater, diseased, darkMode }: AttentionSummaryCardsProps) {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Need Water */}
@@ -20,14 +20,14 @@ export function AttentionSummaryCards({ needWater, lowLight, darkMode }: Attenti
         </div>
       </div>
 
-      {/* Low Light */}
+      {/* May Be Diseased */}
       <div className={`p-4 rounded-2xl ${darkMode ? 'bg-neutral-800' : 'bg-white'} shadow-md flex items-center gap-3`}>
-        <div className="w-10 h-10 rounded-xl bg-nature flex items-center justify-center shrink-0">
-          <Sun className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 rounded-xl bg-red-500/90 flex items-center justify-center shrink-0">
+          <AlertCircle className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className={`text-2xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{lowLight}</p>
-          <p className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>low light</p>
+          <p className={`text-2xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{diseased}</p>
+          <p className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>may be diseased</p>
         </div>
       </div>
     </div>

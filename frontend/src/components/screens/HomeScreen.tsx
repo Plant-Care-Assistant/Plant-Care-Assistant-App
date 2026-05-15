@@ -11,6 +11,7 @@ import { HeaderIcon } from '@/components/features/home/HeaderIcon';
 import { WeeklyChallenge } from '@/components/features/home/WeeklyChallenge';
 import { WeatherTip } from '@/components/features/home/WeatherTip';
 import { AttentionSummaryCards } from '@/components/features/home/AttentionSummaryCards';
+import { NeedsCareList } from '@/components/features/home/NeedsCareList';
 import { UserPlant } from '@/types';
 import { useGamification, useTheme } from '@/providers';
 
@@ -22,8 +23,15 @@ export function HomeScreen({ plants }: HomeScreenProps) {
   const { theme } = useTheme();
   const darkMode = theme === 'dark';
   const totalPlants = plants.length;
-  const healthyPlantsCount = totalPlants > 0 ? 100 : 0;
-  const plantsNeedWater = 0;
+
+  // Real data from the backend's last_watered_at / days_until_water + last_health_label.
+  const plantsNeedingWater = plants.filter(
+    (p) => p.days_until_water != null && p.days_until_water <= 0,
+  );
+  const plantsNeedWater = plantsNeedingWater.length;
+  const diseasedCount = plants.filter((p) => p.last_health_label === 'diseased').length;
+  const healthyPlantsCount =
+    totalPlants > 0 ? Math.round(((totalPlants - diseasedCount) / totalPlants) * 100) : 0;
 
   const { state, level, xpIntoLevel, xpForNext } = useGamification();
   const streak = state.counters.currentStreak;
@@ -75,27 +83,29 @@ export function HomeScreen({ plants }: HomeScreenProps) {
         darkMode={darkMode} 
       />
 
-      {/* Need Attention Section */}
+      {/* Needs care today */}
       <div className="mb-6">
         <h2 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Need Attention
+          Needs care today
         </h2>
-        
-        {/* Plant cards needing attention */}
-        <div className="mb-4">
-          {totalPlants === 0 && (
-            <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-              No plants yet. Add some to your collection!
-            </p>
-          )}
-        </div>
 
-        {/* Attention Summary Cards */}
-        <AttentionSummaryCards 
-          needWater={plantsNeedWater} 
-          lowLight={2} 
-          darkMode={darkMode} 
-        />
+        {totalPlants === 0 ? (
+          <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+            No plants yet. Add some to your collection!
+          </p>
+        ) : (
+          <div className="mb-4">
+            <NeedsCareList plants={plantsNeedingWater} darkMode={darkMode} />
+          </div>
+        )}
+
+        {totalPlants > 0 && (
+          <AttentionSummaryCards
+            needWater={plantsNeedWater}
+            diseased={diseasedCount}
+            darkMode={darkMode}
+          />
+        )}
       </div>
     </div>
   );
