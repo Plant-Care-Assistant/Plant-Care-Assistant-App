@@ -20,9 +20,10 @@ import {
 } from "@/hooks/usePlants";
 import type { CareType } from "@/types";
 import { removePlantImage } from "@/lib/utils/plantImages";
-import { Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Trash2, AlertCircle, CheckCircle2, Pencil } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PlantImageGallery } from "@/components/features/plant/PlantImageGallery";
+import { EditPlantDialog } from "@/components/features/plant/EditPlantDialog";
 
 export default function PlantDetailPage() {
   const params = useParams();
@@ -38,6 +39,7 @@ export default function PlantDetailPage() {
   const { awardXP } = useGamification();
   const deletePlantMutation = useDeletePlantMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Care fields fall back through: per-plant override → catalog → mock default.
   // Mocks keep the cards informative when the species isn't in the catalog
@@ -305,18 +307,39 @@ export default function PlantDetailPage() {
             </div>
           </div>
 
-          {/* Delete Button */}
-          <button
-            onClick={() => setShowDeleteDialog(true)}
-            className={`w-full py-4 rounded-2xl font-semibold transition-colors flex items-center justify-center gap-2 ${
-              darkMode
-                ? 'text-accent2 hover:bg-neutral-800'
-                : 'text-accent2 hover:bg-pink-50'
-            }`}
-          >
-            <Trash2 size={18} />
-            Remove from Collection
-          </button>
+          {/* Edit + Delete buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setShowEditDialog(true)}
+              className={`py-4 rounded-2xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+                darkMode
+                  ? 'text-secondary hover:bg-neutral-800'
+                  : 'text-secondary hover:bg-secondary/10'
+              }`}
+            >
+              <Pencil size={18} />
+              Edit plant
+            </button>
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className={`py-4 rounded-2xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+                darkMode
+                  ? 'text-accent2 hover:bg-neutral-800'
+                  : 'text-accent2 hover:bg-pink-50'
+              }`}
+            >
+              <Trash2 size={18} />
+              Remove from Collection
+            </button>
+          </div>
+
+          {plant && (
+            <EditPlantDialog
+              plant={plant}
+              open={showEditDialog}
+              onOpenChange={setShowEditDialog}
+            />
+          )}
 
           {/* Delete Confirmation Dialog */}
           <ConfirmDialog

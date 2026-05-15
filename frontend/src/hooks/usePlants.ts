@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plantApi } from "@/lib/api";
-import { CareType, UserPlant, UserPlantCreate } from "@/types";
+import { CareType, UserPlant, UserPlantCreate, UserPlantUpdate } from "@/types";
 import { savePlantImage } from "@/lib/utils/plantImages";
 import { dataUrlToFile } from "@/lib/utils/dataUrl";
 
@@ -69,6 +69,19 @@ export function useAddPlantMutation() {
     onError: (err) => {
       console.error("addPlant failed:", err);
     },
+  });
+}
+
+/** Update a plant; invalidates list + detail cache on success. */
+export function useUpdatePlantMutation() {
+  const qc = useQueryClient();
+  return useMutation<UserPlant, unknown, { id: number; updates: UserPlantUpdate }>({
+    mutationFn: ({ id, updates }) => plantApi.updatePlant(id, updates),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: [...PLANTS_KEY, id] });
+      qc.invalidateQueries({ queryKey: PLANTS_KEY });
+    },
+    onError: (err) => console.error("updatePlant failed:", err),
   });
 }
 

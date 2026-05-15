@@ -188,6 +188,14 @@ export interface UserPlantUpdate {
   note?: string | null;
   sprouted_at?: string | null;
 
+  scientific_name?: string | null;
+  preferred_sunlight?: "low" | "medium" | "high" | null;
+  preferred_temp_min?: number | null;
+  preferred_temp_max?: number | null;
+  air_humidity_req?: "low" | "medium" | "high" | null;
+  soil_humidity_req?: "low" | "medium" | "high" | null;
+  preferred_watering_interval_days?: number | null;
+
   last_health_label?: "healthy" | "diseased" | null;
   last_health_confidence?: number | null;
   last_health_check_at?: string | null;
