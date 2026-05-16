@@ -35,7 +35,7 @@ class StochasticDepth(nn.Module):
             The scaled input tensor or zeroed tensor during training.
 
         """
-        if not self.training or self.drop_prob == 0.0:  # noqa: RUF069
+        if not self.training or self.drop_prob == 0.0:
             return x
 
         keep_prob = 1 - self.drop_prob
