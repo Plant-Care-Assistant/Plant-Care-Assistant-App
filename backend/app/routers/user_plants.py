@@ -152,7 +152,12 @@ def record_user_plant_watering(
     user: LoggedUserDep,
     service: UserPlantServiceDep,
 ):
-    """Legacy alias kept for back-compat; equivalent to POST /care {type:water}."""
+    """Legacy alias kept for back-compat; equivalent to POST /care {type:water}.
+
+    Returns:
+        HTTP 204 No Content.
+
+    """
     service.record_watering(user, plant_id)
     return Response(status_code=204)
 

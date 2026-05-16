@@ -98,13 +98,13 @@ class GamificationService:
         try:
             self.s.commit()
             self.s.refresh(new_gd)
-            return new_gd
         except IntegrityError:
             self.s.rollback()
-            existing = self.s.exec(
+            return self.s.exec(
                 select(GamificationData).where(GamificationData.user_id == user.id),
             ).one()
-            return existing
+        else:
+            return new_gd
 
     def user_report(self, user: User) -> UserGamificationReport:
         st = select(GamificationData).where(GamificationData.user_id == user.id)

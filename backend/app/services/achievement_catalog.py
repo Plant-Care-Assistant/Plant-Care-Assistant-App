@@ -1,3 +1,4 @@
+# ruff: noqa: PLR2004
 """Achievement unlock rules.
 
 Mirrors the frontend catalog in `frontend/src/lib/data/achievements.ts`. Ids
@@ -9,8 +10,9 @@ from collections.abc import Callable
 
 from app.models.base import GamificationData
 
-# (achievement_id, predicate over GamificationData)
-COUNTER_AND_STREAK_ACHIEVEMENTS: list[tuple[str, Callable[[GamificationData], bool]]] = [
+_Predicate = Callable[[GamificationData], bool]
+
+COUNTER_AND_STREAK_ACHIEVEMENTS: list[tuple[str, _Predicate]] = [
     # Collection
     ("first-sprout", lambda gd: gd.plants_added >= 1),
     ("small-garden", lambda gd: gd.plants_added >= 5),

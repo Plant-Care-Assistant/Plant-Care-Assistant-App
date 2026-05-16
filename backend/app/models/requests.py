@@ -121,8 +121,7 @@ class CareEventPublic(BaseModel):
 
 
 class DailyCarePublic(BaseModel):
-    """One day in the Weekly Care 7-day strip. `types` is the set of care
-    activities the user logged that day (empty list = no care recorded)."""
+    """One day in the Weekly Care 7-day strip; types lists care activities logged."""
 
     date: str  # ISO YYYY-MM-DD
     types: list[CareType]

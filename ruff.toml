@@ -21,6 +21,7 @@ extend-ignore = [
     "ANN002",  # allow missing type hints for args
     "DOC501",  # raised exceptions missing from docstring
     "PLR0914", # too many local variables
+    "PLR2004", # magic value comparisons — intentional in achievement thresholds and ML constants
     "FBT001",  # boolean-typed positional argument in function definition
     "FBT002",  # boolean default positional argument in function definition
 ]
@@ -35,6 +36,9 @@ parametrize-names-type = "tuple"
     "FBT003", # allow boolean values in function calls
     "S101",   # allow use of assert statements in tests
     "SLF001", # allow private member access in tests
+]
+"**/achievement_catalog.py" = [
+    "PLR2004", # achievement threshold values are self-documenting inline constants
 ]
 
 

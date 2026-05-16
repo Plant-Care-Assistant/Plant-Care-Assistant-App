@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlmodel import select
 
 from app.db import SessionDep
-from app.models.base import CareType, User, UserPlant, UserPlantImage, CareEvent
+from app.models.base import CareEvent, CareType, User, UserPlant, UserPlantImage
 from app.models.requests import UserPlantCreate, UserPlantUpdate
 from app.settings import DEFAULT_IMAGE, settings
 
@@ -40,11 +40,14 @@ class UserPlantService:
         return user.id
 
     def _last_waterings(self, plant_ids: list[int]) -> dict[int, datetime]:
-        """Single GROUP BY query → {plant_id: latest watering timestamp}.
+        """Single GROUP BY query for the latest watering timestamp per plant.
 
-        Pulls only `care_type='water'` rows; misting/fertilizing don't reset
-        the watering schedule. Plants without any watering history are absent
-        from the map.
+        Pulls only ``care_type='water'`` rows; misting/fertilizing don't reset
+        the watering schedule. Plants with no history are absent from the result.
+
+        Returns:
+            Mapping of plant_id → most-recent watering timestamp.
+
         """
         if not plant_ids:
             return {}
@@ -57,20 +60,27 @@ class UserPlantService:
             .where(CareEvent.care_type == CareType.water)
             .group_by(CareEvent.plant_id),
         ).all()
-        return {pid: ts for pid, ts in rows}
+        return dict(rows)
 
     @staticmethod
     def _enrich(plant: UserPlant, last_watered_at: datetime | None) -> dict[str, Any]:
-        """Convert a UserPlant ORM row to a dict + care-urgency fields.
+        """Convert a UserPlant ORM row to a dict and append care-urgency fields.
 
-        Returning a dict (not the ORM object) so the Pydantic response model
-        picks up the extra computed fields without requiring them on the
+        Returns a plain dict (not the ORM instance) so the Pydantic response
+        model picks up the extra computed fields without requiring them on the
         SQLModel class.
+
+        Returns:
+            dict with all UserPlant columns plus ``last_watered_at``
+            and ``days_until_water``.
+
         """
         data: dict[str, Any] = plant.model_dump()
         data["last_watered_at"] = last_watered_at
 
-        interval = plant.preferred_watering_interval_days or DEFAULT_WATERING_INTERVAL_DAYS
+        interval = (
+            plant.preferred_watering_interval_days or DEFAULT_WATERING_INTERVAL_DAYS
+        )
         if last_watered_at is None:
             # Never watered: grant the full interval before the plant counts as due.
             data["days_until_water"] = interval
@@ -205,7 +215,15 @@ class UserPlantService:
         return plant
 
     def _upload_blob(self, file: UploadFile) -> str:
-        """Upload a file to SeaweedFS and return its fid. Raises HTTPException on failure."""
+        """Upload a file to SeaweedFS and return its fid.
+
+        Returns:
+            The SeaweedFS fid string for the uploaded file.
+
+        Raises:
+            HTTPException: If the blob slot assignment or upload request fails.
+
+        """
         try:
             response = httpx.get(f"http://{BLOB_URL}/dir/assign", timeout=HTTP_TIMEOUT)
             response.raise_for_status()
@@ -268,7 +286,12 @@ class UserPlantService:
         return row.fid
 
     def record_watering(self, user: User, plant_id: int) -> CareEvent:
-        """Back-compat wrapper used by the legacy /water endpoint."""
+        """Back-compat wrapper used by the legacy /water endpoint.
+
+        Returns:
+            The created CareEvent record.
+
+        """
         return self.record_care(user, plant_id, CareType.water)
 
     def record_care(
@@ -289,17 +312,13 @@ class UserPlantService:
         return row
 
     def care_history(self, user: User, plant_id: int, days: int = 30) -> dict:
-        """Return care events within the last `days` plus computed widgets.
+        """Return care events within the last ``days`` plus computed widgets.
 
-        - waterings: timestamps of watering events only (back-compat for the
-          "last watered" card on the detail screen).
-        - events: every care event in the window with its type.
-        - current_streak_days: consecutive trailing days with ≥ 1 care event of
-          any type (water/mist/fertilize/...).
-        - unique_days_last_week: distinct days with ≥ 1 care event in last 7.
-        - daily_last_week: ordered list of 7 entries (oldest → today) each
-          containing date + set of care types performed that day, for the
-          Weekly Care grid.
+        Returns:
+            dict with keys: waterings, events, current_streak_days,
+            unique_days_last_week, and daily_last_week (7-day strip for the
+            Weekly Care grid, oldest → today).
+
         """
         self._ensure_owned(user, plant_id)
         cutoff = datetime.now(UTC) - timedelta(days=days)
@@ -340,7 +359,7 @@ class UserPlantService:
             {
                 "date": (week_cutoff + timedelta(days=i)).isoformat(),
                 "types": sorted(
-                    cared_days_by_type.get(week_cutoff + timedelta(days=i), set())
+                    cared_days_by_type.get(week_cutoff + timedelta(days=i), set()),
                 ),
             }
             for i in range(7)
