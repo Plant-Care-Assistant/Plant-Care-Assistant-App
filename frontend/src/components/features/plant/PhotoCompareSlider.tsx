@@ -49,13 +49,14 @@ export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
-      className="relative w-full aspect-[4/3] sm:aspect-video rounded-2xl overflow-hidden bg-neutral-900 select-none touch-none cursor-ew-resize"
+      className="relative w-full aspect-square sm:aspect-video rounded-2xl overflow-hidden bg-neutral-900 select-none touch-none cursor-ew-resize"
     >
+      {/* object-cover ensures both images fill the same frame regardless of orientation. */}
       <Image
         src={afterUrl}
         alt={afterLabel}
         fill
-        className="object-contain pointer-events-none"
+        className="object-cover pointer-events-none"
         unoptimized
       />
 
@@ -68,7 +69,7 @@ export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
           src={beforeUrl}
           alt={beforeLabel}
           fill
-          className="object-contain"
+          className="object-cover"
           unoptimized
         />
       </div>
