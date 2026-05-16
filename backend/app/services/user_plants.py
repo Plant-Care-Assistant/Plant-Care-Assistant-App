@@ -114,12 +114,12 @@ class UserPlantService:
         if plant is None or plant.user_id != user.id:
             raise HTTPException(404, "Plant not found")
 
-        new_plant = plant.model_copy(update=body.model_dump(exclude_none=True))
-        self.s.add(new_plant)
+        for field, value in body.model_dump(exclude_none=True).items():
+            setattr(plant, field, value)
         self.s.commit()
-        self.s.refresh(new_plant)
+        self.s.refresh(plant)
         last = self._last_waterings([plant_id]).get(plant_id)
-        return self._enrich(new_plant, last)
+        return self._enrich(plant, last)
 
     def delete_plant(self, user: User, plant_id: int):
         self._check_user(user)
