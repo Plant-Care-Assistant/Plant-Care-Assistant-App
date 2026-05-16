@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { LevelBadge } from '@/components/features/home/LevelBadge';
-import { DailyGoal } from '@/components/features/home/DailyGoal';
 import { StreakCard } from '@/components/features/home/StreakCard';
 import { HealthyPlantsCard } from '@/components/features/home/HealthyPlantsCard';
 import { XPEarnedCard } from '@/components/features/home/XPEarnedCard';
@@ -14,6 +13,7 @@ import { AttentionSummaryCards } from '@/components/features/home/AttentionSumma
 import { NeedsCareList } from '@/components/features/home/NeedsCareList';
 import { UserPlant } from '@/types';
 import { useGamification, useTheme } from '@/providers';
+import { useWeeklyChallenge } from '@/lib/gamification/useWeeklyChallenge';
 
 export interface HomeScreenProps {
   plants: UserPlant[];
@@ -29,14 +29,14 @@ export function HomeScreen({ plants }: HomeScreenProps) {
   );
   const plantsNeedWater = plantsNeedingWater.length;
   const diseasedCount = plants.filter((p) => p.last_health_label === 'diseased').length;
-  const healthyPlantsCount =
-    totalPlants > 0 ? Math.round(((totalPlants - diseasedCount) / totalPlants) * 100) : 0;
+  // null = no plants yet; card shows "—" instead of a misleading percentage.
+  const healthyPlantsCount: number | null =
+    totalPlants > 0 ? Math.round(((totalPlants - diseasedCount) / totalPlants) * 100) : null;
 
-  const { state, level, xpIntoLevel, xpForNext } = useGamification();
+  const { state, level } = useGamification();
   const streak = state.counters.currentStreak;
   const totalXp = state.xp;
-  const waterCount = state.counters.plantsWatered;
-  const weeklyTarget = 7;
+  const challenge = useWeeklyChallenge(streak);
 
   return (
     <div className={`p-4 lg:p-6 pb-24 lg:pb-4 max-w-7xl mx-auto ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -47,15 +47,13 @@ export function HomeScreen({ plants }: HomeScreenProps) {
       >
         <div className="flex items-center justify-between mb-4 h-20">
           <HeaderGreeting darkMode={darkMode} />
-          <HeaderIcon darkMode={darkMode} />
+          <HeaderIcon level={level} darkMode={darkMode} />
         </div>
       </motion.div>
 
       <div className="mb-4">
         <LevelBadge level={level} darkMode={darkMode} />
       </div>
-
-      <DailyGoal current={xpIntoLevel} total={xpForNext} darkMode={darkMode} />
 
       <div className="grid grid-cols-3 gap-3 my-6">
         <StreakCard streak={streak} darkMode={darkMode} />
@@ -64,9 +62,9 @@ export function HomeScreen({ plants }: HomeScreenProps) {
       </div>
 
       <WeeklyChallenge
-        current={Math.min(waterCount, weeklyTarget)}
-        total={weeklyTarget}
-        description="Water 7 plants this week"
+        current={challenge.current}
+        total={challenge.total}
+        description={challenge.description}
         darkMode={darkMode}
       />
 

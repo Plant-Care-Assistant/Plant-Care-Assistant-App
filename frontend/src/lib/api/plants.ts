@@ -92,6 +92,17 @@ export const plantApi = {
             confidence: d.confidence,
           };
         }) ?? null;
+
+      // Discard a "diseased" verdict when the top disease probability is below 20%.
+      // High health-classifier confidence alone is not enough — if the model cannot
+      // confidently name any specific disease, the result is too unreliable to surface.
+      const MIN_DISEASE_CONFIDENCE = 0.20;
+      if (healthLabel === "diseased" && (diseases?.[0]?.confidence ?? 0) < MIN_DISEASE_CONFIDENCE) {
+        healthLabel = null;
+        healthConfidence = null;
+        diseases = null;
+      }
+
       if (!top && !healthLabel) {
         throw new Error("AI returned no species and no health verdict");
       }

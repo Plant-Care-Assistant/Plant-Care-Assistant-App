@@ -29,6 +29,8 @@ function PlantRow({ plant, darkMode, onClick }: { plant: UserPlant; darkMode: bo
         darkMode ? 'bg-neutral-700' : 'bg-neutral-100'
       }`}>
         {imageUrl ? (
+          // imageUrl is a localStorage data-URL; Next.js <Image> doesn't handle data: URLs.
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt={plant.custom_name ?? 'plant'} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -58,11 +60,11 @@ export function NeedsCareList({ plants, darkMode }: NeedsCareListProps) {
     return (
       <div
         className={`flex items-center gap-3 p-4 rounded-2xl ${
-          darkMode ? 'bg-neutral-800' : 'bg-green-50'
+          darkMode ? 'bg-nature/10' : 'bg-nature/10'
         }`}
       >
-        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-        <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-green-800'}`}>
+        <CheckCircle2 className="h-5 w-5 text-nature flex-shrink-0" />
+        <p className={`text-sm font-medium ${darkMode ? 'text-nature' : 'text-nature'}`}>
           All caught up — no plants need watering today.
         </p>
       </div>

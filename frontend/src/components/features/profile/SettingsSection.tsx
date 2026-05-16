@@ -6,6 +6,7 @@ interface SettingsSectionProps {
   onDarkModeToggle?: (enabled: boolean) => void;
   careRemindersEnabled: boolean;
   onCareRemindersToggle: (enabled: boolean) => void;
+  careRemindersHint?: string;
   weatherTipsEnabled: boolean;
   onWeatherTipsToggle: (enabled: boolean) => void;
 }
@@ -15,6 +16,7 @@ export function SettingsSection({
   onDarkModeToggle,
   careRemindersEnabled,
   onCareRemindersToggle,
+  careRemindersHint = 'Daily notifications',
   weatherTipsEnabled,
   onWeatherTipsToggle,
 }: SettingsSectionProps) {
@@ -37,7 +39,7 @@ export function SettingsSection({
         <SettingItem
           icon={<Bell size={24} className="text-white" />}
           title="Care Reminders"
-          description="Daily notifications"
+          description={careRemindersHint}
           bgColor="bg-accent2"
           enabled={careRemindersEnabled}
           onToggle={onCareRemindersToggle}
