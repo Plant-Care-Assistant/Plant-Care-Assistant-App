@@ -30,7 +30,6 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
   const filteredPlants = useMemo(() => {
     let filtered = [...plants];
 
-    // Search by custom_name or note
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p =>
@@ -44,8 +43,7 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     } else {
-      // Default sort: plants that need attention first (overdue → due-soon →
-      // diseased → rest). Within each bucket, by least days remaining.
+      // Sort by days-until-water ascending so overdue/due-soon surface first.
       filtered = filtered.sort((a, b) => {
         const aDue = a.days_until_water ?? Number.POSITIVE_INFINITY;
         const bDue = b.days_until_water ?? Number.POSITIVE_INFINITY;
@@ -56,7 +54,7 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
     return filtered;
   }, [plants, searchQuery, activeFilter]);
 
-  // Map AI verdict + watering urgency → 3-bucket health for the card badge.
+  // AI verdict + watering urgency -> 3-bucket health for the card badge.
   const cardHealth = (p: UserPlant): 'healthy' | 'needs-attention' | 'critical' => {
     if (p.last_health_label === 'diseased') return 'critical';
     if (p.days_until_water != null && p.days_until_water <= 0) return 'needs-attention';
@@ -73,7 +71,7 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
 
   const handleAddToCollection = (plant: ScanPlantData) => {
     const hasHealthVerdict = plant.healthLabel != null;
-    // AI returns healthConfidence as a 0..1 fraction; store as 0..100 percent.
+    // AI returns 0..1 fraction; store as 0..100 percent.
     const healthConfPct =
       hasHealthVerdict && plant.healthConfidence != null
         ? Math.round(plant.healthConfidence * 100)
@@ -102,11 +100,8 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
 
       <div className={`min-h-screen pb-24 lg:pb-8 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-          {/* Header */}
           <CollectionHeader plantCount={plants.length} darkMode={darkMode} />
 
-          {/* First-run empty state — skip search/filters/grid entirely when there
-              are no plants and show a friendly hero with a single CTA instead. */}
           {plants.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -147,21 +142,18 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
             </motion.div>
           ) : (
           <>
-          {/* Search */}
           <CollectionSearch
             value={searchQuery}
             onChange={setSearchQuery}
             darkMode={darkMode}
           />
 
-          {/* Filters */}
           <CollectionFilters
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             darkMode={darkMode}
           />
 
-          {/* Plant Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
             {filteredPlants.map((plant, index) => (
               <motion.div
@@ -183,7 +175,6 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
               </motion.div>
             ))}
 
-            {/* Add Plant Card */}
             <motion.button
               onClick={handleAddPlant}
               className={`rounded-2xl border-2 border-dashed min-h-[280px] lg:min-h-[320px] flex flex-col items-center justify-center gap-3 transition-all ${
@@ -207,7 +198,6 @@ export function CollectionScreen({ plants }: CollectionScreenProps) {
             </motion.button>
           </div>
 
-          {/* No Results State (search/filter returned empty) */}
           {filteredPlants.length === 0 && plants.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}

@@ -25,7 +25,7 @@ export function ScanScreen() {
 
   const handleAddToCollection = (plant: ScanPlantData) => {
     const hasHealthVerdict = plant.healthLabel != null;
-    // AI returns healthConfidence as a 0..1 fraction; store as 0..100 percent.
+    // AI returns 0..1 fraction; store as 0..100 percent.
     const healthConfPct =
       hasHealthVerdict && plant.healthConfidence != null
         ? Math.round(plant.healthConfidence * 100)
@@ -44,13 +44,10 @@ export function ScanScreen() {
 
   return (
     <div className={`min-h-screen pb-24 lg:pb-8 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-      {/* Mobile layout - optimized for touch */}
       <div className="lg:hidden">
         <div className="px-4 pt-4 pb-6">
-          {/* Header with XP reward */}
           <ScanHeader xpReward={50} darkMode={darkMode} />
 
-          {/* Main scan area */}
           <div className="flex flex-col">
             <ScanFrame darkMode={darkMode} />
             <ScanActions 
@@ -62,16 +59,13 @@ export function ScanScreen() {
         </div>
       </div>
 
-      {/* Desktop layout - optimized for mouse interaction */}
       <div className="hidden lg:block">
         <div className="max-w-6xl mx-auto px-6 py-8">
-          {/* Header centered */}
           <div className="flex justify-center mb-8">
             <ScanHeader xpReward={50} darkMode={darkMode} />
           </div>
 
           <div className="grid grid-cols-1 gap-8 items-start justify-items-center">
-            {/* Drag & drop area - centered */}
             <div className="flex flex-col justify-center w-full max-w-2xl">
               <div
                 className={`w-full rounded-2xl border-2 border-dashed ${
@@ -107,7 +101,6 @@ export function ScanScreen() {
                 </div>
               </div>
 
-              {/* Additional tips */}
               <div className={`mt-6 p-4 rounded-xl ${
                 darkMode ? 'bg-neutral-800/50' : 'bg-neutral-100/50'
               }`}>
@@ -126,7 +119,6 @@ export function ScanScreen() {
         </div>
       </div>
 
-      {/* Scan Camera Modal */}
       <ScanCameraModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

@@ -45,7 +45,6 @@ async def read_user_plant_image(
     user: LoggedUserDep,
     service: UserPlantServiceDep,
 ):
-    # Volumen ID, Blob ID
     vid, bid = service.download_image(user, plant_id).split(",", 1)
 
     response = Response()
@@ -102,8 +101,6 @@ def create_user_plant_tasks(plant_id: int):  # noqa: ARG001
     raise HTTPException(status_code=501, detail="Not implemented")
 
 
-# === Gallery: multiple images per plant ===
-
 @router.get("/{plant_id}/images", response_model=list[UserPlantImagePublic])
 def list_user_plant_images(
     plant_id: int,
@@ -148,8 +145,6 @@ def delete_user_plant_image_record(
     service.delete_image_record(user, plant_id, image_id)
     return Response(status_code=204)
 
-
-# === Care history (watering + other care activities) ===
 
 @router.post("/{plant_id}/water")
 def record_user_plant_watering(

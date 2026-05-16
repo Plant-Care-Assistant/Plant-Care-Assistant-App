@@ -4,9 +4,9 @@ import { Droplet, Wind, Sprout, Scissors, RotateCw, Eye, MoreHorizontal } from '
 import { CareType, DailyCare } from '@/types';
 
 interface WeeklyCareProps {
-  /** Fixed 7-day strip from backend, oldest first, last entry = today. */
+  // Fixed 7-day strip from backend, oldest first; last entry is today.
   daily: DailyCare[];
-  /** Distinct days with ≥1 care event this week (for the header badge). */
+  // Distinct days with >=1 care event this week (header badge).
   activeDays: number;
   darkMode?: boolean;
 }
@@ -24,7 +24,7 @@ const CARE_META: Record<CareType, { Icon: typeof Droplet; color: string; label: 
 const SHORT_DAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function dayLabel(isoDate: string): string {
-  // Parse as local date (avoid the UTC midnight shift when the string lacks a TZ)
+  // Parse as local date to avoid the UTC midnight shift when the string has no TZ.
   const [y, m, d] = isoDate.split('-').map(Number);
   return SHORT_DAY[new Date(y, m - 1, d).getDay()];
 }
@@ -91,7 +91,6 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isToday, darkMode }) => {
 };
 
 export const WeeklyCare: React.FC<WeeklyCareProps> = ({ daily, activeDays, darkMode = false }) => {
-  // The backend strip is oldest-first; today is always the last entry.
   const todayIsoDate = daily.length ? daily[daily.length - 1].date : null;
 
   return (

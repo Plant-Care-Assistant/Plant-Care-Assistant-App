@@ -42,9 +42,7 @@ export default function PlantDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  // Care fields fall back through: per-plant override → catalog → mock default.
-  // Mocks keep the cards informative when the species isn't in the catalog
-  // (e.g. plant added without a successful AI scan).
+  // Care fields fall back: per-plant override -> catalog -> mock default (when species not in catalog).
   const tempMin = plant?.preferred_temp_min ?? catalog?.preferred_temp_min ?? 18;
   const tempMax = plant?.preferred_temp_max ?? catalog?.preferred_temp_max ?? 24;
   const tempLabel = `${tempMin}–${tempMax}°C`;
@@ -57,10 +55,7 @@ export default function PlantDetailPage() {
     ?? catalog?.preferred_watering_interval_days
     ?? 7;
 
-  // Healthy % derives from the last AI verdict + its confidence.
-  // Confidence is stored inconsistently (sometimes 0..1 fraction, sometimes 1..100 percent)
-  // so normalize defensively. Diseased verdicts invert the confidence so that a
-  // high-confidence disease detection reads as low health.
+  // Health % normalises confidence (stored as 0..1 or 1..100) and inverts when diseased.
   const healthPercent = (() => {
     if (!plant?.last_health_label) return 70;
     const raw = plant.last_health_confidence;
@@ -71,8 +66,7 @@ export default function PlantDetailPage() {
 
   const streakDays = careHistory?.current_streak_days ?? 0;
   const weeklyActiveDays = careHistory?.unique_days_last_week ?? 0;
-  // Backend returns oldest→today; fall back to an empty 7-day strip ending
-  // today so the grid still renders before the query resolves.
+  // Fall back to an empty oldest-to-today strip so the grid renders before the query resolves.
   const dailyLastWeek = careHistory?.daily_last_week ?? (() => {
     const out: { date: string; types: CareType[] }[] = [];
     const today = new Date();
@@ -91,8 +85,6 @@ export default function PlantDetailPage() {
     : null;
   const lastWateredLabel = lastWateredAt ? lastWateredAt.toLocaleDateString() : "—";
 
-  // Day-cycle card now shows days remaining until the next watering is due.
-  // Falls back to the full interval when the plant has never been watered.
   const daysSinceLastWater = lastWateredAt
     ? Math.floor((Date.now() - lastWateredAt.getTime()) / 86_400_000)
     : null;
@@ -146,8 +138,6 @@ export default function PlantDetailPage() {
     >
       <div className="p-3 sm:p-4 lg:p-6 pb-28 sm:pb-24 lg:pb-4 max-w-7xl mx-auto">
         <div className="space-y-4 lg:space-y-6">
-          {/* Hero = photo gallery: latest (50% width) + 2 previous (right column).
-              Plant name, species, health badge, and back button overlay on the latest tile. */}
           {plant && (
             <PlantImageGallery
               plantId={plant.id}
@@ -159,7 +149,6 @@ export default function PlantDetailPage() {
             />
           )}
 
-          {/* Overdue watering banner — only when due today */}
           {plant && daysUntilNextWater === 0 && (
             <button
               onClick={handleWaterNow}
@@ -184,7 +173,6 @@ export default function PlantDetailPage() {
             </button>
           )}
 
-          {/* Health verdict from last AI scan (if any) */}
           {plant?.last_health_label && (
             <div
               className={`rounded-2xl p-4 flex flex-col gap-2 border ${
@@ -217,8 +205,7 @@ export default function PlantDetailPage() {
                           : 'text-green-600 dark:text-green-300'
                       }`}
                     >
-                      {/* Stored as percent for new rows, but legacy rows used
-                          fractions (0..1). Normalize defensively. */}
+                      {/* Normalise: new rows store percent, legacy rows store 0..1 fractions. */}
                       {plant.last_health_confidence > 1
                         ? Math.round(plant.last_health_confidence)
                         : Math.round(plant.last_health_confidence * 100)}
@@ -239,9 +226,7 @@ export default function PlantDetailPage() {
                     {plant.last_diseases.slice(0, 3).map((d, i) => (
                       <li key={i} className="flex justify-between text-xs">
                         <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
-                          {/* AI labels prefix with a training-set host species
-                              (Apple/Orange/...) that doesn't match the user's
-                              actual plant. Show only the condition. */}
+                          {/* AI labels prefix the training-set host species; show only the condition. */}
                           {d.condition || d.plant}
                         </span>
                         <span className="text-neutral-400 ml-2 shrink-0">
@@ -272,13 +257,10 @@ export default function PlantDetailPage() {
             </div>
           )}
 
-          {/* Two-column layout on laptop */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4">
-            {/* Main column */}
             <div className="lg:col-span-8 space-y-3 sm:space-y-4">
               <DayStreakCard days={streakDays} />
 
-              {/* Stats row */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <StatCard type="watered" value={lastWateredLabel} darkMode={darkMode} />
                 <StatCard
@@ -291,7 +273,6 @@ export default function PlantDetailPage() {
                 <StatCard type="health" value={healthPercent} darkMode={darkMode} />
               </div>
 
-              {/* Weekly care */}
               <WeeklyCare
                 daily={dailyLastWeek}
                 activeDays={weeklyActiveDays}
@@ -299,15 +280,12 @@ export default function PlantDetailPage() {
               />
             </div>
 
-            {/* Sidebar */}
             <div className="lg:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6 lg:sticky lg:top-24">
-              {/* Environment info */}
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
                 <EnvInfoCard type="temperature" value={tempLabel} darkMode={darkMode} />
                 <EnvInfoCard type="light" value={lightLabel} darkMode={darkMode} />
               </div>
 
-              {/* Care instructions */}
               <CareInstructions
                 items={[
                   'Keep soil consistently moist',
@@ -318,7 +296,6 @@ export default function PlantDetailPage() {
                 darkMode={darkMode}
               />
 
-              {/* Actions */}
               <PlantActions
                 onWaterNow={handleWaterNow}
                 onLogCare={handleLogCare}
@@ -327,7 +304,6 @@ export default function PlantDetailPage() {
             </div>
           </div>
 
-          {/* Edit + Delete buttons */}
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setShowEditDialog(true)}
@@ -361,7 +337,6 @@ export default function PlantDetailPage() {
             />
           )}
 
-          {/* Delete Confirmation Dialog */}
           <ConfirmDialog
             open={showDeleteDialog}
             onOpenChange={setShowDeleteDialog}

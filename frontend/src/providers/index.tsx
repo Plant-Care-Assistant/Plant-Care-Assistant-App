@@ -7,8 +7,7 @@ import { ThemeProvider, useTheme } from "./theme-provider";
 import { ToastProvider, useToast } from "./toast-provider";
 import { GamificationProvider, useGamification } from "./gamification-provider";
 
-// GamificationProvider reads user id from AuthProvider and emits toasts via ToastProvider,
-// so both must wrap it.
+// GamificationProvider needs both AuthProvider (user id) and ToastProvider (toasts) to wrap it.
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryProvider>

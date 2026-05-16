@@ -100,11 +100,9 @@ class UserPlantPublic(BaseModel):
     last_health_check_at: datetime | None = None
     last_diseases: list[dict[str, Any]] | None = None
 
-    # Care-urgency fields populated by the service from watering_data. None
-    # when the plant has never been watered yet.
+    # Populated by the service from watering_data; None when never watered.
     last_watered_at: datetime | None = None
-    # Days remaining until the next watering is due (0 = due today/overdue).
-    # None when there's no watering interval set and no history.
+    # Days until next watering: 0 = due today/overdue; None when no interval or history.
     days_until_water: int | None = None
 
 

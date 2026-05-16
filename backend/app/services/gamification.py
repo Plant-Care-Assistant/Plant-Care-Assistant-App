@@ -92,11 +92,7 @@ class GamificationService:
         return newly
 
     def init_gamifiction_data(self, user: User) -> GamificationData:
-        # Frontend fires FIRST_LOGIN, FIRST_HOME_VISIT, DAILY_LOGIN_BONUS in
-        # parallel on first authenticated mount. Without the UNIQUE(user_id)
-        # constraint two of them race and create duplicate rows. With the
-        # constraint the loser's INSERT raises IntegrityError; recover by
-        # fetching the winner's row.
+        # UNIQUE(user_id) protects against the FIRST_LOGIN/FIRST_HOME_VISIT/DAILY race.
         new_gd = GamificationData(user_id=user.id)
         self.s.add(new_gd)
         try:
@@ -140,10 +136,7 @@ class GamificationService:
     ) -> UserActionResponse:
         if user.id is None:
             raise HTTPException(401, "User not authenticated")
-        # FOR UPDATE locks the gamification row for the duration of this
-        # transaction so concurrent FIRST_LOGIN / FIRST_HOME_VISIT / SCAN_AND_ADD
-        # events don't double-award (e.g. both seeing flag=absent and appending it,
-        # or both bumping plants_added and unlocking first-sprout twice).
+        # FOR UPDATE serializes concurrent events so flags/counters don't double-award.
         st = (
             select(GamificationData)
             .where(GamificationData.user_id == user.id)
@@ -152,8 +145,7 @@ class GamificationService:
         gd = self.s.exec(st).one_or_none()
         if gd is None:
             gd = self.init_gamifiction_data(user)
-            # Re-select with lock so subsequent reads in this transaction see
-            # the same row under FOR UPDATE semantics.
+            # Re-select under the lock so subsequent reads see the locked row.
             gd = self.s.exec(st).one()
 
         xp_awarded = XP_MAPPING[action]
@@ -174,8 +166,7 @@ class GamificationService:
                 gd.plants_added += 1
                 gd.species_owned += 1
             case GameAction.delete_plant:
-                # Audit-only. Counters are lifetime monotonic so nothing changes.
-                # xp_awarded stays 0 from XP_MAPPING above.
+                # Audit-only; counters are lifetime monotonic, xp_awarded stays 0.
                 pass
             case GameAction.water_plant:
                 gd.plants_watered += 1

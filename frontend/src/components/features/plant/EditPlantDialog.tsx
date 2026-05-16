@@ -22,10 +22,9 @@ interface EditPlantDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** Formats an ISO date for a <input type="date">; returns '' when null/undefined. */
 function isoToDateInput(iso: string | null | undefined): string {
   if (!iso) return '';
-  return iso.slice(0, 10); // YYYY-MM-DD
+  return iso.slice(0, 10);
 }
 
 export const EditPlantDialog: React.FC<EditPlantDialogProps> = ({
@@ -42,8 +41,7 @@ export const EditPlantDialog: React.FC<EditPlantDialogProps> = ({
   );
   const [sproutedAt, setSproutedAt] = useState(isoToDateInput(plant.sprouted_at));
 
-  // Re-seed form whenever a different plant is opened (or the same plant gets
-  // refreshed mid-edit via cache invalidation).
+  // Re-seed form when a different plant opens or cache invalidation refreshes it mid-edit.
   useEffect(() => {
     if (open) {
       setCustomName(plant.custom_name ?? '');

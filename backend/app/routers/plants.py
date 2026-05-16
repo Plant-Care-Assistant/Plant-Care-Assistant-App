@@ -35,7 +35,6 @@ def read_plant(plant_id: int, service: PlantServiceDep):
 
 @router.get("/{plant_id}/image")
 def plant_image(plant_id: int, service: PlantServiceDep):
-    # Volumen ID, Blob ID
     vid, bid = service.read_plant_image(plant_id).split(",", 1)
 
     response = Response()

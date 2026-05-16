@@ -10,7 +10,7 @@ interface PlantCardProps {
   imageUrl?: string;
   lightLevel?: 'low' | 'medium' | 'high';
   health: 'healthy' | 'needs-attention' | 'critical';
-  /** Days remaining until the next watering; 0 = overdue/today. */
+  // Days until next watering; 0 = overdue/today.
   daysUntilWater?: number | null;
   darkMode: boolean;
   onClick?: () => void;
@@ -49,7 +49,6 @@ export const PlantCard: React.FC<PlantCardProps> = ({
   const dueSoon = daysUntilWater != null && daysUntilWater > 0 && daysUntilWater <= 1;
   const wateringText = wateringLabel(daysUntilWater);
 
-  // Overdue plants get a red ring to draw the eye in a grid of cards.
   const overdueRing = overdue ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-transparent' : '';
 
   return (
@@ -63,7 +62,6 @@ export const PlantCard: React.FC<PlantCardProps> = ({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Plant Image */}
       <div className={`w-full h-40 lg:h-48 relative ${
         darkMode ? 'bg-neutral-700' : 'bg-neutral-100'
       }`}>
@@ -79,7 +77,6 @@ export const PlantCard: React.FC<PlantCardProps> = ({
           </div>
         )}
 
-        {/* Watering Urgency Badge (top-left) — only when overdue/due soon */}
         {wateringText && (overdue || dueSoon) && (
           <div
             className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-sm flex items-center gap-1 ${
@@ -93,7 +90,6 @@ export const PlantCard: React.FC<PlantCardProps> = ({
           </div>
         )}
 
-        {/* Health Badge (top-right) */}
         <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
           darkMode ? 'bg-neutral-900/70' : 'bg-white/70'
         } ${healthColors[health]}`}>
@@ -101,7 +97,6 @@ export const PlantCard: React.FC<PlantCardProps> = ({
         </div>
       </div>
 
-      {/* Plant Info */}
       <div className="p-4">
         <h3 className={`font-bold text-base lg:text-lg mb-1 truncate ${
           darkMode ? 'text-white' : 'text-gray-900'
@@ -116,7 +111,6 @@ export const PlantCard: React.FC<PlantCardProps> = ({
           </p>
         )}
 
-        {/* Quick Stats */}
         <div className="flex items-center gap-3 text-xs">
           {wateringText && (
             <div

@@ -12,8 +12,7 @@ const nextConfig: NextConfig = {
         destination: "http://localhost:8000/:path*",
       },
       {
-        // SeaweedFS blob fetch for plant photos. In prod nginx serves this via
-        // X-Accel-Redirect; in dev we proxy directly so <Image /> can load.
+        // SeaweedFS blob fetch; prod uses nginx X-Accel-Redirect, dev proxies directly.
         source: "/blob/:path*",
         destination: "http://localhost:8333/:path*",
       },

@@ -48,7 +48,7 @@ function snapshotToState(snap: NormalizedSnapshot): GamificationState {
   };
 }
 
-/** One-time cleanup: drop stale `gamification:*` localStorage keys from v1. */
+// One-time cleanup of stale v1 `gamification:*` localStorage keys.
 function purgeLegacyLocalStorage() {
   if (typeof window === 'undefined') return;
   try {
@@ -65,12 +65,9 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GamificationState>(EMPTY_STATE);
   const [hydrated, setHydrated] = useState(false);
   const stateRef = useRef<GamificationState>(EMPTY_STATE);
-  // Once-only actions still in flight to the backend. React StrictMode (dev)
-  // double-invokes effects; without this guard both invocations see flag=false
-  // and send two POSTs before either response lands.
+  // Guards against React StrictMode's double-effect firing two POSTs before the flag lands.
   const inFlight = useRef<Set<XpActionId>>(new Set());
 
-  // Hydrate from backend on auth ready. Legacy localStorage is purged once.
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) {
@@ -100,18 +97,11 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       if (!action) return;
 
       const prev = stateRef.current;
-      // Once-only actions short-circuit when the flag is already set, avoiding
-      // a needless round-trip. Backend is also idempotent here (§7.2) — this is
-      // just an optimization, not a correctness guard.
+      // Skip a round-trip when the once-only flag is already set (backend is idempotent anyway).
       if (action.onceOnly && action.flag && prev.flags[action.flag]) return;
-      // Dedupe parallel calls of the same once-only action (React StrictMode
-      // double-fire, fast remounts) so we don't post twice before the first
-      // response sets the flag.
       if (action.onceOnly && inFlight.current.has(actionId)) return;
       if (action.onceOnly) inFlight.current.add(actionId);
 
-      // Fire-and-forget: backend is authoritative. We apply the returned
-      // snapshot. Toasts are driven by `xp_awarded` / `newly_unlocked`.
       (async () => {
         const res = await gamificationApi.postEvent(actionId);
         if (action.onceOnly) inFlight.current.delete(actionId);
@@ -121,8 +111,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
         setState(stateRef.current);
 
         if (res.xpAwarded > 0) {
-          // Subtract the achievement-unlock bonus from the main toast so the
-          // numbers add up cleanly (main action toast + per-unlock bonus toast).
+          // Subtract the unlock bonus so the action toast + per-unlock toasts add up cleanly.
           const unlockBonus =
             res.newlyUnlocked.length * XP_ACTIONS.ACHIEVEMENT_UNLOCK.xp;
           const actionXp = res.xpAwarded - unlockBonus;
@@ -152,20 +141,15 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     [showXpToast, showAchievementToast],
   );
 
-  // First login: fire once per session when authenticated. Backend's
-  // GameAction.first_login is gated by the `first_login` flag (§7.2) so any
-  // duplicate fires return xp_awarded=0 with an unchanged snapshot.
   useEffect(() => {
     if (!isAuthenticated || !hydrated) return;
     if (!state.flags.accountCreated) awardXP('FIRST_LOGIN');
   }, [isAuthenticated, hydrated, state.flags.accountCreated, awardXP]);
 
-  // Daily login: backend handles the once-per-day gate via last_login_at, so
-  // we can fire on every mount and trust the no-op when already awarded today.
   useEffect(() => {
     if (!isAuthenticated || !hydrated) return;
+    // Backend dedupes DAILY_LOGIN_BONUS by calendar day, so fire on every mount.
     awardXP('DAILY_LOGIN_BONUS');
-    // Intentionally fires once on hydration; backend dedupes by calendar day.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, hydrated]);
 

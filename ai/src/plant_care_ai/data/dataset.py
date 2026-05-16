@@ -115,8 +115,7 @@ class PlantVillageDataset(Dataset):
         """
         self.transform = transform
 
-        # we assume that 'color' or 'segmented' dir was already passed as an argument
-        # and we will act like that (in a training process)
+        # Caller passes the 'color' or 'segmented' sub-dir directly.
         path = Path(data_dir)
 
         class_dirs = sorted(d for d in path.iterdir() if d.is_dir())

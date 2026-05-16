@@ -2,10 +2,7 @@ import { apiClient } from "./client";
 import type { XpActionId } from "@/lib/gamification/xp-actions";
 import type { CounterName, FlagName } from "@/lib/gamification/types";
 
-/**
- * Snake_case backend counter name → camelCase frontend name.
- * Keys match `services/gamification.py:COUNTERS`.
- */
+// Snake_case backend counter -> camelCase frontend (keys match services/gamification.py:COUNTERS).
 const COUNTER_MAP: Record<string, CounterName> = {
   plants_added: "plantsAdded",
   plants_scanned: "plantsScanned",
@@ -17,10 +14,7 @@ const COUNTER_MAP: Record<string, CounterName> = {
   waters_before_9am: "watersBefore9AM",
 };
 
-/**
- * Backend stores flags as the Python enum `name` (lowercase), e.g. `first_login`.
- * Frontend uses semantic names like `accountCreated`. Mapping bridges the two.
- */
+// Backend stores flags as the Python enum `name` (e.g. first_login); FE uses semantic names like accountCreated.
 const FLAG_MAP: Record<string, FlagName> = {
   first_login: "accountCreated",
   complete_profile: "profileComplete",
@@ -31,7 +25,6 @@ const FLAG_MAP: Record<string, FlagName> = {
   first_theme_change: "firstThemeChange",
 };
 
-/** Raw shape returned by `GET /gamification/me` and inside `POST /events` response. */
 interface BackendSnapshot {
   xp: number;
   level: number;
@@ -95,8 +88,7 @@ function normalizeSnapshot(snap: BackendSnapshot): NormalizedSnapshot {
     const feKey = COUNTER_MAP[key];
     if (feKey) counters[feKey] = val;
   }
-  // Streaks live on the snapshot root, not in `counters`, but the frontend
-  // GamificationState surfaces them through counters for legacy reasons.
+  // Streaks live on the snapshot root; FE legacy state surfaces them via counters.
   counters.currentStreak = snap.current_streak;
   counters.longestStreak = snap.longest_streak;
 

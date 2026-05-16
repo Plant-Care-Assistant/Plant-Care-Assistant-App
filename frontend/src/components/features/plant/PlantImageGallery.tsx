@@ -21,23 +21,10 @@ interface PlantImageGalleryProps {
 }
 
 function imageUrlFor(image: UserPlantImage): string {
-  // SeaweedFS fid is "<volumeId>,<fileKey>". The dev/prod proxy at /blob/
-  // forwards directly to the blob store with no auth (parity with the existing
-  // single-image flow at GET /my-plants/{id}/image which also uses X-Accel-Redirect).
+  // Proxied through /blob/ to the SeaweedFS volume (parity with /my-plants/{id}/image).
   return `/blob/${image.fid}`;
 }
 
-/**
- * Plant detail hero AND photo gallery in one component.
- *  ┌─────────────────────┬─────────┐
- *  │ ← back   70% HEALTH │ prev-1  │   (overlays on latest)
- *  │                     ├─────────┤
- *  │   latest photo      │ prev-2  │
- *  │  name / species ↓   │ +N more │
- *  └─────────────────────┴─────────┘
- * Empty state: three grey tiles, latest has a big `+` icon and acts as the
- * upload trigger. Right-column tiles are passive placeholders.
- */
 export function PlantImageGallery({
   plantId,
   plantName,
@@ -52,8 +39,7 @@ export function PlantImageGallery({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showCompare, setShowCompare] = useState(false);
-  // Defaults: compare the oldest (last in the newest-first array) vs the newest.
-  // Re-seeded when images change so opening compare always shows extremes.
+  // Compare defaults to extremes: oldest (last entry, newest-first array) vs newest.
   const [beforeIdx, setBeforeIdx] = useState(0);
   const [afterIdx, setAfterIdx] = useState(0);
   useEffect(() => {
@@ -102,7 +88,6 @@ export function PlantImageGallery({
   return (
     <div className="rounded-3xl overflow-hidden">
       <div className="grid grid-cols-2 gap-2 aspect-[16/9] sm:aspect-[3/1] lg:aspect-[4/1]">
-        {/* LEFT: latest (or empty + upload trigger) — full hero with overlays */}
         <button
           type="button"
           onClick={isEmpty ? openUpload : () => setLightboxIndex(0)}
@@ -137,10 +122,8 @@ export function PlantImageGallery({
             </div>
           )}
 
-          {/* Dark gradient + overlays for text readability */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
-          {/* Top-left back button */}
           {onBack && (
             <div
               onClick={(e) => {
@@ -155,12 +138,10 @@ export function PlantImageGallery({
             </div>
           )}
 
-          {/* Top-right health badge */}
           <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-nature text-white text-xs font-bold shadow-md">
             {healthPercent}% HEALTH
           </div>
 
-          {/* Bottom-left name + species */}
           <div className="absolute bottom-4 left-4 right-4 text-white">
             <h1 className="text-xl sm:text-2xl font-bold drop-shadow-md">{plantName}</h1>
             {plantSpecies && (
@@ -168,8 +149,6 @@ export function PlantImageGallery({
             )}
           </div>
 
-          {/* Bottom-right action pills (only when gallery is non-empty;
-              empty-state click already triggers upload via the tile itself). */}
           {!isEmpty && (
             <div className="absolute bottom-4 right-4 flex gap-2">
               {images.length >= 2 && (
@@ -202,7 +181,6 @@ export function PlantImageGallery({
           )}
         </button>
 
-        {/* RIGHT TOP: prev-1 */}
         {prev1 ? (
           <button
             type="button"
@@ -222,7 +200,6 @@ export function PlantImageGallery({
           <EmptyTile iconSize={22} />
         )}
 
-        {/* RIGHT BOTTOM: prev-2 (with +N more overlay if there are extras) */}
         {prev2 ? (
           <button
             type="button"
@@ -256,7 +233,6 @@ export function PlantImageGallery({
         onChange={handleFileSelect}
       />
 
-      {/* Compare modal — before/after slider with thumbnail pickers */}
       {showCompare && images.length >= 2 && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex flex-col p-4 sm:p-6"
@@ -284,7 +260,6 @@ export function PlantImageGallery({
               afterLabel={`After · ${new Date(images[afterIdx].uploaded_at).toLocaleDateString()}`}
             />
 
-            {/* Pickers: tap a thumbnail to set it as before/after */}
             <div className="space-y-2">
               <p className="text-white/70 text-xs font-medium">Tap thumbnails to choose</p>
               <div className="flex gap-2 overflow-x-auto pb-2">
@@ -296,7 +271,7 @@ export function PlantImageGallery({
                       key={img.id}
                       type="button"
                       onClick={() => {
-                        // Tapping cycles role: not-in-comparison → after → before.
+                        // Tap cycles role: idle → after → before.
                         if (isAfter) setBeforeIdx(i);
                         else setAfterIdx(i);
                       }}
@@ -334,7 +309,6 @@ export function PlantImageGallery({
         </div>
       )}
 
-      {/* Lightbox */}
       {lightboxIndex !== null && images[lightboxIndex] && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"

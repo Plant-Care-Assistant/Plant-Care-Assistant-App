@@ -9,7 +9,6 @@ export interface BottomNavProps {
   onNavigate: (screen: NavScreen) => void;
 }
 
-/** Mobile-first sticky bottom navigation bar. */
 export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 lg:hidden z-50 bg-white border-t border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.5)]">

@@ -53,7 +53,6 @@ class GameAction(StrEnum):
     achievement_unlock = "ACHIEVEMENT_UNLOCK"
 
 
-# 1. TABELA UŻYTKOWNIKÓW
 class User(SQLModel, table=True):
     __tablename__: str = "users"  # type: ignore
 
@@ -75,12 +74,10 @@ class User(SQLModel, table=True):
 
     last_login_at: datetime | None = Field(default=None)
 
-    # Metadane
     created_at: datetime | None = Field(default_factory=utc_now)
     deleted_at: datetime | None = Field(default=None)
 
 
-# 2. KATALOG ROŚLIN
 class Plant(SQLModel, table=True):
     __tablename__: str = "plants_catalog"  # type: ignore
 
@@ -98,7 +95,6 @@ class Plant(SQLModel, table=True):
     preferred_watering_interval_days: int | None = None
 
 
-# 3. ROŚLINY UŻYTKOWNIKA
 class UserPlant(SQLModel, table=True):
     __tablename__: str = "user_plants"  # type: ignore
 
@@ -121,7 +117,7 @@ class UserPlant(SQLModel, table=True):
     soil_humidity_req: HumidityLevel | None = None
     preferred_watering_interval_days: int | None = None
 
-    # AI disease classifier snapshot from the last scan that produced a verdict.
+    # Snapshot from the last AI scan that produced a verdict.
     last_health_label: str | None = None
     last_health_confidence: float | None = None
     last_health_check_at: datetime | None = None
@@ -131,23 +127,16 @@ class UserPlant(SQLModel, table=True):
     )
 
 
-# 4. HISTORIA OPIEKI (watering + other care activities). The underlying table
-# is still named watering_data for backward compat with earlier migrations and
-# external tooling; the Python class reflects its current generalized purpose.
+# Table is still named watering_data for backward compat with migrations and tooling.
 class CareEvent(SQLModel, table=True):
     __tablename__: str = "watering_data"  # type: ignore
-    # The DB has had id BIGSERIAL PRIMARY KEY since the first migration; the
-    # previous composite (plant_id, timestamp) PK on the model never matched
-    # the schema.
     id: int | None = Field(default=None, primary_key=True)
     plant_id: int = Field(foreign_key="user_plants.id", index=True)
-    # Column name kept as `timestamp_of_watering` for compatibility with
-    # existing rows and queries.
+    # Column name kept as `timestamp_of_watering` for backward compat.
     timestamp_of_watering: datetime = Field(default_factory=utc_now)
     care_type: CareType = Field(default=CareType.water)
 
 
-# 4b. ZDJĘCIA ROŚLIN UŻYTKOWNIKA (wiele zdjęć na jedną roślinę, sortowane od najnowszego)
 class UserPlantImage(SQLModel, table=True):
     __tablename__: str = "user_plant_images"  # type: ignore
     id: int | None = Field(default=None, primary_key=True)
@@ -156,7 +145,6 @@ class UserPlantImage(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=utc_now)
 
 
-# 5. POZIOMY
 class LevelsXpRanges(SQLModel, table=True):
     __tablename__: str = "levels_xp_ranges"  # type: ignore
     level_val: int = Field(primary_key=True)
@@ -168,14 +156,12 @@ class GamificationData(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id")
 
-    # General
     xp: int = Field(default=0)
     current_streak: int = Field(default=0)
     longest_streak: int = Field(default=0)
     last_activity: datetime | None = Field(default=None)
     last_login_at: datetime | None = Field(default=None)
 
-    # Counters
     plants_added: int = Field(default=0)
     plants_scanned: int = Field(default=0)
     plants_scanned_not_added: int = Field(default=0)
@@ -197,10 +183,6 @@ class Achievement(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id")
     created_at: datetime | None = Field(default_factory=utc_now)
     achievement_name: str
-
-
-# class XPEvent(SQLModel, table=True):
-#   pass
 
 
 class Token(BaseModel):

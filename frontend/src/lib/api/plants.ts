@@ -14,30 +14,18 @@ import {
   UserPlantUpdate,
 } from "@/types";
 
-/**
- * Plant API endpoints
- */
 export const plantApi = {
-  /**
-   * Get all plants in user's collection
-   */
   async getPlants(): Promise<UserPlant[]> {
     const response = await apiClient.get<UserPlant[]>("/my-plants");
     return response.data;
   },
 
-  /**
-   * Get single plant by ID
-   */
   async getPlant(id: number): Promise<UserPlant> {
     const response = await apiClient.get<UserPlant>(`/my-plants/${id}`);
     return response.data;
   },
 
-  /**
-   * Check whether the AI service is up and whether disease detection is wired
-   * (requires both DISEASE_CHECKPOINT_PATH and YOLO_CHECKPOINT_PATH on the AI service).
-   */
+  // Disease detection requires DISEASE_CHECKPOINT_PATH + YOLO_CHECKPOINT_PATH on the AI service.
   async getAiHealth(): Promise<AiHealthResponse> {
     try {
       const res = await fetch("/ai/health");
@@ -54,10 +42,7 @@ export const plantApi = {
     }
   },
 
-  /**
-   * Look up a catalog entry by the AI service's class_id (matches plants_catalog.plantsnet_id).
-   * Returns null on 404 (species not in catalog) or any error — caller falls back to AI-only data.
-   */
+  // Looks up a catalog entry by AI class_id (matches plants_catalog.plantsnet_id); null falls back to AI-only data.
   async getCatalogPlantByPlantsnetId(plantsnetId: string): Promise<CatalogPlant | null> {
     try {
       const response = await apiClient.get<CatalogPlant>(
@@ -69,10 +54,6 @@ export const plantApi = {
     }
   },
 
-  /**
-   * Fetch a catalog entry by its database id (UserPlant.plant_catalog_id). Used
-   * on the plant detail screen to show real care fields instead of mock values.
-   */
   async getCatalogPlant(catalogId: number): Promise<CatalogPlant | null> {
     try {
       const response = await apiClient.get<CatalogPlant>(`/plants/${catalogId}`);
@@ -82,12 +63,7 @@ export const plantApi = {
     }
   },
 
-  /**
-   * Identify plant from image. Routes through /ai/predict/combined when disease
-   * detection is available, otherwise falls back to /ai/predict. Enriches the
-   * result with catalog data (care fields, common name) when the AI's class_id
-   * has a matching plants_catalog row.
-   */
+  // Routes to /ai/predict/combined when disease detection is wired, else /ai/predict; enriches with catalog data.
   async identifyPlant(file: File): Promise<PlantIdentification> {
     const { disease_detection_available } = await plantApi.getAiHealth();
 
@@ -103,9 +79,7 @@ export const plantApi = {
       const res = await fetch("/ai/predict/combined", { method: "POST", body: formData });
       if (!res.ok) throw new Error(`AI service error: ${res.status}`);
       const json: AiCombinedResponse = await res.json();
-      // Species detection may come back empty even when disease detection
-      // succeeded (low species confidence vs strong leaf-disease signal).
-      // Surface whatever the AI gave us instead of aborting the whole call.
+      // Species may be empty even when disease detection succeeded; surface whatever we got.
       top = json.species?.[0] ?? null;
       healthLabel = json.health?.label ?? null;
       healthConfidence = json.health?.confidence ?? null;
@@ -155,40 +129,25 @@ export const plantApi = {
     };
   },
 
-  /**
-   * Add plant to collection
-   */
   async addPlant(plant: UserPlantCreate): Promise<UserPlant> {
     const response = await apiClient.post<UserPlant>("/my-plants", plant);
     return response.data;
   },
 
-  /**
-   * Update plant
-   */
   async updatePlant(id: number, updates: UserPlantUpdate): Promise<UserPlant> {
     const response = await apiClient.patch<UserPlant>(`/my-plants/${id}`, updates);
     return response.data;
   },
 
-  /**
-   * Delete plant from collection
-   */
   async deletePlant(id: number): Promise<void> {
     await apiClient.delete(`/my-plants/${id}`);
   },
 
-  /**
-   * List all gallery photos for a user plant, newest first.
-   */
   async listImages(plantId: number): Promise<UserPlantImage[]> {
     const res = await apiClient.get<UserPlantImage[]>(`/my-plants/${plantId}/images`);
     return res.data;
   },
 
-  /**
-   * Upload a new photo to the plant gallery.
-   */
   async uploadImage(plantId: number, file: File): Promise<UserPlantImage> {
     const formData = new FormData();
     formData.append("file", file);
@@ -200,24 +159,15 @@ export const plantApi = {
     return res.data;
   },
 
-  /**
-   * Delete a single gallery photo by image id.
-   */
   async deleteImage(plantId: number, imageId: number): Promise<void> {
     await apiClient.delete(`/my-plants/${plantId}/images/${imageId}`);
   },
 
-  /**
-   * Record a watering event and pull computed care widgets for the plant.
-   */
   async recordWatering(plantId: number): Promise<void> {
     await apiClient.post(`/my-plants/${plantId}/water`);
   },
 
-  /**
-   * Log any care activity (mist/fertilize/prune/...). For type='water' the
-   * legacy /water endpoint and this one are equivalent.
-   */
+  // For type='water' this is equivalent to the legacy /water endpoint.
   async recordCare(plantId: number, type: CareType): Promise<void> {
     await apiClient.post(`/my-plants/${plantId}/care`, { type });
   },

@@ -13,8 +13,7 @@ from app.models.base import CareType, User, UserPlant, UserPlantImage, CareEvent
 from app.models.requests import UserPlantCreate, UserPlantUpdate
 from app.settings import DEFAULT_IMAGE, settings
 
-# Fallback watering interval when neither the plant override nor the catalog
-# specifies one. Matches the frontend default so values agree.
+# Fallback when neither the plant nor the catalog sets one; matches the FE default.
 DEFAULT_WATERING_INTERVAL_DAYS = 7
 
 logger = logging.getLogger(__name__)
@@ -73,8 +72,7 @@ class UserPlantService:
 
         interval = plant.preferred_watering_interval_days or DEFAULT_WATERING_INTERVAL_DAYS
         if last_watered_at is None:
-            # Never watered — treat the plant as due in `interval` days from
-            # now (i.e. give the user the full interval to do the first watering).
+            # Never watered: grant the full interval before the plant counts as due.
             data["days_until_water"] = interval
         else:
             days_since = (datetime.now(UTC) - last_watered_at).days
@@ -103,7 +101,6 @@ class UserPlantService:
         self.s.add(new_plant)
         self.s.commit()
         self.s.refresh(new_plant)
-        # Brand-new plant has no waterings yet.
         return self._enrich(new_plant, None)
 
     def update_plant(
@@ -200,8 +197,6 @@ class UserPlantService:
         self.s.add(plant)
         self.s.commit()
 
-    # === Gallery: multiple images per plant ===
-
     def _ensure_owned(self, user: User, plant_id: int) -> UserPlant:
         self._check_user(user)
         plant = self.s.get(UserPlant, plant_id)
@@ -272,8 +267,6 @@ class UserPlantService:
             raise HTTPException(404, "Image not found")
         return row.fid
 
-    # === Care history (watering + other care activities) ===
-
     def record_watering(self, user: User, plant_id: int) -> CareEvent:
         """Back-compat wrapper used by the legacy /water endpoint."""
         return self.record_care(user, plant_id, CareType.water)
@@ -326,7 +319,6 @@ class UserPlantService:
             r.timestamp_of_watering for r in rows if r.care_type == CareType.water
         ]
 
-        # Day-bucket every care event (any type) for streak + weekly metrics.
         cared_days_by_type: dict = {}
         for r in rows:
             d = r.timestamp_of_watering.date()
@@ -343,8 +335,7 @@ class UserPlantService:
         week_cutoff = today - timedelta(days=6)
         unique_days_last_week = len({d for d in cared_days if d >= week_cutoff})
 
-        # Build a fixed 7-day strip ending today so the frontend doesn't have
-        # to fill gaps; missing days have an empty `types` list.
+        # Fixed 7-day strip ending today; missing days surface with empty types.
         daily_last_week = [
             {
                 "date": (week_cutoff + timedelta(days=i)).isoformat(),

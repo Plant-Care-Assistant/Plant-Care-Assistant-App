@@ -10,11 +10,6 @@ interface PhotoCompareSliderProps {
   afterLabel: string;
 }
 
-/**
- * Vertical-divider before/after image comparison. The "before" image is
- * clipped to `width * sliderPct%`, exposing the "after" image on the right.
- * Drag the handle to wipe between them.
- */
 export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
   beforeUrl,
   beforeLabel,
@@ -56,7 +51,6 @@ export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
       onPointerLeave={handlePointerUp}
       className="relative w-full aspect-[4/3] sm:aspect-video rounded-2xl overflow-hidden bg-neutral-900 select-none touch-none cursor-ew-resize"
     >
-      {/* AFTER image — fills the whole frame as the background */}
       <Image
         src={afterUrl}
         alt={afterLabel}
@@ -65,7 +59,7 @@ export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
         unoptimized
       />
 
-      {/* BEFORE image — clipped to the slider percentage on the left */}
+      {/* "Before" image is clipped to the slider percentage on the left half. */}
       <div
         className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }}
@@ -79,7 +73,6 @@ export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
         />
       </div>
 
-      {/* Labels in the corners */}
       <span className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 text-white text-xs font-medium">
         {beforeLabel}
       </span>
@@ -87,7 +80,6 @@ export const PhotoCompareSlider: React.FC<PhotoCompareSliderProps> = ({
         {afterLabel}
       </span>
 
-      {/* Vertical divider + handle */}
       <div
         className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_rgba(0,0,0,0.6)] pointer-events-none"
         style={{ left: `calc(${pct}% - 2px)` }}

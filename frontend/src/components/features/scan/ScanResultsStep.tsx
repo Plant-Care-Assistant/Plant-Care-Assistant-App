@@ -82,7 +82,6 @@ export function ScanResultsStep({
           </button>
         </div>
       )}
-      {/* AI Result Banner */}
       {isAIIdentified ? (
         <div className={`rounded-xl p-4 flex items-start gap-3 ${
           darkMode ? 'bg-secondary/10 border border-secondary/20' : 'bg-secondary/10 border border-secondary/20'
@@ -113,7 +112,6 @@ export function ScanResultsStep({
         </div>
       )}
 
-      {/* Health Banner — only when AI returned a verdict */}
       {plantData.healthLabel != null && (
         <div
           className={`rounded-xl p-4 flex flex-col gap-2 border ${
@@ -156,10 +154,7 @@ export function ScanResultsStep({
                 {plantData.diseases.slice(0, 3).map((d, i) => (
                   <li key={i} className="flex justify-between text-xs">
                     <span className={darkMode ? 'text-neutral-300' : 'text-neutral-700'}>
-                      {/* The AI's labels carry a species prefix (Apple/Orange/...)
-                          that's the training-set host plant, not the user's plant.
-                          Show only the condition; fall back to the plant token if
-                          the source string had no separator. */}
+                      {/* Strip the training-set host prefix; fall back to plant token if no separator. */}
                       {d.condition || d.plant}
                     </span>
                     <span className="text-neutral-400 ml-2 shrink-0">
@@ -168,8 +163,7 @@ export function ScanResultsStep({
                   </li>
                 ))}
               </ul>
-              {/* Actionable advice for the top disease only — the user can re-scan
-                  to focus on a different condition if needed. */}
+              {/* Advice for the top disease only; re-scan to focus on a different one. */}
               {(() => {
                 const top = plantData.diseases[0];
                 const advice = getDiseaseAdvice(top.condition || top.plant);
@@ -192,7 +186,6 @@ export function ScanResultsStep({
         </div>
       )}
 
-      {/* Plant Image Preview */}
       {plantData.imageUrl && (
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
           <Image
@@ -204,7 +197,6 @@ export function ScanResultsStep({
         </div>
       )}
 
-      {/* Plant Name (Required) */}
       <div>
         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
           Plant Name <span className="text-red-500">*</span>
@@ -215,7 +207,6 @@ export function ScanResultsStep({
           value={formData.name}
           onChange={(e) => {
             setFormData({ ...formData, name: e.target.value });
-            // Clear error when user starts typing
             if (errors.name) {
               setErrors({ ...errors, name: undefined });
             }
@@ -232,7 +223,6 @@ export function ScanResultsStep({
         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
       </div>
 
-      {/* Species (Optional) */}
       <div>
         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
           Species (optional)
@@ -250,7 +240,6 @@ export function ScanResultsStep({
         />
       </div>
 
-      {/* Location (Optional) */}
       <div>
         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
           Location (optional)
@@ -268,7 +257,6 @@ export function ScanResultsStep({
         />
       </div>
 
-      {/* Light Level */}
       <div>
         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
           Light Level
@@ -294,7 +282,6 @@ export function ScanResultsStep({
         </div>
       </div>
 
-      {/* Watering Frequency */}
       <div>
         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
           Water Every (days)
@@ -313,7 +300,6 @@ export function ScanResultsStep({
         />
       </div>
 
-      {/* Action Buttons - fixed bottom on mobile */}
       <div
         className="pt-3 pb-4 px-1"
       >

@@ -24,7 +24,6 @@ export function HomeScreen({ plants }: HomeScreenProps) {
   const darkMode = theme === 'dark';
   const totalPlants = plants.length;
 
-  // Real data from the backend's last_watered_at / days_until_water + last_health_label.
   const plantsNeedingWater = plants.filter(
     (p) => p.days_until_water != null && p.days_until_water <= 0,
   );
@@ -41,8 +40,7 @@ export function HomeScreen({ plants }: HomeScreenProps) {
 
   return (
     <div className={`p-4 lg:p-6 pb-24 lg:pb-4 max-w-7xl mx-auto ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-      {/* Header */}
-      <motion.div 
+      <motion.div
         className="mb-6 mt-1"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -53,22 +51,18 @@ export function HomeScreen({ plants }: HomeScreenProps) {
         </div>
       </motion.div>
 
-      {/* Level Badge */}
       <div className="mb-4">
         <LevelBadge level={level} darkMode={darkMode} />
       </div>
 
-      {/* Daily Goal Widget */}
       <DailyGoal current={xpIntoLevel} total={xpForNext} darkMode={darkMode} />
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3 my-6">
         <StreakCard streak={streak} darkMode={darkMode} />
         <HealthyPlantsCard percentage={healthyPlantsCount} darkMode={darkMode} />
         <XPEarnedCard xp={totalXp} darkMode={darkMode} />
       </div>
 
-      {/* Weekly Challenge */}
       <WeeklyChallenge
         current={Math.min(waterCount, weeklyTarget)}
         total={weeklyTarget}
@@ -76,14 +70,12 @@ export function HomeScreen({ plants }: HomeScreenProps) {
         darkMode={darkMode}
       />
 
-      {/* Weather Tip */}
-      <WeatherTip 
+      <WeatherTip
         title="Weather Tip" 
         description="Cloudy today! Your plants might need less water. Check the soil first." 
         darkMode={darkMode} 
       />
 
-      {/* Needs care today */}
       <div className="mb-6">
         <h2 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
           Needs care today

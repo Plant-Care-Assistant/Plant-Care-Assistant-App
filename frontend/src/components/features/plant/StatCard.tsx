@@ -6,9 +6,9 @@ type StatType = 'watered' | 'cycle' | 'health';
 
 interface StatCardProps {
   type: StatType;
-  value: string | number; // e.g., '2 days ago' | 5 | 85
-  label?: string; // optional label override
-  /** Override the background colour to red — used to flag overdue watering. */
+  value: string | number;
+  label?: string;
+  // Red background flags an overdue watering.
   urgent?: boolean;
   darkMode?: boolean;
 }
@@ -17,11 +17,11 @@ const colorForType = (type: StatType, urgent: boolean) => {
   if (urgent) return 'bg-red-500';
   switch (type) {
     case 'watered':
-      return 'bg-accent'; // Light blue
+      return 'bg-accent';
     case 'cycle':
-      return 'bg-primary'; // Blue
+      return 'bg-primary';
     case 'health':
-      return 'bg-secondary'; // Green
+      return 'bg-secondary';
   }
 };
 

@@ -7,12 +7,11 @@ import { UserPlant } from '@/types';
 import { getPlantImage } from '@/lib/utils/plantImages';
 
 interface NeedsCareListProps {
-  /** Plants where days_until_water <= 0 (overdue or due today). */
+  // Plants where days_until_water <= 0 (overdue or due today).
   plants: UserPlant[];
   darkMode: boolean;
 }
 
-/** Compact tappable row used in the home "Needs care today" list. */
 function PlantRow({ plant, darkMode, onClick }: { plant: UserPlant; darkMode: boolean; onClick: () => void }) {
   const imageUrl = getPlantImage(plant.id);
   const diseased = plant.last_health_label === 'diseased';

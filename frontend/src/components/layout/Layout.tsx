@@ -16,7 +16,6 @@ export interface LayoutProps {
   className?: string;
 }
 
-/** App shell providing consistent header, sidebar, bottom nav, and dark-mode chrome. */
 export function Layout({
   children,
   header,

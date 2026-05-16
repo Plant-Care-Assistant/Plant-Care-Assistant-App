@@ -9,7 +9,6 @@ interface AttentionSummaryCardsProps {
 export function AttentionSummaryCards({ needWater, diseased, darkMode }: AttentionSummaryCardsProps) {
   return (
     <div className="grid grid-cols-2 gap-4">
-      {/* Need Water */}
       <div className={`p-4 rounded-2xl ${darkMode ? 'bg-neutral-800' : 'bg-white'} shadow-md flex items-center gap-3`}>
         <div className="w-10 h-10 rounded-xl bg-primary/80 flex items-center justify-center shrink-0">
           <Droplet className="w-5 h-5 text-white" />
@@ -20,7 +19,6 @@ export function AttentionSummaryCards({ needWater, diseased, darkMode }: Attenti
         </div>
       </div>
 
-      {/* May Be Diseased */}
       <div className={`p-4 rounded-2xl ${darkMode ? 'bg-neutral-800' : 'bg-white'} shadow-md flex items-center gap-3`}>
         <div className="w-10 h-10 rounded-xl bg-red-500/90 flex items-center justify-center shrink-0">
           <AlertCircle className="w-5 h-5 text-white" />

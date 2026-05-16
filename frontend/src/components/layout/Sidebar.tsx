@@ -12,7 +12,6 @@ export interface SidebarProps {
   showThemeToggle?: boolean;
 }
 
-/** Desktop sidebar with branding, nav, theme toggle, and logout. */
 export function Sidebar({
   currentScreen = 'home',
   onNavigate,

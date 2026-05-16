@@ -1,20 +1,7 @@
-/**
- * Static "what to do" advice keyed by the condition portion of the AI's
- * disease labels (everything after the `___` host-plant prefix).
- *
- * The AI returns 26 condition classes from the PlantVillage taxonomy; many
- * share treatment patterns (foliar fungal sprays, isolation, removal). We
- * group by the disease keyword so a single entry covers e.g. "Apple ___ Black
- * rot" and "Grape ___ Black rot" with the same fungal-rot advice.
- *
- * Each entry returns ≤ 3 short actionable steps; the UI shows them as bullets
- * right under the top disease line. Returns null when the condition has no
- * registered guidance (caller should hide the section entirely rather than
- * showing an empty box).
- */
+// Grouped by disease keyword so one entry covers e.g. "Apple___Black rot" and "Grape___Black rot".
 
 interface AdvicePattern {
-  /** Lowercase keywords; ALL must appear in the (lowercased) condition. */
+  // ALL keywords (lowercase) must appear in the lowercased condition string.
   match: string[];
   advice: string[];
 }
@@ -166,11 +153,6 @@ const PATTERNS: AdvicePattern[] = [
   },
 ];
 
-/**
- * Return up-to-3 actionable bullets for a condition string. The lookup is
- * case-insensitive and keyword-based, so AI labels with extra context like
- * 'Spider_mites Two-spotted_spider_mite' still resolve.
- */
 export function getDiseaseAdvice(condition: string): string[] | null {
   if (!condition) return null;
   const c = condition.toLowerCase();

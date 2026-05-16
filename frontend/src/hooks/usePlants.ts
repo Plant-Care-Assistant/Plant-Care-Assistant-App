@@ -9,17 +9,15 @@ import { dataUrlToFile } from "@/lib/utils/dataUrl";
 const PLANTS_KEY = ["plants"];
 const CATALOG_KEY = ["plants", "catalog"];
 
-/** Fetch a catalog entry (care fields, common name) for a UserPlant.plant_catalog_id. */
 export function useCatalogPlantQuery(catalogId: number | null | undefined) {
   return useQuery({
     queryKey: [...CATALOG_KEY, catalogId],
     queryFn: () => plantApi.getCatalogPlant(catalogId as number),
     enabled: catalogId != null,
-    staleTime: 1000 * 60 * 60, // catalog rarely changes
+    staleTime: 1000 * 60 * 60,
   });
 }
 
-/** Fetch all plants in the user's collection. */
 export function usePlantsQuery(enabled = true) {
   return useQuery({
     queryKey: PLANTS_KEY,
@@ -28,7 +26,6 @@ export function usePlantsQuery(enabled = true) {
   });
 }
 
-/** Fetch a single plant by id. */
 export function usePlantQuery(id?: number) {
   return useQuery({
     queryKey: [...PLANTS_KEY, id],
@@ -37,25 +34,20 @@ export function usePlantQuery(id?: number) {
   });
 }
 
-/** Identify a plant from an image file. */
 export function useIdentifyPlantMutation() {
   return useMutation({
     mutationFn: (file: File) => plantApi.identifyPlant(file),
   });
 }
 
-/** Add a new plant with optional image, then refetch list. */
 export function useAddPlantMutation() {
   const qc = useQueryClient();
   return useMutation<UserPlant, unknown, UserPlantCreate & { imageUrl?: string }>({
     mutationFn: ({ imageUrl: _, ...plant }) => plantApi.addPlant(plant),
     onSuccess: async (createdPlant, variables) => {
       if (variables.imageUrl && createdPlant.id) {
-        // Optimistic local cache so the collection card has something to show
-        // immediately, even before the gallery upload finishes.
+        // Optimistic local cache so the card has something to show before the gallery upload finishes.
         savePlantImage(createdPlant.id, variables.imageUrl);
-        // Persist the captured scan to the plant gallery so it shows up on the
-        // detail page (and survives device switches via SeaweedFS).
         try {
           const file = dataUrlToFile(variables.imageUrl, `scan-${Date.now()}.jpg`);
           await plantApi.uploadImage(createdPlant.id, file);
@@ -72,7 +64,6 @@ export function useAddPlantMutation() {
   });
 }
 
-/** Update a plant; invalidates list + detail cache on success. */
 export function useUpdatePlantMutation() {
   const qc = useQueryClient();
   return useMutation<UserPlant, unknown, { id: number; updates: UserPlantUpdate }>({
@@ -85,7 +76,6 @@ export function useUpdatePlantMutation() {
   });
 }
 
-/** Delete a plant and invalidate the list + detail cache. */
 export function useDeletePlantMutation() {
   const qc = useQueryClient();
   return useMutation<void, unknown, number>({
@@ -96,8 +86,6 @@ export function useDeletePlantMutation() {
     },
   });
 }
-
-// === Gallery ===
 
 const IMAGES_KEY = ["plants", "images"] as const;
 
@@ -130,8 +118,6 @@ export function useDeletePlantImageMutation(plantId: number) {
   });
 }
 
-// === Care history ===
-
 const CARE_HISTORY_KEY = ["plants", "care-history"] as const;
 
 export function useCareHistoryQuery(plantId: number | null | undefined) {
@@ -153,7 +139,6 @@ export function useRecordWateringMutation(plantId: number) {
   });
 }
 
-/** Log any care activity for a plant; pass the type when calling .mutate(). */
 export function useRecordCareMutation(plantId: number) {
   const qc = useQueryClient();
   return useMutation<void, unknown, CareType>({

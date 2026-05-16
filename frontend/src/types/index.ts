@@ -1,35 +1,19 @@
-/**
- * Core domain types for the Plant Care application
- */
-
-/**
- * Authentication token response
- */
 export interface Token {
   access_token: string;
   token_type: string;
 }
 
-/**
- * User authentication credentials
- */
 export interface LoginCredentials {
   username: string;
   password: string;
 }
 
-/**
- * User registration data
- */
 export interface RegisterData {
   username: string;
   email: string;
   password: string;
 }
 
-/**
- * Authenticated user information
- */
 export interface User {
   id: string;
   username: string;
@@ -38,9 +22,6 @@ export interface User {
   created_at: string;
 }
 
-/**
- * Plant identification result from AI
- */
 export interface PlantIdentification {
   name: string;
   scientificName: string;
@@ -56,9 +37,6 @@ export interface PlantIdentification {
   diseases: Array<{ plant: string; condition: string; confidence: number }> | null;
 }
 
-/**
- * Plant catalog entry returned from GET /plants/by-plantsnet/{id} or /plants/{id}.
- */
 export interface CatalogPlant {
   id: number;
   common_name: string;
@@ -72,9 +50,6 @@ export interface CatalogPlant {
   preferred_watering_interval_days: number | null;
 }
 
-/**
- * AI service response shapes (port :8001, proxied via /ai)
- */
 export interface AiSpeciesPrediction {
   class_id: string;
   class_name: string | null;
@@ -124,19 +99,12 @@ export interface AiHealthResponse {
   disease_detection_available: boolean;
 }
 
-/**
- * Disease snapshot stored on user_plants. Shape mirrors what AI service
- * returns in /predict/combined response after mapping.
- */
 export interface UserPlantDisease {
   plant: string;
   condition: string;
   confidence: number;
 }
 
-/**
- * User plant as returned by the backend (GET /my-plants)
- */
 export interface UserPlant {
   id: number;
   plant_catalog_id: number | null;
@@ -158,15 +126,11 @@ export interface UserPlant {
   last_health_check_at: string | null;
   last_diseases: UserPlantDisease[] | null;
 
-  /** Latest watering timestamp from the care log, or null if never watered. */
+  // Days until next watering: 0 = due today/overdue.
   last_watered_at: string | null;
-  /** Days remaining until the next watering is due (0 = due today/overdue). */
   days_until_water: number | null;
 }
 
-/**
- * Payload for creating a new user plant (POST /my-plants)
- */
 export interface UserPlantCreate {
   plant_catalog_id?: number | null;
   custom_name?: string | null;
@@ -179,9 +143,6 @@ export interface UserPlantCreate {
   last_diseases?: UserPlantDisease[] | null;
 }
 
-/**
- * Payload for updating a user plant (PATCH /my-plants/:id)
- */
 export interface UserPlantUpdate {
   plant_catalog_id?: number | null;
   custom_name?: string | null;
@@ -202,9 +163,6 @@ export interface UserPlantUpdate {
   last_diseases?: UserPlantDisease[] | null;
 }
 
-/**
- * Single photo of a user plant from the gallery (multi-image per plant).
- */
 export interface UserPlantImage {
   id: number;
   user_plant_id: number;
@@ -212,11 +170,7 @@ export interface UserPlantImage {
   uploaded_at: string;
 }
 
-/**
- * Care activity types the user can log. Watering is the historical default;
- * the others were added so users on weekly-watering schedules can still build
- * meaningful streaks via misting, fertilizing, etc.
- */
+// Watering is the historical default; the rest let weekly-watering users still build streaks.
 export type CareType =
   | "water"
   | "mist"
@@ -232,27 +186,20 @@ export interface CareEvent {
 }
 
 export interface DailyCare {
-  /** ISO YYYY-MM-DD */
+  // ISO YYYY-MM-DD.
   date: string;
-  /** Care types performed that day (empty if no care recorded). */
   types: CareType[];
 }
 
-/**
- * Care history snapshot for plant detail widgets.
- */
 export interface CareHistory {
   waterings: string[];
   events: CareEvent[];
   current_streak_days: number;
   unique_days_last_week: number;
-  /** Fixed 7-day strip ending today, oldest first. */
+  // Fixed 7-day strip ending today, oldest first.
   daily_last_week: DailyCare[];
 }
 
-/**
- * API error response
- */
 export interface ApiError {
   message: string;
   detail?: string;

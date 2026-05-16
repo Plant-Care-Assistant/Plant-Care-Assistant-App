@@ -15,13 +15,14 @@ export interface ScanPlantData {
   name: string;
   species?: string;
   lightLevel: 'low' | 'medium' | 'high';
-  wateringFrequency: number; // days
+  wateringFrequency: number;
   location?: string;
-  confidence?: number; // SPECIES identification confidence, 0-100
+  // Species identification confidence, 0-100.
+  confidence?: number;
   aiIdentified?: boolean;
   catalogId?: number | null;
   healthLabel?: 'healthy' | 'diseased' | null;
-  /** AI HEALTH verdict confidence, 0-1 (raw from AI service). */
+  // AI health verdict confidence, 0..1 (raw from AI service).
   healthConfidence?: number | null;
   diseases?: Array<{ plant: string; condition: string; confidence: number }> | null;
 }
@@ -64,9 +65,7 @@ export function ScanCameraModal({
         name: result.name,
         species: result.scientificName,
         confidence: result.confidence,
-        // Treat as identified only when we got a usable species name back.
-        // When species is empty the user fills the name in manually, but we
-        // still keep the health/disease info the AI did return.
+        // Identified only when we got a species name; empty name -> manual entry, but health/disease still applies.
         aiIdentified: Boolean(result.name),
         lightLevel: result.light,
         wateringFrequency: result.wateringFrequency,
@@ -77,7 +76,6 @@ export function ScanCameraModal({
       }));
       didIdentifyRef.current = true;
     } catch {
-      // AI service unavailable — let user fill in manually
       setPlantData((prev) => ({ ...prev, aiIdentified: false }));
     }
 
@@ -128,7 +126,6 @@ export function ScanCameraModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -137,7 +134,6 @@ export function ScanCameraModal({
             className="fixed inset-0 z-40 bg-black/50"
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -146,7 +142,6 @@ export function ScanCameraModal({
               darkMode ? 'bg-neutral-900' : 'bg-neutral-50'
             }`}
           >
-            {/* Header */}
             <div
               className={`flex items-center justify-between border-b px-6 py-4 ${
                 darkMode ? 'border-neutral-800' : 'border-neutral-200'
@@ -173,7 +168,6 @@ export function ScanCameraModal({
               </button>
             </div>
 
-            {/* Progress Bar */}
             <div className="h-1 bg-neutral-200 dark:bg-neutral-800">
               <motion.div
                 className="h-full bg-secondary"
@@ -183,7 +177,6 @@ export function ScanCameraModal({
               />
             </div>
 
-            {/* Content */}
             <div className="overflow-y-auto overflow-x-hidden p-6 flex-1">
               <AnimatePresence mode="wait">
                 {currentStep === 'camera' && (
