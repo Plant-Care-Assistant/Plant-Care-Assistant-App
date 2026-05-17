@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
 
 from app.models.requests import (
     CareEventCreate,
@@ -178,6 +178,6 @@ def read_user_plant_care_history(
     plant_id: int,
     user: LoggedUserDep,
     service: UserPlantServiceDep,
-    days: int = 30,
+    days: Annotated[int, Query(gt=0, le=365)] = 30,
 ):
     return service.care_history(user, plant_id, days=days)

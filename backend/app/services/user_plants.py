@@ -84,9 +84,13 @@ class UserPlantService:
         if last_watered_at is None:
             # Never watered: grant the full interval before the plant counts as due.
             data["days_until_water"] = interval
+            data["is_overdue"] = False
         else:
-            days_since = (datetime.now(UTC) - last_watered_at).days
-            data["days_until_water"] = max(0, interval - days_since)
+            seconds_since = (datetime.now(UTC) - last_watered_at).total_seconds()
+            days_since = seconds_since / 86400
+            days_until = interval - days_since
+            data["days_until_water"] = max(0, int(days_until))
+            data["is_overdue"] = days_until <= 0
         return data
 
     def read_plant(self, user: User, plant_id: int) -> dict[str, Any]:
@@ -147,36 +151,12 @@ class UserPlantService:
         self.s.delete(plant)
         self.s.commit()
 
-    def upload_image(self, user: User, plant_id: int, file: UploadFile):
+    def upload_image(self, user: User, plant_id: int, file: UploadFile) -> None:
         self._check_user(user)
         plant = self.s.get(UserPlant, plant_id)
         if plant is None or plant.user_id != user.id:
             raise HTTPException(404, "Plant not found")
-
-        try:
-            response = httpx.get(f"http://{BLOB_URL}/dir/assign", timeout=HTTP_TIMEOUT)
-            response.raise_for_status()
-            slot = BlobSlot.model_validate_json(response.text)
-        except httpx.HTTPError as e:
-            logger.exception("Failed to assign blob slot")
-            raise HTTPException(503, f"Blob storage unavailable: {e}") from e
-
-        filename = file.filename or "plantus"
-        file.file.seek(0)
-        files = {filename: file.file}
-
-        try:
-            upload_response = httpx.post(
-                f"http://{BLOB_BACKEND_URL}/{slot.fid}",
-                files=files,
-                timeout=HTTP_TIMEOUT,
-            )
-            upload_response.raise_for_status()
-        except httpx.HTTPError as e:
-            logger.exception("Failed to upload image to blob storage")
-            raise HTTPException(503, f"Failed to upload image: {e}") from e
-
-        plant.fid = slot.fid
+        plant.fid = self._upload_blob(file)
         self.s.add(plant)
         self.s.commit()
 
@@ -214,16 +194,31 @@ class UserPlantService:
             raise HTTPException(404, "Plant not found")
         return plant
 
+    _ALLOWED_MIME_TYPES: frozenset[str] = frozenset(
+        {"image/jpeg", "image/png", "image/webp"},
+    )
+    _MAX_IMAGE_BYTES: int = 10 * 1024 * 1024  # 10 MB
+
     def _upload_blob(self, file: UploadFile) -> str:
-        """Upload a file to SeaweedFS and return its fid.
+        """Validate, then upload a file to SeaweedFS and return its fid.
 
         Returns:
             The SeaweedFS fid string for the uploaded file.
 
         Raises:
-            HTTPException: If the blob slot assignment or upload request fails.
+            HTTPException: 400 for invalid type/content, 413 for oversized file,
+                503 if blob storage is unavailable.
 
         """
+        if file.content_type not in self._ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                400,
+                f"Unsupported file type '{file.content_type}'. "
+                "Allowed: image/jpeg, image/png, image/webp.",
+            )
+        if file.size is not None and file.size > self._MAX_IMAGE_BYTES:
+            raise HTTPException(413, "File too large. Maximum size is 10 MB.")
+
         try:
             response = httpx.get(f"http://{BLOB_URL}/dir/assign", timeout=HTTP_TIMEOUT)
             response.raise_for_status()

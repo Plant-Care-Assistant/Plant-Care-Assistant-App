@@ -104,6 +104,7 @@ class UserPlantPublic(BaseModel):
     last_watered_at: datetime | None = None
     # Days until next watering: 0 = due today/overdue; None when no interval or history.
     days_until_water: int | None = None
+    is_overdue: bool | None = None
 
 
 class UserPlantImagePublic(BaseModel):

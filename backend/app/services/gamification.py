@@ -58,6 +58,11 @@ FLAGS = [
     GameAction.first_theme_change,
 ]
 
+_missing = [a.value for a in GameAction if a not in XP_MAPPING]
+if _missing:
+    msg = f"XP_MAPPING is missing entries for: {_missing}"
+    raise ValueError(msg)
+
 
 class GamificationService:
     def __init__(self, session: SessionDep) -> None:
@@ -202,9 +207,29 @@ class GamificationService:
             self.s.add(Achievement(user_id=user.id, achievement_name=achievement))
 
         gd.xp += xp_awarded
-
         self.s.add(gd)
-        self.s.commit()
+
+        try:
+            self.s.commit()
+        except IntegrityError:
+            # Concurrent request already inserted one or more of the same achievements.
+            # Roll back, re-read what actually exists, and retry without the duplicates.
+            self.s.rollback()
+            existing = {
+                a.achievement_name
+                for a in self.s.exec(
+                    select(Achievement).where(Achievement.user_id == user.id),
+                ).all()
+            }
+            newly_unlocked = [a for a in newly_unlocked if a not in existing]
+            dup_xp = len(newly_unlocked) * XP_MAPPING[GameAction.achievement_unlock]
+            xp_awarded -= dup_xp
+            gd.xp -= dup_xp
+            for achievement in newly_unlocked:
+                self.s.add(Achievement(user_id=user.id, achievement_name=achievement))
+            self.s.add(gd)
+            self.s.commit()
+
         self.s.refresh(gd)
 
         return UserActionResponse(
