@@ -92,8 +92,9 @@ class PlantNetPreprocessor:
             Composed transform pipeline for training.
 
         """
+        resize_to = int(self.img_size * 256 / 224)
         pipeline = [
-            transforms.Resize(256),
+            transforms.Resize(resize_to),
             transforms.RandomCrop(self.img_size),
             *self._augmentation_transforms(),
             *self._normalisation_transforms(),
@@ -194,7 +195,7 @@ class PlantVillagePreprocessor(PlantNetPreprocessor):
 
         """
         pipeline = [
-            transforms.Resize(int(self.img_size * 256 / 224)),   # same ratio as in PN
+            transforms.Resize(int(self.img_size * 256 / 224)),  # same ratio as in PN
             transforms.CenterCrop(self.img_size),
             *self._normalisation_transforms(),
         ]

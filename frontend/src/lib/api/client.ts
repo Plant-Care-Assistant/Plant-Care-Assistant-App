@@ -1,14 +1,7 @@
 import axios from "axios";
 
-/**
- * Base API URL - configure via environment variable
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-/**
- * Axios instance for API requests
- * Automatically includes auth token from localStorage
- */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -16,7 +9,6 @@ export const apiClient = axios.create({
   },
 });
 
-// Add auth token to requests
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("auth_token");
   if (token) {
@@ -25,12 +17,10 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle auth errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem("auth_token");
       document.cookie = "auth_token=; path=/; max-age=0";
       window.location.href = "/auth/login";

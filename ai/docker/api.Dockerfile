@@ -51,8 +51,15 @@ COPY --chown=$UID:$GID src ./src
 # Install package in editable mode
 RUN pip install -e "."
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# System libs:
+#  - curl: healthcheck
+#  - libgl1, libglib2.0-0, libxcb1: OpenCV runtime (ultralytics pulls opencv-python
+#    which needs these; without them disease_classifier fails at import time).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        libgl1 \
+        libglib2.0-0 \
+        libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directories for models and data

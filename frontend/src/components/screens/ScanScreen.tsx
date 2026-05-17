@@ -7,12 +7,11 @@ import { ScanActions } from '@/components/features/scan/ScanActions';
 import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
 import { Upload } from 'lucide-react';
 import { useAddPlantMutation } from '@/hooks/usePlants';
+import { useTheme } from '@/providers';
 
-export interface ScanScreenProps {
-  darkMode: boolean;
-}
-
-export function ScanScreen({ darkMode }: ScanScreenProps) {
+export function ScanScreen() {
+  const { theme } = useTheme();
+  const darkMode = theme === 'dark';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const addPlantMutation = useAddPlantMutation();
 
@@ -25,23 +24,30 @@ export function ScanScreen({ darkMode }: ScanScreenProps) {
   };
 
   const handleAddToCollection = (plant: ScanPlantData) => {
+    const hasHealthVerdict = plant.healthLabel != null;
+    // AI returns 0..1 fraction; store as 0..100 percent.
+    const healthConfPct =
+      hasHealthVerdict && plant.healthConfidence != null
+        ? Math.round(plant.healthConfidence * 100)
+        : null;
     addPlantMutation.mutate({
       custom_name: plant.name || 'Unknown Plant',
       note: plant.species || null,
-      plant_catalog_id: null,
+      plant_catalog_id: plant.catalogId ?? null,
       imageUrl: plant.imageUrl,
+      last_health_label: plant.healthLabel ?? null,
+      last_health_confidence: healthConfPct,
+      last_health_check_at: hasHealthVerdict ? new Date().toISOString() : null,
+      last_diseases: plant.diseases ?? null,
     });
   };
 
   return (
     <div className={`min-h-screen pb-24 lg:pb-8 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-      {/* Mobile layout - optimized for touch */}
       <div className="lg:hidden">
         <div className="px-4 pt-4 pb-6">
-          {/* Header with XP reward */}
           <ScanHeader xpReward={50} darkMode={darkMode} />
 
-          {/* Main scan area */}
           <div className="flex flex-col">
             <ScanFrame darkMode={darkMode} />
             <ScanActions 
@@ -53,16 +59,13 @@ export function ScanScreen({ darkMode }: ScanScreenProps) {
         </div>
       </div>
 
-      {/* Desktop layout - optimized for mouse interaction */}
       <div className="hidden lg:block">
         <div className="max-w-6xl mx-auto px-6 py-8">
-          {/* Header centered */}
           <div className="flex justify-center mb-8">
             <ScanHeader xpReward={50} darkMode={darkMode} />
           </div>
 
           <div className="grid grid-cols-1 gap-8 items-start justify-items-center">
-            {/* Drag & drop area - centered */}
             <div className="flex flex-col justify-center w-full max-w-2xl">
               <div
                 className={`w-full rounded-2xl border-2 border-dashed ${
@@ -98,7 +101,6 @@ export function ScanScreen({ darkMode }: ScanScreenProps) {
                 </div>
               </div>
 
-              {/* Additional tips */}
               <div className={`mt-6 p-4 rounded-xl ${
                 darkMode ? 'bg-neutral-800/50' : 'bg-neutral-100/50'
               }`}>
@@ -117,7 +119,6 @@ export function ScanScreen({ darkMode }: ScanScreenProps) {
         </div>
       </div>
 
-      {/* Scan Camera Modal */}
       <ScanCameraModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

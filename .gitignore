@@ -70,6 +70,9 @@ instance/
 # Postgres stuff:
 data/postgres_data/
 
+# SeaweedFS blob volumes (local dev runtime data)
+data/seaweedfs/
+
 # Scrapy stuff:
 .scrapy
 
@@ -237,3 +240,12 @@ venv
 # Dev scripts
 scripts/dev.sh
 scripts/dev.ps1
+
+# Local editor/assistant tooling
+.claude/
+
+# Local planning / working docs (do NOT commit to remote)
+/PLAN_KONCOWY.md
+/GAMIFICATION_BACKEND_SPEC.md
+/RAPORT.md
+/plan-frontend.md

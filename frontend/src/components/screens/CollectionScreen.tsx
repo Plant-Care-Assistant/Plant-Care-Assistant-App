@@ -8,17 +8,19 @@ import { CollectionSearch } from '@/components/features/collection/CollectionSea
 import { CollectionFilters, FilterOption } from '@/components/features/collection/CollectionFilters';
 import { PlantCard } from '@/components/features/collection/PlantCard';
 import { ScanCameraModal, type ScanPlantData } from '@/components/features/scan';
-import { Plus } from 'lucide-react';
+import { Plus, Sprout } from 'lucide-react';
 import { useAddPlantMutation } from '@/hooks/usePlants';
 import { getPlantImage } from '@/lib/utils/plantImages';
 import { UserPlant } from '@/types';
+import { useTheme } from '@/providers';
 
 export interface CollectionScreenProps {
-  darkMode: boolean;
   plants: UserPlant[];
 }
 
-export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
+export function CollectionScreen({ plants }: CollectionScreenProps) {
+  const { theme } = useTheme();
+  const darkMode = theme === 'dark';
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('all');
@@ -28,7 +30,6 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
   const filteredPlants = useMemo(() => {
     let filtered = [...plants];
 
-    // Search by custom_name or note
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p =>
@@ -37,16 +38,28 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
       );
     }
 
-    // Filters - with real data we don't have health status yet,
-    // so "recent" sorts by created_at, others show all for now
     if (activeFilter === 'recent') {
       filtered = filtered.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
+    } else {
+      // Sort by days-until-water ascending so overdue/due-soon surface first.
+      filtered = filtered.sort((a, b) => {
+        const aDue = a.days_until_water ?? Number.POSITIVE_INFINITY;
+        const bDue = b.days_until_water ?? Number.POSITIVE_INFINITY;
+        return aDue - bDue;
+      });
     }
 
     return filtered;
   }, [plants, searchQuery, activeFilter]);
+
+  // AI verdict + watering urgency -> 3-bucket health for the card badge.
+  const cardHealth = (p: UserPlant): 'healthy' | 'needs-attention' | 'critical' => {
+    if (p.last_health_label === 'diseased') return 'critical';
+    if (p.days_until_water != null && p.days_until_water <= 0) return 'needs-attention';
+    return 'healthy';
+  };
 
   const handlePlantClick = (plantId: number) => {
     router.push(`/plant/${plantId}`);
@@ -57,11 +70,21 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
   };
 
   const handleAddToCollection = (plant: ScanPlantData) => {
+    const hasHealthVerdict = plant.healthLabel != null;
+    // AI returns 0..1 fraction; store as 0..100 percent.
+    const healthConfPct =
+      hasHealthVerdict && plant.healthConfidence != null
+        ? Math.round(plant.healthConfidence * 100)
+        : null;
     addPlantMutation.mutate({
       custom_name: plant.name || 'Unknown Plant',
       note: plant.species || null,
-      plant_catalog_id: null,
+      plant_catalog_id: plant.catalogId ?? null,
       imageUrl: plant.imageUrl,
+      last_health_label: plant.healthLabel ?? null,
+      last_health_confidence: healthConfPct,
+      last_health_check_at: hasHealthVerdict ? new Date().toISOString() : null,
+      last_diseases: plant.diseases ?? null,
     });
     setIsAddPlantModalOpen(false);
   };
@@ -77,24 +100,60 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
 
       <div className={`min-h-screen pb-24 lg:pb-8 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-          {/* Header */}
           <CollectionHeader plantCount={plants.length} darkMode={darkMode} />
 
-          {/* Search */}
+          {plants.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center text-center py-16 lg:py-24 px-4"
+            >
+              <div
+                className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${
+                  darkMode ? 'bg-neutral-800' : 'bg-secondary/10'
+                }`}
+              >
+                <Sprout size={48} className="text-secondary" />
+              </div>
+              <h2
+                className={`text-2xl font-bold mb-2 ${
+                  darkMode ? 'text-white' : 'text-neutral-900'
+                }`}
+              >
+                Your collection is empty
+              </h2>
+              <p
+                className={`max-w-md mb-8 ${
+                  darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                }`}
+              >
+                Snap or upload a photo of your first plant — the AI will identify the
+                species, suggest care settings, and check for disease.
+              </p>
+              <motion.button
+                onClick={handleAddPlant}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-secondary text-white font-semibold shadow-lg hover:opacity-90 transition-opacity"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Plus size={20} />
+                Add your first plant
+              </motion.button>
+            </motion.div>
+          ) : (
+          <>
           <CollectionSearch
             value={searchQuery}
             onChange={setSearchQuery}
             darkMode={darkMode}
           />
 
-          {/* Filters */}
           <CollectionFilters
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             darkMode={darkMode}
           />
 
-          {/* Plant Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
             {filteredPlants.map((plant, index) => (
               <motion.div
@@ -108,14 +167,14 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
                   name={plant.custom_name || 'Unnamed Plant'}
                   species={plant.note || undefined}
                   imageUrl={getPlantImage(plant.id)}
-                  health="healthy"
+                  health={cardHealth(plant)}
+                  daysUntilWater={plant.days_until_water}
                   darkMode={darkMode}
                   onClick={() => handlePlantClick(plant.id)}
                 />
               </motion.div>
             ))}
 
-            {/* Add Plant Card */}
             <motion.button
               onClick={handleAddPlant}
               className={`rounded-2xl border-2 border-dashed min-h-[280px] lg:min-h-[320px] flex flex-col items-center justify-center gap-3 transition-all ${
@@ -139,7 +198,6 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
             </motion.button>
           </div>
 
-          {/* No Results State */}
           {filteredPlants.length === 0 && plants.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -152,6 +210,8 @@ export function CollectionScreen({ darkMode, plants }: CollectionScreenProps) {
                 No plants found matching your search
               </p>
             </motion.div>
+          )}
+          </>
           )}
 
         </div>

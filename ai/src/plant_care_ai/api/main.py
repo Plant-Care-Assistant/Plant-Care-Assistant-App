@@ -17,7 +17,6 @@ from pydantic import BaseModel, Field
 
 from plant_care_ai.inference import CombinedPlantClassifier, DiseasePlantClassifier, PlantClassifier
 
-# ===== CONFIGURATION =====
 CHECKPOINT_PATH = os.getenv(
     "MODEL_CHECKPOINT_PATH",
     str(Path(__file__).parent.parent.parent.parent / "models/best.pth"),
@@ -30,13 +29,11 @@ CLASS_MAPPING_PATH = os.getenv(
     str(Path(__file__).parent.parent.parent.parent / "models/class_id_to_name.json"),
 )
 
-# Constants
 MAX_TOP_K = 20
 MIN_TOP_K = 1
 MAX_FILE_SIZE_MB = 10
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
-# ===== GLOBAL CLASSIFIERS =====
 classifier: PlantClassifier | None = None
 disease_classifier: DiseasePlantClassifier | None = None
 combined_classifier: CombinedPlantClassifier | None = None
@@ -97,7 +94,6 @@ def load_classifier() -> PlantClassifier:
     return clf
 
 
-# ===== LIFESPAN =====
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup/shutdown events.
@@ -147,7 +143,6 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-# ===== FASTAPI APP =====
 app = FastAPI(
     title="Plant Care AI Service",
     description="Plant identification and disease detection inference API",
@@ -156,7 +151,6 @@ app = FastAPI(
 )
 
 
-# ===== RESPONSE MODELS =====
 class PredictionResult(BaseModel):
     """Single species prediction result."""
 
@@ -231,7 +225,6 @@ class HealthResponse(BaseModel):
     disease_detection_available: bool
 
 
-# ===== HELPERS =====
 async def _read_image(file: UploadFile) -> Image.Image:
     """Validate and read an uploaded image file.
 
@@ -277,7 +270,6 @@ def _validate_top_k(top_k: int) -> None:
         )
 
 
-# ===== ENDPOINTS =====
 @app.get("/health")
 def health_check() -> HealthResponse:
     """Health check endpoint.

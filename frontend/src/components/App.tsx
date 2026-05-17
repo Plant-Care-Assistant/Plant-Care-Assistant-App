@@ -1,87 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BottomNav } from '@/components/layout/BottomNav';
-import { Sidebar } from '@/components/layout/Sidebar';
+import { useEffect } from 'react';
+import { Layout } from '@/components/layout';
 import { HomeScreen } from '@/components/screens/HomeScreen';
-import { ScanScreen } from '@/components/screens/ScanScreen';
-import { CollectionScreen } from '@/components/screens/CollectionScreen';
-import { ProfileScreen } from '@/components/screens/ProfileScreen';
-import type { NavScreen } from '@/components/layout/navItems';
 import { usePlantsQuery } from '@/hooks/usePlants';
+import { useTheme } from '@/providers';
+import { useFirstVisitXP } from '@/lib/gamification/useFirstVisitXP';
+import { maybeSendCareReminder } from '@/lib/notifications/careReminders';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<NavScreen>('home');
-  const [darkMode, setDarkMode] = useState(false);
-  const { data: plants = [] } = usePlantsQuery();
+  const { toggleTheme } = useTheme();
+  const { data: plants = [], isSuccess } = usePlantsQuery();
 
-  // Apply dark mode class to document
+  useFirstVisitXP('home');
+
+  // Fire once-per-day reminder when plants first load. The dependency is
+  // isSuccess only — maybeSendCareReminder guards internally against re-firing
+  // within the same calendar day, so stale plant references are safe.
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'home':
-        return <HomeScreen darkMode={darkMode} plants={plants} />;
-      case 'scan':
-        return <ScanScreen darkMode={darkMode} />;
-      case 'collection':
-        return <CollectionScreen darkMode={darkMode} plants={plants} />;
-      case 'profile':
-        return <ProfileScreen darkMode={darkMode} onDarkModeToggle={toggleDarkMode} />;
-      default:
-        return <HomeScreen darkMode={darkMode} plants={plants} />;
-    }
-  };
+    if (!isSuccess) return;
+    const overdue = plants.filter(
+      (p) => p.days_until_water != null && p.days_until_water <= 0,
+    );
+    maybeSendCareReminder(overdue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuccess]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      darkMode 
-        ? 'bg-neutral-900 text-white' 
-        : 'bg-neutral-50 text-gray-900'
-    }`}>
-      {/* Desktop Sidebar Navigation */}
-      <Sidebar 
-        darkMode={darkMode}
-        currentScreen={currentScreen}
-        onNavigate={setCurrentScreen}
-        onToggleDarkMode={toggleDarkMode}
-        showThemeToggle={true}
-      />
-
-      {/* Main Content */}
-      <main className={`lg:pl-72 transition-all ${
-        darkMode ? 'bg-neutral-900' : 'bg-neutral-50'
-      }`}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentScreen}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderScreen()}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* Bottom Navigation - Only visible on mobile/tablet */}
-      <BottomNav 
-        currentScreen={currentScreen} 
-        onNavigate={setCurrentScreen}
-        darkMode={darkMode}
-      />
-    </div>
+    <Layout showBottomNav showSidebar onToggleDarkMode={toggleTheme}>
+      <HomeScreen plants={plants} />
+    </Layout>
   );
 }

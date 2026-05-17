@@ -12,6 +12,7 @@ PageParamsDep = Annotated[PageParams, Query()]
 SearchParamsDep = Annotated[str, Query(min_length=1, max_length=100)]
 
 
+@router.get("", response_model=list[PlantPublic])
 @router.get("/", response_model=list[PlantPublic])
 def read_plants(p: PageParamsDep, service: PlantServiceDep):
     return service.read_plants(p)
@@ -22,6 +23,11 @@ def read_plant_name(q: SearchParamsDep, service: PlantServiceDep):
     return service.read_plant_name(q)
 
 
+@router.get("/by-plantsnet/{plantsnet_id}", response_model=PlantPublic)
+def read_plant_by_plantsnet(plantsnet_id: str, service: PlantServiceDep):
+    return service.read_plant_by_plantsnet_id(plantsnet_id)
+
+
 @router.get("/{plant_id}", response_model=PlantPublic)
 def read_plant(plant_id: int, service: PlantServiceDep):
     return service.read_plant(plant_id)
@@ -29,7 +35,6 @@ def read_plant(plant_id: int, service: PlantServiceDep):
 
 @router.get("/{plant_id}/image")
 def plant_image(plant_id: int, service: PlantServiceDep):
-    # Volumen ID, Blob ID
     vid, bid = service.read_plant_image(plant_id).split(",", 1)
 
     response = Response()

@@ -1,0 +1,377 @@
+'use client';
+
+import { useEffect, useState, useRef, ChangeEvent } from 'react';
+import Image from 'next/image';
+import { Plus, X, Trash2, ChevronLeft, ImagePlay } from 'lucide-react';
+import {
+  usePlantImagesQuery,
+  useUploadPlantImageMutation,
+  useDeletePlantImageMutation,
+} from '@/hooks/usePlants';
+import type { UserPlantImage } from '@/types';
+import { PhotoCompareSlider } from './PhotoCompareSlider';
+
+interface PlantImageGalleryProps {
+  plantId: number;
+  plantName: string;
+  plantSpecies?: string;
+  healthPercent: number;
+  onBack?: () => void;
+  darkMode?: boolean;
+}
+
+function imageUrlFor(image: UserPlantImage): string {
+  // Proxied through /blob/ to the SeaweedFS volume (parity with /my-plants/{id}/image).
+  return `/blob/${image.fid}`;
+}
+
+export function PlantImageGallery({
+  plantId,
+  plantName,
+  plantSpecies,
+  healthPercent,
+  onBack,
+  darkMode = false,
+}: PlantImageGalleryProps) {
+  const { data: images = [] } = usePlantImagesQuery(plantId);
+  const uploadMutation = useUploadPlantImageMutation(plantId);
+  const deleteMutation = useDeletePlantImageMutation(plantId);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
+  // Compare defaults to extremes: oldest (last entry, newest-first array) vs newest.
+  const [beforeIdx, setBeforeIdx] = useState(0);
+  const [afterIdx, setAfterIdx] = useState(0);
+  useEffect(() => {
+    if (images.length >= 2) {
+      setBeforeIdx(images.length - 1);
+      setAfterIdx(0);
+    }
+  }, [images.length]);
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadMutation.mutate(file);
+    e.target.value = '';
+  };
+  const openUpload = () => fileInputRef.current?.click();
+
+  const latest = images[0];
+  const prev1 = images[1];
+  const prev2 = images[2];
+  const extraCount = Math.max(0, images.length - 3);
+  const isEmpty = images.length === 0;
+
+  const greyTileClass = darkMode
+    ? 'bg-neutral-800 border border-neutral-700'
+    : 'bg-neutral-200 border border-neutral-300';
+
+  const EmptyTile = ({ iconSize = 28 }: { iconSize?: number }) => (
+    <button
+      type="button"
+      onClick={openUpload}
+      disabled={uploadMutation.isPending}
+      className={`relative rounded-2xl ${greyTileClass} flex items-center justify-center cursor-pointer hover:brightness-95 transition`}
+      aria-label="Add photo"
+    >
+      <div
+        className={`rounded-full flex items-center justify-center ${
+          darkMode ? 'bg-neutral-700/60' : 'bg-white/70'
+        }`}
+        style={{ width: iconSize * 2, height: iconSize * 2 }}
+      >
+        <Plus size={iconSize} className={darkMode ? 'text-neutral-400' : 'text-neutral-500'} />
+      </div>
+    </button>
+  );
+
+  return (
+    <div className="rounded-3xl overflow-hidden">
+      <div className="grid grid-cols-2 gap-2 aspect-[16/9] sm:aspect-[3/1] lg:aspect-[4/1]">
+        <button
+          type="button"
+          onClick={isEmpty ? openUpload : () => setLightboxIndex(0)}
+          disabled={uploadMutation.isPending}
+          className={`relative row-span-2 overflow-hidden rounded-2xl ${
+            isEmpty ? `${greyTileClass} cursor-pointer` : 'bg-neutral-200 dark:bg-neutral-900 cursor-pointer'
+          }`}
+          aria-label={isEmpty ? 'Add first photo' : 'Open latest photo'}
+        >
+          {latest ? (
+            <Image
+              src={imageUrlFor(latest)}
+              alt={plantName}
+              fill
+              className="object-cover"
+              sizes="50vw"
+              unoptimized
+              priority
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className={`w-24 h-24 rounded-full flex items-center justify-center ${
+                  darkMode ? 'bg-neutral-700/60' : 'bg-white/70'
+                }`}
+              >
+                <Plus
+                  size={56}
+                  className={darkMode ? 'text-neutral-400' : 'text-neutral-500'}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
+
+          {onBack && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onBack();
+              }}
+              className="absolute top-3 left-3 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-md flex items-center justify-center cursor-pointer"
+              role="button"
+              aria-label="Back to collection"
+            >
+              <ChevronLeft size={20} className="text-neutral-700" />
+            </div>
+          )}
+
+          <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-nature text-white text-xs font-bold shadow-md">
+            {healthPercent}% HEALTH
+          </div>
+
+          <div className="absolute bottom-4 left-4 right-4 text-white">
+            <h1 className="text-xl sm:text-2xl font-bold drop-shadow-md">{plantName}</h1>
+            {plantSpecies && (
+              <p className="italic text-sm opacity-90 drop-shadow-md">{plantSpecies}</p>
+            )}
+          </div>
+
+          {!isEmpty && (
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              {images.length >= 2 && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCompare(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-secondary text-xs font-medium cursor-pointer shadow-md"
+                  role="button"
+                  aria-label="Compare photos over time"
+                >
+                  <ImagePlay size={14} />
+                  Compare
+                </div>
+              )}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openUpload();
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-secondary text-xs font-medium cursor-pointer shadow-md"
+                role="button"
+                aria-label="Add photo"
+              >
+                <Plus size={14} />
+                {uploadMutation.isPending ? 'Uploading…' : 'Add photo'}
+              </div>
+            </div>
+          )}
+        </button>
+
+        {prev1 ? (
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(1)}
+            className="relative rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-900 cursor-pointer"
+          >
+            <Image
+              src={imageUrlFor(prev1)}
+              alt="Previous photo"
+              fill
+              className="object-cover"
+              sizes="25vw"
+              unoptimized
+            />
+          </button>
+        ) : (
+          <EmptyTile iconSize={22} />
+        )}
+
+        {prev2 ? (
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(2)}
+            className="relative rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-900 cursor-pointer"
+          >
+            <Image
+              src={imageUrlFor(prev2)}
+              alt="Older photo"
+              fill
+              className="object-cover"
+              sizes="25vw"
+              unoptimized
+            />
+            {extraCount > 0 && (
+              <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white font-semibold text-sm">
+                +{extraCount} more
+              </div>
+            )}
+          </button>
+        ) : (
+          <EmptyTile iconSize={22} />
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
+      {showCompare && images.length >= 2 && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col p-4 sm:p-6"
+          onClick={() => setShowCompare(false)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCompare(false);
+            }}
+            className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full z-10"
+            aria-label="Close compare"
+          >
+            <X size={24} />
+          </button>
+          <div
+            className="flex flex-col gap-4 max-w-4xl w-full mx-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PhotoCompareSlider
+              beforeUrl={imageUrlFor(images[beforeIdx])}
+              beforeLabel={`Before · ${new Date(images[beforeIdx].uploaded_at).toLocaleDateString()}`}
+              afterUrl={imageUrlFor(images[afterIdx])}
+              afterLabel={`After · ${new Date(images[afterIdx].uploaded_at).toLocaleDateString()}`}
+            />
+
+            <div className="space-y-2">
+              <p className="text-white/70 text-xs font-medium">Tap thumbnails to choose</p>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {images.map((img, i) => {
+                  const isBefore = i === beforeIdx;
+                  const isAfter = i === afterIdx;
+                  return (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => {
+                        // Tap cycles role: idle → after → before.
+                        if (isAfter) setBeforeIdx(i);
+                        else setAfterIdx(i);
+                      }}
+                      className={`relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden ${
+                        isBefore
+                          ? 'ring-2 ring-amber-400'
+                          : isAfter
+                            ? 'ring-2 ring-emerald-400'
+                            : 'opacity-60 hover:opacity-100'
+                      }`}
+                      aria-label={`Photo from ${new Date(img.uploaded_at).toLocaleDateString()}`}
+                    >
+                      <Image
+                        src={imageUrlFor(img)}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      {(isBefore || isAfter) && (
+                        <span
+                          className={`absolute bottom-0 inset-x-0 text-[10px] font-bold uppercase text-center py-0.5 ${
+                            isBefore ? 'bg-amber-400 text-black' : 'bg-emerald-400 text-black'
+                          }`}
+                        >
+                          {isBefore ? 'Before' : 'After'}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lightboxIndex !== null && images[lightboxIndex] && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxIndex(null)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxIndex(null);
+            }}
+            className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full"
+            aria-label="Close"
+          >
+            <X size={24} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const id = images[lightboxIndex].id;
+              if (window.confirm('Delete this photo?')) {
+                deleteMutation.mutate(id);
+                setLightboxIndex(null);
+              }
+            }}
+            className="absolute top-4 left-4 text-red-400 p-2 hover:bg-white/10 rounded-full"
+            aria-label="Delete photo"
+          >
+            <Trash2 size={20} />
+          </button>
+          <div
+            className="relative max-w-4xl max-h-[80vh] w-full h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={imageUrlFor(images[lightboxIndex])}
+              alt="Plant photo"
+              fill
+              className="object-contain"
+              unoptimized
+            />
+          </div>
+          {images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(i);
+                  }}
+                  className={`w-2 h-2 rounded-full ${
+                    i === lightboxIndex ? 'bg-white' : 'bg-white/40'
+                  }`}
+                  aria-label={`Photo ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

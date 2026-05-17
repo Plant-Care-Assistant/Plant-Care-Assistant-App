@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableList
 from sqlmodel import Column, Field, SQLModel
 
 
@@ -23,7 +24,35 @@ class HumidityLevel(StrEnum):
     high = "high"
 
 
-# 1. TABELA UŻYTKOWNIKÓW
+class CareType(StrEnum):
+    water = "water"
+    mist = "mist"
+    fertilize = "fertilize"
+    prune = "prune"
+    rotate = "rotate"
+    inspect = "inspect"
+    other = "other"
+
+
+class GameAction(StrEnum):
+    scan_identify = "SCAN_IDENTIFY"
+    scan_and_add = "SCAN_AND_ADD"
+    add_plant = "ADD_PLANT"
+    delete_plant = "DELETE_PLANT"
+    water_plant = "WATER_PLANT"
+    complete_care_task = "COMPLETE_CARE_TASK"
+    water_before_9am = "WATER_BEFORE_9AM"
+    first_login = "FIRST_LOGIN"
+    complete_profile = "COMPLETE_PROFILE"
+    first_home_visit = "FIRST_HOME_VISIT"
+    first_collection_visit = "FIRST_COLLECTION_VISIT"
+    first_scan_visit = "FIRST_SCAN_VISIT"
+    first_profile_visit = "FIRST_PROFILE_VISIT"
+    first_theme_change = "FIRST_THEME_CHANGE"
+    daily_login_bonus = "DAILY_LOGIN_BONUS"
+    achievement_unlock = "ACHIEVEMENT_UNLOCK"
+
+
 class User(SQLModel, table=True):
     __tablename__: str = "users"  # type: ignore
 
@@ -31,10 +60,6 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True, max_length=255)
     password_hash: str = Field(max_length=255)
     username: str = Field(max_length=100)
-
-    xp: int = Field(default=0)
-    day_streak: int = Field(default=0)
-    last_login_at: datetime | None = Field(default=None)
 
     location_city: str | None = Field(default=None, max_length=100)
 
@@ -47,30 +72,29 @@ class User(SQLModel, table=True):
         sa_column=Column(JSONB),
     )
 
-    # Metadane
+    last_login_at: datetime | None = Field(default=None)
+
     created_at: datetime | None = Field(default_factory=utc_now)
     deleted_at: datetime | None = Field(default=None)
 
 
-# 2. KATALOG ROŚLIN
 class Plant(SQLModel, table=True):
     __tablename__: str = "plants_catalog"  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
     common_name: str = Field(max_length=150)
-    scientific_name: str | None = Field(default=None, max_length=150)
     fid: str | None = Field(default=None)
+    plantsnet_id: str | None = Field(default=None, max_length=20)
 
+    scientific_name: str | None = Field(default=None, max_length=150)
     preferred_sunlight: LightLevel
     preferred_temp_min: int | None = None
     preferred_temp_max: int | None = None
     air_humidity_req: HumidityLevel | None = None
     soil_humidity_req: HumidityLevel | None = None
-
     preferred_watering_interval_days: int | None = None
 
 
-# 3. ROŚLINY UŻYTKOWNIKA
 class UserPlant(SQLModel, table=True):
     __tablename__: str = "user_plants"  # type: ignore
 
@@ -85,22 +109,80 @@ class UserPlant(SQLModel, table=True):
     created_at: datetime | None = Field(default_factory=utc_now)
     sprouted_at: datetime | None = None
 
+    scientific_name: str | None = None
+    preferred_sunlight: LightLevel | None = None
+    preferred_temp_min: int | None = None
+    preferred_temp_max: int | None = None
+    air_humidity_req: HumidityLevel | None = None
+    soil_humidity_req: HumidityLevel | None = None
+    preferred_watering_interval_days: int | None = None
 
-# 4. HISTORIA PODLEWANIA
-class WateringData(SQLModel, table=True):
-    __tablename__: str = "watering_data"  # type: ignore
-    plant_id: int = Field(foreign_key="user_plants.id", primary_key=True)
-    timestamp_of_watering: datetime = Field(
-        default_factory=utc_now,
-        primary_key=True,
+    # Snapshot from the last AI scan that produced a verdict.
+    last_health_label: str | None = None
+    last_health_confidence: float | None = None
+    last_health_check_at: datetime | None = None
+    last_diseases: list[dict[str, Any]] | None = Field(
+        default=None,
+        sa_column=Column(JSONB),
     )
 
 
-# 5. POZIOMY
+# Table is still named watering_data for backward compat with migrations and tooling.
+class CareEvent(SQLModel, table=True):
+    __tablename__: str = "watering_data"  # type: ignore
+    id: int | None = Field(default=None, primary_key=True)
+    plant_id: int = Field(foreign_key="user_plants.id", index=True)
+    # Column name kept as `timestamp_of_watering` for backward compat.
+    timestamp_of_watering: datetime = Field(default_factory=utc_now)
+    care_type: CareType = Field(default=CareType.water)
+
+
+class UserPlantImage(SQLModel, table=True):
+    __tablename__: str = "user_plant_images"  # type: ignore
+    id: int | None = Field(default=None, primary_key=True)
+    user_plant_id: int = Field(foreign_key="user_plants.id")
+    fid: str = Field(max_length=255)
+    uploaded_at: datetime = Field(default_factory=utc_now)
+
+
 class LevelsXpRanges(SQLModel, table=True):
     __tablename__: str = "levels_xp_ranges"  # type: ignore
     level_val: int = Field(primary_key=True)
     req_xp: int
+
+
+class GamificationData(SQLModel, table=True):
+    __tablename__: str = "gamification_data"  # type: ignore
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+
+    xp: int = Field(default=0)
+    current_streak: int = Field(default=0)
+    longest_streak: int = Field(default=0)
+    last_activity: datetime | None = Field(default=None)
+    last_login_at: datetime | None = Field(default=None)
+
+    plants_added: int = Field(default=0)
+    plants_scanned: int = Field(default=0)
+    plants_scanned_not_added: int = Field(default=0)
+    plants_watered: int = Field(default=0)
+    care_tasks_completed: int = Field(default=0)
+    species_owned: int = Field(default=0)
+    species_scanned: int = Field(default=0)
+    waters_before_9am: int = Field(default=0)
+
+    flags: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(MutableList.as_mutable(JSONB)),
+    )
+
+
+class Achievement(SQLModel, table=True):
+    __tablename__: str = "achievement_data"  # type: ignore
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    created_at: datetime | None = Field(default_factory=utc_now)
+    achievement_name: str
 
 
 class Token(BaseModel):

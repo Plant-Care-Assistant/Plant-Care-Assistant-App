@@ -97,7 +97,13 @@ class DiseasePlantClassifier:
 
         variant = config.get("variant", "b0")
         img_size = config.get("img_size", 224)
-        num_diseases = ckpt.get("num_diseases", 38)
+        num_diseases = ckpt.get("num_diseases") or config.get("num_diseases")
+        if num_diseases is None:
+            msg = (
+                "Cannot determine num_diseases from checkpoint. "
+                "Checkpoint must contain 'num_diseases' or 'config.num_diseases'."
+            )
+            raise ValueError(msg)
 
         model = DiseasePlantModel(
             model_name=config.get("model_name", "efficientnetv2"),
@@ -181,10 +187,22 @@ class DiseasePlantClassifier:
             crops.append(image.crop((cx1, cy1, cx2, cy2)))
         return crops
 
+    _MAX_LEAF_BATCH = 16
+
     def _classify_batch(self, crops: list[Image.Image]) -> dict[str, torch.Tensor]:
-        tensors = torch.stack([self.transform(c) for c in crops]).to(self.device)
-        with torch.no_grad():
-            return self.disease_model(tensors)
+        all_health: list[torch.Tensor] = []
+        all_disease: list[torch.Tensor] = []
+        for i in range(0, len(crops), self._MAX_LEAF_BATCH):
+            chunk = crops[i : i + self._MAX_LEAF_BATCH]
+            tensors = torch.stack([self.transform(c) for c in chunk]).to(self.device)
+            with torch.no_grad():
+                out = self.disease_model(tensors)
+            all_health.append(out["health"])
+            all_disease.append(out["disease"])
+        return {
+            "health": torch.cat(all_health, dim=0),
+            "disease": torch.cat(all_disease, dim=0),
+        }
 
     def predict(
         self,
@@ -219,16 +237,23 @@ class DiseasePlantClassifier:
         health_logits = torch.sigmoid(out["health"]).squeeze(1)
         disease_probs = torch.softmax(out["disease"], dim=1)
 
-        mean_health_logit = float(health_logits.mean().item())
-        health_label = "diseased" if mean_health_logit >= self.health_threshold else "healthy"
+        max_health_logit = float(health_logits.max().item())
+        health_label = "diseased" if max_health_logit >= self.health_threshold else "healthy"
         health_confidence = (
-            mean_health_logit
-            if mean_health_logit >= self.health_threshold
-            else 1.0 - mean_health_logit
+            max_health_logit
+            if max_health_logit >= self.health_threshold
+            else 1.0 - float(health_logits.min().item())
         )
 
-        aggregated = disease_probs.sum(dim=0)
-        aggregated /= aggregated.sum()
+        if used_full_image_fallback:
+            health_confidence *= 0.7
+
+        # Weight by per-leaf health probability so healthy leaves contribute less
+        eps = 1e-8
+        weights = health_logits.unsqueeze(1).clamp(min=eps)
+        aggregated = (disease_probs * weights).sum(dim=0)
+        denom = aggregated.sum()
+        aggregated = aggregated / denom if denom > eps else disease_probs.mean(dim=0)
 
         top_di_probs, top_di_idx = aggregated.topk(min(top_k_diseases, self.num_diseases))
         disease_preds = [
@@ -247,7 +272,7 @@ class DiseasePlantClassifier:
             "health": {
                 "label": health_label,
                 "confidence": round(health_confidence, 4),
-                "logit": round(mean_health_logit, 4),
+                "logit": round(max_health_logit, 4),
             },
             "diseases": disease_preds,
             "leaf_count": len(crops),

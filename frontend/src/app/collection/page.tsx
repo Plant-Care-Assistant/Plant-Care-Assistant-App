@@ -5,41 +5,35 @@ import { Skeleton } from "@/components/ui";
 import { CollectionScreen } from "@/components/screens/CollectionScreen";
 import { useTheme } from "@/providers";
 import { usePlantsQuery } from "@/hooks/usePlants";
+import { useFirstVisitXP } from "@/lib/gamification/useFirstVisitXP";
 
 export default function CollectionPage() {
-  const { theme, toggleTheme } = useTheme();
-  const darkMode = theme === "dark";
+  const { toggleTheme } = useTheme();
   const { data: plants = [], isLoading } = usePlantsQuery();
 
+  useFirstVisitXP('collection');
+
   return (
-    <Layout
-      showBottomNav
-      darkMode={darkMode}
-      onToggleDarkMode={toggleTheme}
-    >
+    <Layout showBottomNav onToggleDarkMode={toggleTheme}>
       {isLoading ? (
-        <div className={`min-h-screen pb-24 lg:pb-8 ${darkMode ? "text-white" : "text-gray-900"}`}>
+        <div className="min-h-screen pb-24 lg:pb-8 text-gray-900 dark:text-white">
           <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-            {/* Header Skeleton */}
             <div className="mb-6">
               <Skeleton className="h-8 w-48 mb-2" />
               <Skeleton className="h-4 w-64" />
             </div>
 
-            {/* Search Skeleton */}
             <Skeleton className="h-10 w-full mb-6 rounded-lg" />
 
-            {/* Filters Skeleton */}
             <div className="flex gap-2 mb-6">
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-10 w-20 rounded-full" />
               ))}
             </div>
 
-            {/* Plant Grid Skeleton */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className={`rounded-2xl overflow-hidden ${darkMode ? "bg-neutral-800" : "bg-white"}`}>
+                <div key={i} className="rounded-2xl overflow-hidden bg-white dark:bg-neutral-800">
                   <Skeleton className="h-48 w-full" />
                   <div className="p-4 space-y-3">
                     <Skeleton className="h-5 w-32" />
@@ -55,10 +49,7 @@ export default function CollectionPage() {
           </div>
         </div>
       ) : (
-        <CollectionScreen
-          darkMode={darkMode}
-          plants={plants}
-        />
+        <CollectionScreen plants={plants} />
       )}
     </Layout>
   );

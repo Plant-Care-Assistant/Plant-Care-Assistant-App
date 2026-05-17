@@ -107,8 +107,7 @@ class PlantVillageDataLoader:
         self.disease_to_idx = probe.disease_to_idx
         self.num_classes = len(self.disease_classes)
 
-        # shuffle indices reproducibly, then partition.
-        # S311: Standard pseudo-random generators are safe for non-cryptographic use (ML splitting)
+        # Reproducible split; non-crypto PRNG is safe for an ML data partition (S311).
         indices = list(range(len(probe)))
         random.Random(seed).shuffle(indices)  # noqa: S311
 

@@ -15,3 +15,18 @@ export const navItems: NavItem[] = [
   { screen: 'collection', label: 'Collection', icon: Grid },
   { screen: 'profile', label: 'Profile', icon: User },
 ];
+
+export const SCREEN_ROUTES: Record<NavScreen, string> = {
+  home: '/',
+  scan: '/scan',
+  collection: '/collection',
+  profile: '/profile',
+};
+
+export function screenFromPathname(pathname: string | null): NavScreen {
+  if (!pathname) return 'home';
+  if (pathname.startsWith('/scan')) return 'scan';
+  if (pathname.startsWith('/plant') || pathname.startsWith('/collection')) return 'collection';
+  if (pathname.startsWith('/profile')) return 'profile';
+  return 'home';
+}
