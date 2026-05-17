@@ -75,25 +75,6 @@ Używamy spójnych typów commitów:
 - CHORE:	zmiany techniczne, konfiguracja, CI, struktura repo
 
 
-## Pre-commit hooks
-
-W projekcie korzystamy z hooków pre-commit.
-
-Każdy po sklonowaniu repo musi wykonać:
-- pip3 install pre-commit
-
-I w katalogu głównym repo:
-- pre-commit install
-
-Od tej pory:
-- pre-commit uruchamia się automatycznie przy każdym commitcie
-- Użyj pre-commit run --all-files (jeśli chcesz sprawdzic pliki ręcznie)
-
-Hooki:
-- formatują kod,
-- wykrywają błędy zanim trafią do PR,
-
-
 ## Dokumentacja
 
 Wszelkie zmiany w logice aplikacji lub API muszą być odzwierciedlone w:
